@@ -271,12 +271,13 @@ img {
 
 .hero-brand {
   font-family: var(--font-display);
-  font-size: clamp(48px, 14vw, 72px);
+  font-size: clamp(40px, 12vw, 72px);
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.92;
   margin: 0 0 14px;
   animation: rise 0.65s 0.1s ease both;
+  word-break: break-word;
 }
 
 .hero-brand em {
