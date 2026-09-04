@@ -225,25 +225,41 @@ export function SolitaireGame({
       <p className={`game-status ${won ? 'win' : ''}`}>{status}</p>
       <div className="sol-top">
         <div className="sol-stock">
-          <button type="button" className="sol-slot" onClick={drawStock} aria-label="Колода">
+          <div
+            className="sol-slot"
+            onClick={drawStock}
+            onKeyDown={(e) => e.key === 'Enter' && drawStock()}
+            role="button"
+            tabIndex={0}
+            aria-label="Колода"
+          >
             {stock.length > 0 ? <PlayingCard faceDown /> : null}
-          </button>
-          <button type="button" className="sol-slot" onClick={onWasteClick} aria-label="Сброс">
+          </div>
+          <div
+            className="sol-slot"
+            onClick={onWasteClick}
+            onKeyDown={(e) => e.key === 'Enter' && onWasteClick()}
+            role="button"
+            tabIndex={0}
+            aria-label="Сброс"
+          >
             {waste.length > 0 && (
               <PlayingCard
                 card={waste[waste.length - 1]}
                 selected={selected?.where === 'waste'}
               />
             )}
-          </button>
+          </div>
         </div>
         <div className="sol-foundations">
           {foundations.map((pile, fi) => (
-            <button
+            <div
               key={fi}
-              type="button"
               className="sol-slot"
               onClick={() => onFoundationClick(fi)}
+              onKeyDown={(e) => e.key === 'Enter' && onFoundationClick(fi)}
+              role="button"
+              tabIndex={0}
               aria-label={`Фундамент ${fi + 1}`}
             >
               {pile.length > 0 && (
@@ -252,7 +268,7 @@ export function SolitaireGame({
                   selected={selected?.where === 'foundation' && selected.col === fi}
                 />
               )}
-            </button>
+            </div>
           ))}
         </div>
       </div>
