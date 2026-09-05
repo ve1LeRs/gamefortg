@@ -300,7 +300,9 @@ export function DurakGame({
     maxAttackSlots(defenderHand, tbl) - tbl.length
 
   const playPlayerAttack = async (card: Card, fromDrag = false) => {
-    if (over || attacker !== 'player' || busy) return
+    // Keep toss turn while botTaking even if attacker flag is stale
+    if (over || busy) return
+    if (!botTaking && attacker !== 'player') return
     if (table.length > 0 && !ranksOnTable.has(card.rank)) {
       setStatus('Можно подкидывать только уже лежащие ранги (погоны)')
       return
@@ -329,7 +331,7 @@ export function DurakGame({
 
     // Bot already said take — only toss onto shoulders, no defence attempt.
     if (botTaking) {
-      setStatus('Бот берёт. Подкиньте ещё на погоны или отдайте.')
+      setStatus('Подкинули. Можно ещё на погоны или нажмите «Отдать»')
       setBusy(false)
       return
     }
@@ -337,7 +339,8 @@ export function DurakGame({
     const defence = botDefend(card, bot)
     if (!defence) {
       setBotTaking(true)
-      setStatus('Бот берёт. Подкиньте на погоны или отдайте карты.')
+      onHaptic?.('medium')
+      setStatus('Бот не бьётся — подкиньте на погоны, затем «Отдать»')
       setBusy(false)
       return
     }
@@ -355,9 +358,10 @@ export function DurakGame({
   const confirmBotTake = async () => {
     if (over || !botTaking || busy) return
     setBusy(true)
-    setStatus('Бот берёт карты…')
+    setStatus('Бот забирает карты со стола…')
+    onHaptic?.('medium')
     setTableFlying(true)
-    if (!prefersReducedMotion()) await sleep(720)
+    if (!prefersReducedMotion()) await sleep(920)
     const taken = [
       ...bot,
       ...table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack])),
@@ -647,7 +651,7 @@ export function DurakGame({
       </div>
 
       <header className="durak-top">
-        <div className={`durak-seat ${attacker === 'bot' ? 'is-active' : ''}`}>
+        <div className={`durak-seat${attacker === 'bot' ? ' is-active' : ''}${botTaking ? ' is-taking' : ''}${tableFlying ? ' is-receiving-cards' : ''}`}>
           <div className="durak-avatar bot-avatar" aria-hidden>
             🤖
           </div>
@@ -702,6 +706,11 @@ export function DurakGame({
         </div>
       </div>
 
+      {botTaking && !tableFlying && (
+        <div className="durak-take-banner" role="status">
+          Бот берёт — подкиньте карты тех же рангов, потом «Отдать»
+        </div>
+      )}
       <div className="durak-actions" onClick={(e) => e.stopPropagation()}>
         {over ? (
           <button type="button" className="durak-btn durak-btn-primary" onClick={reset}>
@@ -715,7 +724,7 @@ export function DurakGame({
               </button>
             )}
             {canGiveToBot && (
-              <button type="button" className="durak-btn durak-btn-take" onClick={() => void confirmBotTake()}>
+              <button type="button" className="durak-btn durak-btn-take is-pulse" onClick={() => void confirmBotTake()}>
                 Отдать
               </button>
             )}
@@ -730,7 +739,7 @@ export function DurakGame({
 
       <footer className="durak-bottom" onClick={(e) => e.stopPropagation()}>
         <div
-          className={`durak-hand${drag?.active ? ' is-dragging' : ''}${Object.keys(dealOrder).length ? ' is-receiving' : ''}${handLayout.scrollable ? ' is-scrollable' : ''}`}
+          className={`durak-hand${drag?.active ? ' is-dragging' : ''}${Object.keys(dealOrder).length ? ' is-receiving' : ''}${handLayout.scrollable ? ' is-scrollable' : ''}${botTaking ? ' is-toss-phase' : ''}`}
           data-count={playerHand.length}
           style={{
             ['--hand-card-w' as string]: `${handLayout.cardW}px`,

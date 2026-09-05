@@ -1522,10 +1522,17 @@ body.tg-webapp .app-main:not(.game-mode) {
   0% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(0, -70px, 0) scale(0.78) rotate(-8deg);
+    filter: brightness(1.15);
   }
   100% {
     opacity: 0;
-    transform: translate3d(0, -110px, 0) scale(0.55) rotate(-12deg);
+    transform: translate3d(0, -130px, 0) scale(0.4) rotate(-16deg);
+    filter: brightness(1.3);
   }
 }
 
@@ -1911,6 +1918,95 @@ body.tg-webapp .app-main:not(.game-mode) {
   z-index: 4;
 }
 
+
+.durak-take-banner {
+  margin: 0 16px 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #1a1400;
+  background: linear-gradient(180deg, #ffe56a, #f0c420);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  animation: durak-banner-in 0.35s ease both;
+}
+
+@keyframes durak-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.durak-btn-take.is-pulse {
+  animation: durak-btn-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes durak-btn-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 8px 22px rgba(255, 220, 80, 0.45);
+  }
+}
+
+.durak-seat.is-taking .durak-avatar {
+  box-shadow: 0 0 0 2px #ffe56a, 0 0 16px rgba(255, 220, 80, 0.55);
+}
+
+.durak-seat.is-receiving-cards .durak-avatar {
+  animation: durak-bot-catch 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.durak-seat.is-receiving-cards .durak-mini-back {
+  animation: durak-bot-card-pop 0.5s ease both;
+  animation-delay: calc(var(--i, 0) * 0.05s);
+}
+
+@keyframes durak-bot-catch {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes durak-bot-card-pop {
+  0% {
+    opacity: 0.3;
+    transform: translateY(12px) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.durak-table-cards.is-bot-taking .durak-pair {
+  animation: durak-fly-to-bot 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.durak-hand.is-receiving .durak-hand-card.playable,
+.durak-table:has(.durak-take-banner) .durak-hand-card.playable {
+  outline: 2px solid #ffe56a;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 2px rgba(255, 229, 106, 0.35), 0 10px 22px rgba(0, 0, 0, 0.38);
+}
+
 .durak-actions {
   position: relative;
   z-index: 4;
@@ -2257,4 +2353,17 @@ body.tg-webapp .app-main:not(.game-mode) {
     height: 96px !important;
     z-index: 0;
   }
+}
+
+
+.durak-hand.is-toss-phase .durak-hand-card.playable {
+  outline: 2px solid #ffe56a;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 2px rgba(255, 229, 106, 0.4), 0 10px 22px rgba(0, 0, 0, 0.38);
+  animation: durak-toss-hint 1.1s ease-in-out infinite;
+}
+
+@keyframes durak-toss-hint {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg)); }
+  50% { transform: translate3d(0, -6px, 0) rotate(var(--rot, 0deg)); }
 }
