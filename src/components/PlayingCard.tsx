@@ -47,9 +47,11 @@ export function PlayingCard({
       ? 'enter-throw-player'
       : enter === 'throw-bot'
         ? 'enter-throw-bot'
-        : enter === 'none'
-          ? 'enter-none'
-          : ''
+        : enter === 'deal'
+          ? 'enter-deal'
+          : enter === 'none'
+            ? 'enter-none'
+            : ''
 
   if (faceDown || !card) {
     return (
