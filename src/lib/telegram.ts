@@ -112,6 +112,8 @@ export function applyTelegramChrome(wa = getWebApp()) {
     window.setTimeout(() => requestAppFullscreen(wa), ms)
   })
 
+  document.body.classList.add('tg-webapp')
+
   const syncFullscreenClass = () => {
     document.body.classList.toggle('tg-fullscreen', !!wa.isFullscreen)
     document.body.classList.toggle('tg-expanded', !!wa.isExpanded || !!wa.isFullscreen)
@@ -132,6 +134,11 @@ export function applyTelegramChrome(wa = getWebApp()) {
       root.style.setProperty('--tg-content-top', `${content.top}px`)
       root.style.setProperty('--tg-content-bottom', `${content.bottom}px`)
     }
+    // Floating «Закрыть» sits over the WebView; if Telegram reports 0,
+    // still keep a floor so the store hero never slides under it.
+    const reported = Math.max(safe?.top ?? 0, content?.top ?? 0)
+    const chromeFloor = wa.isFullscreen || wa.isExpanded ? 72 : 16
+    root.style.setProperty('--tg-chrome-top', `${Math.max(reported, chromeFloor)}px`)
   }
   syncSafeArea()
 
