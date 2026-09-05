@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { PlayingCard } from '../components/PlayingCard'
 import {
@@ -12,6 +12,7 @@ import {
 } from '../lib/cards'
 
 type TablePair = { attack: Card; defence?: Card }
+type EnterKind = 'deal' | 'throw-player' | 'throw-bot' | 'none'
 
 type DragState = {
   card: Card
@@ -27,7 +28,6 @@ type DragState = {
   active: boolean
   overTable: boolean
 }
-
 
 function beats(a: Card, b: Card, trump: Card['suit']): boolean {
   if (a.suit === b.suit) return rankValue(a.rank, DURAK_RANKS) > rankValue(b.rank, DURAK_RANKS)
@@ -73,6 +73,12 @@ function refill(hand: Card[], deck: Card[], n = 6): { hand: Card[]; deck: Card[]
   return { hand: h, deck: d }
 }
 
+/** Max attack cards: min(6, defender capacity including cards already played as defence). */
+function maxAttackSlots(defenderHandSize: number, table: TablePair[]): number {
+  const defended = table.filter((p) => p.defence).length
+  return Math.min(6, defenderHandSize + defended)
+}
+
 const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 
 function prefersReducedMotion() {
@@ -80,6 +86,7 @@ function prefersReducedMotion() {
 }
 
 const THROW_MS = 900
+const DEAL_MS = 700
 
 export function DurakGame({
   onHaptic,
@@ -94,17 +101,22 @@ export function DurakGame({
   const [trumpCard] = useState(initial.trumpCard)
   const [table, setTable] = useState<TablePair[]>([])
   const [attacker, setAttacker] = useState<'player' | 'bot'>('player')
-  const [status, setStatus] = useState('Ваш ход — ходите картой')
+  const [status, setStatus] = useState('Раздача…')
   const [over, setOver] = useState<'win' | 'lose' | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [enterMap, setEnterMap] = useState<Record<string, 'throw-player' | 'throw-bot' | 'none'>>({})
+  const [enterMap, setEnterMap] = useState<Record<string, EnterKind>>(() =>
+    Object.fromEntries(initial.player.map((c) => [c.id, 'deal' as const])),
+  )
   const [throwingId, setThrowingId] = useState<string | null>(null)
   const [drag, setDrag] = useState<DragState | null>(null)
+  /** Bot declared take — player may still toss matching ranks (погоны). */
+  const [botTaking, setBotTaking] = useState(false)
+  const [tableFlying, setTableFlying] = useState(false)
   const fieldRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
   const skipClickRef = useRef(false)
-
+  const dealTimerRef = useRef<number | null>(null)
 
   const ranksOnTable = useMemo(() => {
     const ranks = new Set<Rank>()
@@ -114,6 +126,52 @@ export function DurakGame({
     }
     return ranks
   }, [table])
+
+  const markDealCards = useCallback((cards: Card[]) => {
+    if (cards.length === 0) return
+    setEnterMap((m) => {
+      const next = { ...m }
+      cards.forEach((c, i) => {
+        next[c.id] = 'deal'
+        void i
+      })
+      return next
+    })
+    if (dealTimerRef.current) window.clearTimeout(dealTimerRef.current)
+    const ms = prefersReducedMotion() ? 40 : DEAL_MS + cards.length * 80
+    dealTimerRef.current = window.setTimeout(() => {
+      setEnterMap((m) => {
+        const next = { ...m }
+        for (const c of cards) {
+          if (next[c.id] === 'deal') next[c.id] = 'none'
+        }
+        return next
+      })
+    }, ms)
+  }, [])
+
+  useEffect(() => {
+    const cards = initial.player
+    const ms = prefersReducedMotion() ? 40 : DEAL_MS + cards.length * 80
+    const t = window.setTimeout(() => {
+      setEnterMap((m) => {
+        const next = { ...m }
+        for (const c of cards) {
+          if (next[c.id] === 'deal') next[c.id] = 'none'
+        }
+        return next
+      })
+      setStatus('Ваш ход — ходите картой')
+    }, ms)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (dealTimerRef.current) window.clearTimeout(dealTimerRef.current)
+    }
+  }, [])
 
   const checkEnd = (pHand: Card[], bHand: Card[], dLen: number) => {
     if (pHand.length === 0 && dLen === 0) {
@@ -132,6 +190,7 @@ export function DurakGame({
   }
 
   const drawUp = (pHand: Card[], bHand: Card[], d: Card[], first: 'player' | 'bot') => {
+    const beforePlayer = new Set(pHand.map((c) => c.id))
     let deckNow = d
     let playerNow = pHand
     let botNow = bHand
@@ -143,9 +202,11 @@ export function DurakGame({
       ;({ hand: playerNow, deck: deckNow } = refill(playerNow, deckNow))
     }
     playerNow = sortHand(playerNow, trump)
+    const dealt = playerNow.filter((c) => !beforePlayer.has(c.id))
     setPlayer(playerNow)
     setBot(botNow)
     setDeck(deckNow)
+    if (dealt.length > 0) markDealCards(dealt)
     return { playerNow, botNow, deckNow }
   }
 
@@ -191,56 +252,63 @@ export function DurakGame({
     setBot(next.bot)
     setTable([])
     setAttacker('player')
-    setStatus('Ваш ход — ходите картой')
+    setStatus('Раздача…')
     setOver(null)
     setSelected(null)
     setBusy(false)
     setThrowingId(null)
-    setEnterMap({})
+    setBotTaking(false)
+    setTableFlying(false)
+    setEnterMap(Object.fromEntries(next.player.map((c) => [c.id, 'deal' as const])))
+    markDealCards(next.player)
+    window.setTimeout(() => {
+      setStatus('Ваш ход — ходите картой')
+    }, prefersReducedMotion() ? 40 : DEAL_MS + next.player.length * 80)
     onHaptic?.('medium')
-  }, [onHaptic])
+  }, [onHaptic, markDealCards])
+
+  const slotsLeft = (defenderHand: number, tbl: TablePair[]) =>
+    maxAttackSlots(defenderHand, tbl) - tbl.length
 
   const playPlayerAttack = async (card: Card, fromDrag = false) => {
     if (over || attacker !== 'player' || busy) return
     if (table.length > 0 && !ranksOnTable.has(card.rank)) {
-      setStatus('Можно подкидывать только уже лежащие ранги')
+      setStatus('Можно подкидывать только уже лежащие ранги (погоны)')
       return
     }
-    if (table.length >= 6) return
+    if (slotsLeft(bot.length, table) <= 0) {
+      setStatus(botTaking ? 'Больше подкинуть нельзя — отдайте карты' : 'Больше подкинуть нельзя')
+      return
+    }
 
     setBusy(true)
     setSelected(null)
 
     const newPlayer = player.filter((c) => c.id !== card.id)
+    const nextTable = [...table, { attack: card }]
     if (fromDrag) {
-      // Card is already at the table under the finger — place it without
-      // snapping back to the hand and re-flying.
       setPlayer(newPlayer)
       setEnterMap((m) => ({ ...m, [card.id]: 'none' }))
-      setTable([...table, { attack: card }])
+      setTable(nextTable)
     } else {
       await leaveHand(card.id)
       setPlayer(newPlayer)
       setEnterMap((m) => ({ ...m, [card.id]: 'throw-player' }))
-      setTable([...table, { attack: card }])
+      setTable(nextTable)
       await waitThrow()
+    }
+
+    // Bot already said take — only toss onto shoulders, no defence attempt.
+    if (botTaking) {
+      setStatus('Бот берёт. Подкиньте ещё на погоны или отдайте.')
+      setBusy(false)
+      return
     }
 
     const defence = botDefend(card, bot)
     if (!defence) {
-      const taken = [
-        ...bot,
-        card,
-        ...table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack])),
-      ]
-      setBot(taken)
-      setTable([])
-      setEnterMap({})
-      const drawn = drawUp(newPlayer, taken, deck, 'player')
-      if (!checkEnd(drawn.playerNow, drawn.botNow, drawn.deckNow.length)) {
-        setAttacker('player')
-        setStatus('Бот взял карты. Ходите снова.')
-      }
+      setBotTaking(true)
+      setStatus('Бот берёт. Подкиньте на погоны или отдайте карты.')
       setBusy(false)
       return
     }
@@ -251,12 +319,35 @@ export function DurakGame({
     setEnterMap((m) => ({ ...m, [defence.id]: 'throw-bot' }))
     setTable((t) => t.map((p) => (p.attack.id === card.id ? { ...p, defence } : p)))
     await waitThrow()
-    setStatus('Отбил. Подкиньте ещё или бито.')
+    setStatus('Отбил. Подкиньте ещё на погоны или бито.')
+    setBusy(false)
+  }
+
+  const confirmBotTake = async () => {
+    if (over || !botTaking || busy) return
+    setBusy(true)
+    setStatus('Бот берёт карты…')
+    setTableFlying(true)
+    if (!prefersReducedMotion()) await sleep(720)
+    const taken = [
+      ...bot,
+      ...table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack])),
+    ]
+    setBot(taken)
+    setTable([])
+    setTableFlying(false)
+    setBotTaking(false)
+    setEnterMap({})
+    const drawn = drawUp(player, taken, deck, 'player')
+    if (!checkEnd(drawn.playerNow, drawn.botNow, drawn.deckNow.length)) {
+      setAttacker('player')
+      setStatus('Бот взял карты. Ходите снова.')
+    }
     setBusy(false)
   }
 
   const playerDefend = async (card: Card, fromDrag = false) => {
-    if (over || attacker !== 'bot' || busy) return
+    if (over || attacker !== 'bot' || busy || botTaking) return
     const open = table.find((p) => !p.defence)
     if (!open) return
     if (!canDefend(card, open.attack, trump)) {
@@ -289,11 +380,14 @@ export function DurakGame({
       ranks.add(p.attack.rank)
       if (p.defence) ranks.add(p.defence.rank)
     }
-    const toss = botAttackCard(
-      bot.filter((c) => !newTable.some((p) => p.attack.id === c.id || p.defence?.id === c.id)),
-      ranks,
-    )
-    if (toss && newTable.length < 6 && newPlayer.length > 0) {
+    const canTossMore = slotsLeft(newPlayer.length, newTable) > 0
+    const toss = canTossMore
+      ? botAttackCard(
+          bot.filter((c) => !newTable.some((p) => p.attack.id === c.id || p.defence?.id === c.id)),
+          ranks,
+        )
+      : null
+    if (toss && newPlayer.length > 0) {
       await sleep(140)
       const newerBot = bot.filter((c) => c.id !== toss.id)
       setBot(newerBot)
@@ -311,13 +405,26 @@ export function DurakGame({
     const el = fieldRef.current
     if (!el) return false
     const r = el.getBoundingClientRect()
-    // Expand hit area a bit toward the hand so drops feel forgiving.
     return x >= r.left - 8 && x <= r.right + 8 && y >= r.top - 12 && y <= r.bottom + 36
+  }
+
+  const isPlayable = (card: Card): boolean => {
+    if (over || busy) return false
+    if (botTaking) {
+      return ranksOnTable.has(card.rank) && slotsLeft(bot.length, table) > 0
+    }
+    if (attacker === 'player') {
+      if (table.length === 0) return true
+      return ranksOnTable.has(card.rank) && slotsLeft(bot.length, table) > 0
+    }
+    const open = table.find((p) => !p.defence)
+    if (!open) return false
+    return canDefend(card, open.attack, trump)
   }
 
   const playCard = (card: Card, fromDrag = false) => {
     if (over || busy) return
-    if (attacker === 'player') void playPlayerAttack(card, fromDrag)
+    if (botTaking || attacker === 'player') void playPlayerAttack(card, fromDrag)
     else void playerDefend(card, fromDrag)
   }
 
@@ -331,6 +438,7 @@ export function DurakGame({
 
   const onCardPointerDown = (card: Card, e: React.PointerEvent<HTMLButtonElement>) => {
     if (over || busy || e.button !== 0) return
+    if (!isPlayable(card)) return
     const rect = e.currentTarget.getBoundingClientRect()
     const next: DragState = {
       card,
@@ -397,7 +505,7 @@ export function DurakGame({
   }
 
   const takeCards = () => {
-    if (over || attacker !== 'bot' || busy) return
+    if (over || attacker !== 'bot' || busy || botTaking) return
     const taken = sortHand(
       [
         ...player,
@@ -408,6 +516,7 @@ export function DurakGame({
     setPlayer(taken)
     setTable([])
     setEnterMap({})
+    markDealCards(taken.filter((c) => !player.some((p) => p.id === c.id)))
     onHaptic?.('medium')
     const drawn = drawUp(taken, bot, deck, 'bot')
     if (!checkEnd(drawn.playerNow, drawn.botNow, drawn.deckNow.length)) {
@@ -423,7 +532,7 @@ export function DurakGame({
   }
 
   const bito = () => {
-    if (over || busy) return
+    if (over || busy || botTaking) return
     if (table.length === 0 || table.some((p) => !p.defence)) {
       setStatus('Сначала закройте все атаки')
       return
@@ -450,20 +559,31 @@ export function DurakGame({
   }
 
   const startBotAttackIfNeeded = () => {
-    if (busy || attacker !== 'bot' || table.length !== 0 || over) return
+    if (busy || attacker !== 'bot' || table.length !== 0 || over || botTaking) return
     const atk = botAttackCard(bot)
     if (!atk) return
     void placeBotAttack(atk, bot, 'Ход бота — отбейтесь картой')
   }
 
-  const enterFor = (id: string, fallback: 'throw-player' | 'throw-bot' | 'deal' | 'none' = 'deal') =>
-    enterMap[id] ?? fallback
+  const enterFor = (id: string, fallback: EnterKind = 'deal') => enterMap[id] ?? fallback
 
   const canBito =
-    !busy && table.length > 0 && table.every((p) => p.defence) && (attacker === 'player' || attacker === 'bot')
-  const canTake = !busy && !over && attacker === 'bot' && table.some((p) => !p.defence)
+    !busy &&
+    !botTaking &&
+    table.length > 0 &&
+    table.every((p) => p.defence) &&
+    (attacker === 'player' || attacker === 'bot')
+  const canTake = !busy && !over && !botTaking && attacker === 'bot' && table.some((p) => !p.defence)
+  const canGiveToBot = !busy && !over && botTaking
   const deckLayers = Math.min(5, Math.max(1, Math.ceil(deck.length / 6)))
   const playerHand = useMemo(() => sortHand(player, trump), [player, trump])
+  const statusClass = [
+    over === 'win' ? 'win' : '',
+    over === 'lose' ? 'lose' : '',
+    botTaking || tableFlying ? 'is-take' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div
@@ -493,13 +613,11 @@ export function DurakGame({
             ))}
           </div>
         </div>
-        <p className={`durak-status ${over === 'win' ? 'win' : over === 'lose' ? 'lose' : ''}`}>
-          {status}
-        </p>
+        <p className={`durak-status ${statusClass}`}>{status}</p>
       </header>
 
       <div ref={fieldRef} className="durak-field">
-        <div className="durak-table-cards">
+        <div className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}`}>
           {table.length === 0 && <span className="durak-empty">Ход картой</span>}
           {table.map((p) => (
             <div className="durak-pair" key={p.attack.id}>
@@ -522,7 +640,6 @@ export function DurakGame({
         </div>
 
         <div className="durak-deck" aria-label={`Колода: ${deck.length}`}>
-          {/* Trump under the stack — half visible, like a real Durak table */}
           {deck.length > 0 && (
             <PlayingCard card={trumpCard} rankStyle="ru" className="durak-trump-card" enter="none" />
           )}
@@ -545,6 +662,11 @@ export function DurakGame({
                 Беру
               </button>
             )}
+            {canGiveToBot && (
+              <button type="button" className="durak-btn durak-btn-take" onClick={() => void confirmBotTake()}>
+                Отдать
+              </button>
+            )}
             {canBito && (
               <button type="button" className="durak-btn durak-btn-bito" onClick={bito}>
                 Бито
@@ -561,6 +683,7 @@ export function DurakGame({
             const mid = (n - 1) / 2
             const offset = i - mid
             const isDrag = drag?.card.id === c.id && drag.active
+            const playable = isPlayable(c)
             return (
               <PlayingCard
                 key={c.id}
@@ -568,12 +691,14 @@ export function DurakGame({
                 index={i}
                 rankStyle="ru"
                 selected={selected === c.id}
-                playable={!over && !busy}
+                playable={playable}
                 throwing={throwingId === c.id}
+                enter={enterFor(c.id, 'none')}
                 className={`durak-card durak-hand-card${isDrag ? ' is-drag-source' : ''}`}
                 style={{
                   ['--fan' as string]: offset,
                   ['--rot' as string]: `${offset * 3.2}deg`,
+                  ['--deal-i' as string]: i,
                   zIndex: isDrag ? 50 : throwingId === c.id ? 30 : i + 1,
                   touchAction: 'none',
                 }}
@@ -613,7 +738,6 @@ export function DurakGame({
           </div>,
           document.body,
         )}
-
     </div>
   )
 }
