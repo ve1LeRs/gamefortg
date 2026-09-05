@@ -8,7 +8,7 @@ import { useTelegram } from './hooks/useTelegram'
 import type { GameId } from './data/games'
 import { getGame } from './data/games'
 
-const PLAYS_KEY = 'gamefort-plays'
+const PLAYS_KEY = 'gamefortg-plays'
 
 function loadPlays(): Record<string, number> {
   try {

@@ -16,7 +16,7 @@ export function StorePage({
     <div className="store-page">
       <div className="brand-bar">
         <div className="brand">
-          Game<em>Fort</em>
+          GameFor<em>Tg</em>
         </div>
         <div className="user-chip">
           <div className="user-avatar">
@@ -39,11 +39,11 @@ export function StorePage({
           <span>♦</span>
         </div>
         <h1 className="hero-brand">
-          Game<em>Fort</em>
+          GameFor<em>Tg</em>
         </h1>
         <p className="hero-copy">
-          Мобильный игровой хаб внутри Telegram. Покер, дурак, шахматы и пасьянс — без
-          установок, сразу в мини-приложении.
+          Игровой хаб внутри Telegram. Покер, дурак, шахматы, шашки и косынка — без
+          установок, сразу на весь экран.
         </p>
         <div className="cta-row">
           <button type="button" className="btn btn-primary" onClick={() => onPlay('poker')}>

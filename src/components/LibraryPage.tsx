@@ -5,7 +5,7 @@ export function LibraryPage({ onPlay }: { onPlay: (id: string) => void }) {
   return (
     <div className="library-page">
       <h1 className="page-title">Библиотека</h1>
-      <p className="page-sub">Все установленные игры GameFort — всегда под рукой.</p>
+      <p className="page-sub">Все установленные игры GameForTg — всегда под рукой.</p>
       <div className="library-grid">
         {GAMES.map((game, i) => (
           <button
