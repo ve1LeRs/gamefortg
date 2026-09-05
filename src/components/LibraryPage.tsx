@@ -12,7 +12,7 @@ export function LibraryPage({ onPlay }: { onPlay: (id: string) => void }) {
             key={game.id}
             type="button"
             className="lib-card"
-            style={{ animationDelay: `${i * 0.04}s` }}
+            style={{ animationDelay: `${i * 0.07}s` }}
             onClick={() => onPlay(game.id)}
           >
             <GameCover game={game} showTitle />
