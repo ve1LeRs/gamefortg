@@ -143,28 +143,64 @@ body.tg-fullscreen .game-topbar {
 
 /* Store hero */
 .store-page {
-  padding: calc(12px + var(--safe-top)) 0 24px;
+  padding: calc(4px + var(--safe-top)) 0 16px;
 }
 
-.brand-bar {
+.hero {
+  position: relative;
+  min-height: 0;
+  margin: 0 0 14px;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0;
+  overflow: hidden;
+  isolation: isolate;
+  animation: fade-in 0.5s ease both;
+}
+
+.hero-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px 16px;
-  animation: rise 0.55s ease both;
+  gap: 12px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
 }
 
-.brand {
+.hero-brand {
   font-family: var(--font-display);
+  font-size: clamp(28px, 8vw, 40px);
   font-weight: 800;
-  font-size: 28px;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   line-height: 1;
+  margin: 0;
+  white-space: nowrap;
 }
 
-.brand em {
+.hero-brand em {
   font-style: normal;
   color: var(--accent);
+}
+
+.hero-copy {
+  margin: 0 0 12px;
+  max-width: 22rem;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+  position: relative;
+  z-index: 1;
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .user-chip {
@@ -178,6 +214,7 @@ body.tg-fullscreen .game-topbar {
   font-size: 13px;
   font-weight: 600;
   max-width: 48vw;
+  flex-shrink: 0;
 }
 
 .user-avatar {
@@ -206,28 +243,15 @@ body.tg-fullscreen .game-topbar {
   white-space: nowrap;
 }
 
-.hero {
-  position: relative;
-  min-height: min(72vh, 560px);
-  margin: 0 0 28px;
-  padding: 28px 20px 32px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  overflow: hidden;
-  isolation: isolate;
-  animation: fade-in 0.7s ease both;
-}
-
 .hero-bg {
   position: absolute;
   inset: 0;
   z-index: -2;
+  border-radius: 0;
   background:
-    linear-gradient(180deg, transparent 20%, rgba(7, 16, 24, 0.55) 55%, var(--bg) 92%),
-    radial-gradient(ellipse 80% 60% at 70% 30%, rgba(232, 168, 56, 0.45), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 20% 70%, rgba(61, 220, 151, 0.2), transparent 55%),
-    linear-gradient(145deg, #1a2a3a 0%, #0c1620 50%, #061018 100%);
+    radial-gradient(ellipse 80% 70% at 80% 20%, rgba(232, 168, 56, 0.35), transparent 55%),
+    radial-gradient(ellipse 50% 50% at 10% 80%, rgba(61, 220, 151, 0.16), transparent 50%),
+    linear-gradient(145deg, #152433 0%, #0c1620 55%, #071018 100%);
 }
 
 .hero-bg::before {
@@ -250,8 +274,8 @@ body.tg-fullscreen .game-topbar {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  font-size: 64px;
-  opacity: 0.12;
+  font-size: 42px;
+  opacity: 0.14;
 }
 
 .hero-suits span {
@@ -260,61 +284,29 @@ body.tg-fullscreen .game-topbar {
 }
 
 .hero-suits span:nth-child(1) {
-  top: 12%;
+  top: 18%;
   left: 8%;
   color: #e8a838;
 }
 .hero-suits span:nth-child(2) {
-  top: 22%;
-  right: 12%;
+  top: 12%;
+  right: 10%;
   animation-delay: -2s;
   color: #ff6b4a;
-  font-size: 48px;
+  font-size: 34px;
 }
 .hero-suits span:nth-child(3) {
-  bottom: 38%;
-  left: 18%;
+  bottom: 18%;
+  left: 22%;
   animation-delay: -4s;
   color: #3ddc97;
-  font-size: 40px;
+  font-size: 28px;
 }
 .hero-suits span:nth-child(4) {
-  top: 40%;
-  right: 28%;
+  top: 42%;
+  right: 24%;
   animation-delay: -1s;
-  font-size: 56px;
-}
-
-.hero-brand {
-  font-family: var(--font-display);
-  font-size: clamp(40px, 12vw, 72px);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 0.92;
-  margin: 0 0 14px;
-  animation: rise 0.65s 0.1s ease both;
-  word-break: break-word;
-}
-
-.hero-brand em {
-  font-style: normal;
-  color: var(--accent);
-}
-
-.hero-copy {
-  margin: 0 0 22px;
-  max-width: 22rem;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.45;
-  animation: rise 0.65s 0.18s ease both;
-}
-
-.cta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  animation: rise 0.65s 0.26s ease both;
+  font-size: 36px;
 }
 
 .btn {
@@ -322,11 +314,11 @@ body.tg-fullscreen .game-topbar {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
-  padding: 0 20px;
-  border-radius: 14px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 12px;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
   transition: transform 0.15s ease, filter 0.15s ease, background 0.15s ease;
 }
 
@@ -346,20 +338,20 @@ body.tg-fullscreen .game-topbar {
 }
 
 .section {
-  padding: 0 20px 28px;
+  padding: 0 16px 20px;
 }
 
 .section-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .section-head h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -1069,9 +1061,9 @@ body.tg-fullscreen .game-topbar {
     flex-basis: 240px;
   }
   .hero {
-    min-height: 480px;
-    padding-left: 28px;
-    padding-right: 28px;
+    min-height: 0;
+    padding-left: 24px;
+    padding-right: 24px;
   }
   .section,
   .library-page,

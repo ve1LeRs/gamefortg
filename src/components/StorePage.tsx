@@ -14,22 +14,6 @@ export function StorePage({
 
   return (
     <div className="store-page">
-      <div className="brand-bar">
-        <div className="brand">
-          GameFor<em>Tg</em>
-        </div>
-        <div className="user-chip">
-          <div className="user-avatar">
-            {user?.photoUrl ? (
-              <img src={user.photoUrl} alt="" />
-            ) : (
-              (user?.firstName?.[0] ?? 'G').toUpperCase()
-            )}
-          </div>
-          <span>{user?.firstName ?? 'Гость'}</span>
-        </div>
-      </div>
-
       <section className="hero">
         <div className="hero-bg" />
         <div className="hero-suits" aria-hidden>
@@ -38,13 +22,24 @@ export function StorePage({
           <span>♣</span>
           <span>♦</span>
         </div>
-        <h1 className="hero-brand">
-          GameFor<em>Tg</em>
-        </h1>
-        <p className="hero-copy">
-          Игровой хаб внутри Telegram. Покер, дурак, шахматы, шашки и косынка — без
-          установок, сразу на весь экран.
-        </p>
+
+        <div className="hero-top">
+          <h1 className="hero-brand">
+            GameFor<em>Tg</em>
+          </h1>
+          <div className="user-chip">
+            <div className="user-avatar">
+              {user?.photoUrl ? (
+                <img src={user.photoUrl} alt="" />
+              ) : (
+                (user?.firstName?.[0] ?? 'G').toUpperCase()
+              )}
+            </div>
+            <span>{user?.firstName ?? 'Гость'}</span>
+          </div>
+        </div>
+
+        <p className="hero-copy">Покер, дурак, шахматы, шашки и косынка — сразу в Telegram.</p>
         <div className="cta-row">
           <button type="button" className="btn btn-primary" onClick={() => onPlay('poker')}>
             Играть в покер
@@ -82,7 +77,7 @@ export function StorePage({
               onClick={() => onPlay(game.id)}
             >
               <div className="game-row-art">
-                <span>{game.id === 'poker' ? '♠' : game.id === 'durak' ? '♦' : game.id === 'chess' ? '♟' : game.id === 'checkers' ? '●' : '♣'}</span>
+                <GameCover game={game} square />
               </div>
               <div>
                 <h3>{game.title}</h3>
