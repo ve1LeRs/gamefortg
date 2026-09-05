@@ -6,6 +6,8 @@ type Props = {
   faceDown?: boolean
   selected?: boolean
   playable?: boolean
+  throwing?: boolean
+  enter?: 'deal' | 'throw-player' | 'throw-bot' | 'none'
   onClick?: () => void
   className?: string
   style?: React.CSSProperties
@@ -17,6 +19,8 @@ export function PlayingCard({
   faceDown,
   selected,
   playable,
+  throwing,
+  enter = 'deal',
   onClick,
   className = '',
   style,
@@ -27,13 +31,23 @@ export function PlayingCard({
     ['--i' as string]: index,
   }
 
+  const enterClass =
+    enter === 'throw-player'
+      ? 'enter-throw-player'
+      : enter === 'throw-bot'
+        ? 'enter-throw-bot'
+        : enter === 'none'
+          ? 'enter-none'
+          : ''
+
   if (faceDown || !card) {
     return (
       <button
         type="button"
-        className={`pcard face-down ${className}`}
+        className={`pcard face-down ${throwing ? 'throwing' : ''} ${enterClass} ${className}`}
         onClick={onClick}
         style={mergedStyle}
+        data-card-id={card?.id}
         aria-label="Карта рубашкой вверх"
       />
     )
@@ -43,9 +57,10 @@ export function PlayingCard({
   return (
     <button
       type="button"
-      className={`pcard ${red ? 'red' : ''} ${selected ? 'selected' : ''} ${playable ? 'playable' : ''} ${className}`}
+      className={`pcard ${red ? 'red' : ''} ${selected ? 'selected' : ''} ${playable ? 'playable' : ''} ${throwing ? 'throwing' : ''} ${enterClass} ${className}`}
       onClick={onClick}
       style={mergedStyle}
+      data-card-id={card.id}
       aria-label={`${card.rank} ${card.suit}`}
     >
       <span>

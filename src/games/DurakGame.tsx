@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { CardFlightOverlay } from '../components/CardFlightOverlay'
 import { PlayingCard } from '../components/PlayingCard'
 import {
   type Card,
@@ -8,6 +9,7 @@ import {
   shuffle,
   rankValue,
 } from '../lib/cards'
+import { type CardFlight, estimateTableSlot, handCardEl } from '../lib/cardFlight'
 
 type TablePair = { attack: Card; defence?: Card }
 
@@ -43,6 +45,12 @@ function refill(hand: Card[], deck: Card[], n = 6): { hand: Card[]; deck: Card[]
   return { hand: h, deck: d }
 }
 
+const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+
+function prefersReducedMotion() {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void }) {
   const initial = useMemo(() => dealDurak(), [])
   const [deck, setDeck] = useState(initial.deck)
@@ -55,6 +63,14 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
   const [status, setStatus] = useState('Ваш ход — ходите картой')
   const [over, setOver] = useState<'win' | 'lose' | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [flight, setFlight] = useState<CardFlight | null>(null)
+  const [enterMap, setEnterMap] = useState<Record<string, 'throw-player' | 'throw-bot' | 'none'>>({})
+
+  const playerHandRef = useRef<HTMLDivElement>(null)
+  const botHandRef = useRef<HTMLDivElement>(null)
+  const tableRef = useRef<HTMLDivElement>(null)
+  const flightWaiters = useRef(new Map<string, () => void>())
 
   const ranksOnTable = useMemo(() => {
     const ranks = new Set<Rank>()
@@ -124,6 +140,46 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     return pool[0]
   }
 
+  const onFlightDone = useCallback((id: string) => {
+    setFlight(null)
+    const resolve = flightWaiters.current.get(id)
+    flightWaiters.current.delete(id)
+    resolve?.()
+  }, [])
+
+  const flyToTable = useCallback(
+    async (
+      card: Card,
+      from: DOMRect | null,
+      opts: { from: 'player' | 'bot'; slotIndex: number },
+    ) => {
+      const tableEl = tableRef.current
+      const soft = !prefersReducedMotion()
+      if (!soft || !from || from.width < 2 || !tableEl) {
+        setEnterMap((m) => ({
+          ...m,
+          [card.id]: opts.from === 'player' ? 'throw-player' : 'throw-bot',
+        }))
+        return
+      }
+
+      const to = estimateTableSlot(tableEl, opts.slotIndex)
+      const id = `${card.id}-${Date.now()}`
+      await new Promise<void>((resolve) => {
+        flightWaiters.current.set(id, resolve)
+        setFlight({
+          id,
+          card,
+          from,
+          to,
+          rotate: opts.from === 'player' ? -12 : 12,
+        })
+      })
+      setEnterMap((m) => ({ ...m, [card.id]: 'none' }))
+    },
+    [],
+  )
+
   const reset = useCallback(() => {
     const next = dealDurak()
     setDeck(next.deck)
@@ -134,45 +190,59 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     setStatus('Ваш ход — ходите картой')
     setOver(null)
     setSelected(null)
+    setBusy(false)
+    setFlight(null)
+    setEnterMap({})
     onHaptic?.('medium')
   }, [onHaptic])
 
-  const playPlayerAttack = (card: Card) => {
-    if (over || attacker !== 'player') return
+  const playPlayerAttack = async (card: Card) => {
+    if (over || attacker !== 'player' || busy) return
     if (table.length > 0 && !ranksOnTable.has(card.rank)) {
       setStatus('Можно подкидывать только уже лежащие ранги')
       return
     }
     if (table.length >= 6) return
 
-    const newPlayer = player.filter((c) => c.id !== card.id)
-    const defence = botDefend(card, bot)
+    setBusy(true)
+    setSelected(null)
     onHaptic?.('light')
 
+    const slotIndex = table.length
+    const fromRect = handCardEl(playerHandRef.current, card.id)?.getBoundingClientRect() ?? null
+    const newPlayer = player.filter((c) => c.id !== card.id)
+    setPlayer(newPlayer)
+    await flyToTable(card, fromRect, { from: 'player', slotIndex })
+
+    const defence = botDefend(card, bot)
     if (!defence) {
       const taken = [...bot, card, ...table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack]))]
       setBot(taken)
-      setPlayer(newPlayer)
       setTable([])
+      setEnterMap({})
       const drawn = drawUp(newPlayer, taken, deck, 'player')
       if (!checkEnd(drawn.playerNow, drawn.botNow, drawn.deckNow.length)) {
         setAttacker('player')
         setStatus('Бот взял карты. Ходите снова.')
       }
+      setBusy(false)
       return
     }
 
+    setTable([...table, { attack: card }])
+    await sleep(150)
+
+    const botFrom = botHandRef.current?.getBoundingClientRect() ?? null
     const newBot = bot.filter((c) => c.id !== defence.id)
-    const newTable = [...table, { attack: card, defence }]
-    setPlayer(newPlayer)
     setBot(newBot)
-    setTable(newTable)
+    await flyToTable(defence, botFrom, { from: 'bot', slotIndex })
+    setTable((t) => t.map((p) => (p.attack.id === card.id ? { ...p, defence } : p)))
     setStatus('Отбил. Подкиньте ещё или бито.')
-    setSelected(null)
+    setBusy(false)
   }
 
-  const playerDefend = (card: Card) => {
-    if (over || attacker !== 'bot') return
+  const playerDefend = async (card: Card) => {
+    if (over || attacker !== 'bot' || busy) return
     const open = table.find((p) => !p.defence)
     if (!open) return
     if (!canDefend(card, open.attack, trump)) {
@@ -180,13 +250,20 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
       onHaptic?.('error')
       return
     }
+
+    setBusy(true)
+    setSelected(null)
     onHaptic?.('light')
+
+    const openIndex = table.findIndex((p) => p.attack.id === open.attack.id)
+    const fromRect = handCardEl(playerHandRef.current, card.id)?.getBoundingClientRect() ?? null
     const newPlayer = player.filter((c) => c.id !== card.id)
-    const newTable = table.map((p) => (p === open ? { ...p, defence: card } : p))
     setPlayer(newPlayer)
+    await flyToTable(card, fromRect, { from: 'player', slotIndex: Math.max(0, openIndex) })
+
+    const newTable = table.map((p) => (p.attack.id === open.attack.id ? { ...p, defence: card } : p))
     setTable(newTable)
 
-    // Bot may toss more
     const ranks = new Set<Rank>()
     for (const p of newTable) {
       ranks.add(p.attack.rank)
@@ -197,55 +274,71 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
       ranks,
     )
     if (toss && newTable.length < 6 && newPlayer.length > 0) {
+      await sleep(160)
+      const botFrom = botHandRef.current?.getBoundingClientRect() ?? null
       const newerBot = bot.filter((c) => c.id !== toss.id)
       setBot(newerBot)
+      await flyToTable(toss, botFrom, { from: 'bot', slotIndex: newTable.length })
       setTable([...newTable, { attack: toss }])
       setStatus('Бот подкинул. Отбейтесь!')
     } else {
       setStatus('Отбились. Нажмите «Бито», чтобы завершить.')
     }
+    setBusy(false)
   }
 
   const onCardClick = (card: Card) => {
-    if (over) return
+    if (over || busy) return
     if (attacker === 'player') {
-      playPlayerAttack(card)
+      void playPlayerAttack(card)
     } else {
-      setSelected(card.id)
-      playerDefend(card)
+      void playerDefend(card)
     }
   }
 
+  const placeBotAttack = async (atk: Card, botHand: Card[], message: string) => {
+    setBusy(true)
+    const botFrom = botHandRef.current?.getBoundingClientRect() ?? null
+    const nextBot = botHand.filter((c) => c.id !== atk.id)
+    setBot(nextBot)
+    await flyToTable(atk, botFrom, { from: 'bot', slotIndex: 0 })
+    setTable([{ attack: atk }])
+    setStatus(message)
+    setBusy(false)
+  }
+
   const takeCards = () => {
-    if (over || attacker !== 'bot') return
+    if (over || attacker !== 'bot' || busy) return
     const taken = [
       ...player,
       ...table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack])),
     ]
     setPlayer(taken)
     setTable([])
+    setEnterMap({})
     onHaptic?.('medium')
     const drawn = drawUp(taken, bot, deck, 'bot')
     if (!checkEnd(drawn.playerNow, drawn.botNow, drawn.deckNow.length)) {
       setAttacker('bot')
-      // Bot attacks again
       const atk = botAttackCard(drawn.botNow)
       if (atk) {
-        setBot(drawn.botNow.filter((c) => c.id !== atk.id))
-        setTable([{ attack: atk }])
-        setStatus('Вы взяли. Бот ходит снова — отбейтесь!')
+        void (async () => {
+          await sleep(180)
+          await placeBotAttack(atk, drawn.botNow, 'Вы взяли. Бот ходит снова — отбейтесь!')
+        })()
       }
     }
   }
 
   const bito = () => {
-    if (over) return
+    if (over || busy) return
     if (table.length === 0 || table.some((p) => !p.defence)) {
       setStatus('Сначала закройте все атаки')
       return
     }
     onHaptic?.('medium')
     setTable([])
+    setEnterMap({})
     const first = attacker
     const nextAttacker = attacker === 'player' ? 'bot' : 'player'
     const drawn = drawUp(player, bot, deck, first)
@@ -254,9 +347,10 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     if (nextAttacker === 'bot') {
       const atk = botAttackCard(drawn.botNow)
       if (atk) {
-        setBot(drawn.botNow.filter((c) => c.id !== atk.id))
-        setTable([{ attack: atk }])
-        setStatus('Ход бота — отбейтесь картой')
+        void (async () => {
+          await sleep(200)
+          await placeBotAttack(atk, drawn.botNow, 'Ход бота — отбейтесь картой')
+        })()
       }
     } else {
       setStatus('Ваш ход — ходите картой')
@@ -264,17 +358,14 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
   }
 
   const startBotAttackIfNeeded = () => {
-    if (attacker === 'bot' && table.length === 0 && !over) {
-      const atk = botAttackCard(bot)
-      if (atk) {
-        setBot((b) => b.filter((c) => c.id !== atk.id))
-        setTable([{ attack: atk }])
-        setStatus('Ход бота — отбейтесь картой')
-      }
-    }
+    if (busy || attacker !== 'bot' || table.length !== 0 || over) return
+    const atk = botAttackCard(bot)
+    if (!atk) return
+    void placeBotAttack(atk, bot, 'Ход бота — отбейтесь картой')
   }
 
-  // Kick off bot attack when role switches with empty table — handled in bito/take
+  const enterFor = (id: string, fallback: 'throw-player' | 'throw-bot' | 'deal' = 'deal') =>
+    enterMap[id] ?? fallback
 
   return (
     <div className="table-area" onClick={startBotAttackIfNeeded}>
@@ -290,29 +381,29 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
           </span>
           <span>Колода: {deck.length}</span>
         </div>
-        <div className="hand compact">
+        <div className="hand compact" ref={botHandRef}>
           {bot.map((c, i) => (
             <PlayingCard key={c.id} faceDown index={i} />
           ))}
         </div>
-        <div className="table-cards">
+        <div className="table-cards" ref={tableRef}>
           {table.length === 0 && <span style={{ opacity: 0.5 }}>Стол пуст</span>}
           {table.map((p) => (
             <div className="pair-stack" key={p.attack.id}>
-              <PlayingCard card={p.attack} />
-              {p.defence && <PlayingCard card={p.defence} />}
+              <PlayingCard card={p.attack} enter={enterFor(p.attack.id, 'throw-bot')} />
+              {p.defence && <PlayingCard card={p.defence} enter={enterFor(p.defence.id, 'throw-player')} />}
             </div>
           ))}
         </div>
       </div>
-      <div className="hand">
+      <div className="hand" ref={playerHandRef}>
         {player.map((c, i) => (
           <PlayingCard
             key={c.id}
             card={c}
             index={i}
             selected={selected === c.id}
-            playable={!over}
+            playable={!over && !busy}
             onClick={() => onCardClick(c)}
           />
         ))}
@@ -323,25 +414,26 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
             Ещё раз
           </button>
         ) : attacker === 'player' ? (
-          <button type="button" className="btn btn-accent" onClick={bito} disabled={table.length === 0}>
+          <button type="button" className="btn btn-accent" onClick={bito} disabled={table.length === 0 || busy}>
             Бито
           </button>
         ) : (
           <>
-            <button type="button" className="btn btn-danger" onClick={takeCards}>
+            <button type="button" className="btn btn-danger" onClick={takeCards} disabled={busy}>
               Беру
             </button>
             <button
               type="button"
               className="btn btn-accent"
               onClick={bito}
-              disabled={table.length === 0 || table.some((p) => !p.defence)}
+              disabled={busy || table.length === 0 || table.some((p) => !p.defence)}
             >
               Бито
             </button>
           </>
         )}
       </div>
+      <CardFlightOverlay flight={flight} onDone={onFlightDone} />
     </div>
   )
 }
