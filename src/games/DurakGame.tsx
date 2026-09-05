@@ -338,8 +338,16 @@ export function DurakGame({
     return pool[0]
   }
 
-  const waitThrow = async () => {
+  const waitThrow = async (...ids: string[]) => {
     if (!prefersReducedMotion()) await sleep(THROW_MS)
+    if (ids.length === 0) return
+    setEnterMap((m) => {
+      const next = { ...m }
+      for (const id of ids) {
+        if (next[id] === 'throw-player' || next[id] === 'throw-bot') next[id] = 'none'
+      }
+      return next
+    })
   }
 
   const leaveHand = async (cardId: string) => {
@@ -401,7 +409,7 @@ export function DurakGame({
       setPlayer(newPlayer)
       setEnterMap((m) => ({ ...m, [card.id]: 'throw-player' }))
       setTable(nextTable)
-      await waitThrow()
+      await waitThrow(card.id)
     }
 
     // Bot already said take — only toss onto shoulders, no defence attempt.
@@ -425,7 +433,7 @@ export function DurakGame({
     setBot(newBot)
     setEnterMap((m) => ({ ...m, [defence.id]: 'throw-bot' }))
     setTable((t) => t.map((p) => (p.attack.id === card.id ? { ...p, defence } : p)))
-    await waitThrow()
+    await waitThrow(defence.id)
     setStatus('Отбил. Подкиньте ещё на погоны или бито.')
     setBusy(false)
   }
@@ -480,7 +488,7 @@ export function DurakGame({
       setPlayer(newPlayer)
       setEnterMap((m) => ({ ...m, [card.id]: 'throw-player' }))
       setTable(newTable)
-      await waitThrow()
+      await waitThrow(card.id)
     }
 
     const ranks = new Set<Rank>()
@@ -501,7 +509,7 @@ export function DurakGame({
       setBot(newerBot)
       setEnterMap((m) => ({ ...m, [toss.id]: 'throw-bot' }))
       setTable([...newTable, { attack: toss }])
-      await waitThrow()
+      await waitThrow(toss.id)
       setStatus('Бот подкинул. Отбейтесь!')
     } else {
       setStatus('Отбились. Нажмите «Бито».')
@@ -625,7 +633,7 @@ export function DurakGame({
     setBot(nextBot)
     setEnterMap((m) => ({ ...m, [atk.id]: 'throw-bot' }))
     setTable([{ attack: atk }])
-    await waitThrow()
+    await waitThrow(atk.id)
     setStatus(message)
     setBusy(false)
   }
@@ -747,7 +755,9 @@ export function DurakGame({
             ))}
           </div>
         </div>
-        <p className={`durak-status ${statusClass}`}>{status}</p>
+        {!botTaking && !tableFlying && (
+          <p className={`durak-status ${statusClass}`}>{status}</p>
+        )}
       </header>
 
       <div ref={fieldRef} className="durak-field">
@@ -762,14 +772,14 @@ export function DurakGame({
               <PlayingCard
                 card={p.attack}
                 rankStyle="ru"
-                enter={enterFor(p.attack.id, 'throw-bot')}
+                enter={enterFor(p.attack.id, 'none')}
                 className="durak-card"
               />
               {p.defence && (
                 <PlayingCard
                   card={p.defence}
                   rankStyle="ru"
-                  enter={enterFor(p.defence.id, 'throw-player')}
+                  enter={enterFor(p.defence.id, 'none')}
                   className="durak-card durak-defence"
                 />
               )}
