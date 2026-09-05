@@ -17,6 +17,13 @@ export type TelegramWebApp = {
   exitFullscreen?: () => void
   onEvent: (event: string, cb: (...args: unknown[]) => void) => void
   offEvent?: (event: string, cb: (...args: unknown[]) => void) => void
+  BackButton?: {
+    show: () => void
+    hide: () => void
+    onClick: (cb: () => void) => void
+    offClick: (cb: () => void) => void
+    isVisible: boolean
+  }
   HapticFeedback?: {
     impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void
     notificationOccurred: (type: 'error' | 'success' | 'warning') => void
