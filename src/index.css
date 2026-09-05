@@ -1842,7 +1842,7 @@ body.tg-fullscreen
 }
 
 .durak-hand {
-  --hand-overlap: 12px;
+  --hand-overlap: 34px;
   position: relative;
   display: flex;
   justify-content: center;
@@ -1853,29 +1853,32 @@ body.tg-fullscreen
   margin-bottom: -8px;
 }
 
-/* Fewer cards → less overlap so ranks stay readable */
-.durak-hand[data-count='1'],
-.durak-hand[data-count='2'],
-.durak-hand[data-count='3'],
-.durak-hand[data-count='4'] {
-  --hand-overlap: 4px;
+/* Fewer cards → still a tight fan (not nearly side-by-side) */
+.durak-hand[data-count='1'] {
+  --hand-overlap: 0px;
 }
 
+.durak-hand[data-count='2'],
+.durak-hand[data-count='3'] {
+  --hand-overlap: 22px;
+}
+
+.durak-hand[data-count='4'],
 .durak-hand[data-count='5'],
 .durak-hand[data-count='6'] {
-  --hand-overlap: 10px;
+  --hand-overlap: 34px;
 }
 
 .durak-hand[data-count='7'],
 .durak-hand[data-count='8'] {
-  --hand-overlap: 18px;
+  --hand-overlap: 42px;
 }
 
 .durak-hand[data-count='9'],
 .durak-hand[data-count='10'],
 .durak-hand[data-count='11'],
 .durak-hand[data-count='12'] {
-  --hand-overlap: 26px;
+  --hand-overlap: 50px;
 }
 
 .durak-hand-card {
@@ -1959,11 +1962,24 @@ body.tg-fullscreen
     width: 62px !important;
     height: 88px !important;
   }
-  .durak-hand[data-count='1'],
   .durak-hand[data-count='2'],
-  .durak-hand[data-count='3'],
-  .durak-hand[data-count='4'] {
-    --hand-overlap: 6px;
+  .durak-hand[data-count='3'] {
+    --hand-overlap: 18px;
+  }
+  .durak-hand[data-count='4'],
+  .durak-hand[data-count='5'],
+  .durak-hand[data-count='6'] {
+    --hand-overlap: 28px;
+  }
+  .durak-hand[data-count='7'],
+  .durak-hand[data-count='8'] {
+    --hand-overlap: 36px;
+  }
+  .durak-hand[data-count='9'],
+  .durak-hand[data-count='10'],
+  .durak-hand[data-count='11'],
+  .durak-hand[data-count='12'] {
+    --hand-overlap: 44px;
   }
   .durak-pair {
     width: 96px;
