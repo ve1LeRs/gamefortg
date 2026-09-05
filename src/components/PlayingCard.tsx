@@ -1,5 +1,5 @@
 import type { Card } from '../lib/cards'
-import { isRed } from '../lib/cards'
+import { isRed, rankGlyph } from '../lib/cards'
 
 type Props = {
   card?: Card
@@ -8,6 +8,8 @@ type Props = {
   playable?: boolean
   throwing?: boolean
   enter?: 'deal' | 'throw-player' | 'throw-bot' | 'none'
+  /** latin (A,K,Q,J) or Russian Durak glyphs (Т,К,Д,В) */
+  rankStyle?: 'latin' | 'ru'
   onClick?: () => void
   className?: string
   style?: React.CSSProperties
@@ -21,6 +23,7 @@ export function PlayingCard({
   playable,
   throwing,
   enter = 'deal',
+  rankStyle = 'latin',
   onClick,
   className = '',
   style,
@@ -54,6 +57,7 @@ export function PlayingCard({
   }
 
   const red = isRed(card.suit)
+  const glyph = rankGlyph(card.rank, rankStyle)
   return (
     <button
       type="button"
@@ -63,14 +67,14 @@ export function PlayingCard({
       data-card-id={card.id}
       aria-label={`${card.rank} ${card.suit}`}
     >
-      <span>
-        {card.rank}
-        {card.suit}
+      <span className="pcard-corner">
+        <span className="pcard-rank">{glyph}</span>
+        <span className="pcard-suit">{card.suit}</span>
       </span>
       <span className="suit-lg">{card.suit}</span>
-      <span style={{ alignSelf: 'flex-end', transform: 'rotate(180deg)' }}>
-        {card.rank}
-        {card.suit}
+      <span className="pcard-corner pcard-corner-br">
+        <span className="pcard-rank">{glyph}</span>
+        <span className="pcard-suit">{card.suit}</span>
       </span>
     </button>
   )
