@@ -57,3 +57,15 @@ export function rankValue(rank: Rank, order: Rank[]): number {
 export function cardLabel(card: Card): string {
   return `${card.rank}${card.suit}`
 }
+
+/** Russian short ranks used on classic Durak faces (Туз, Валет, Дама, Король). */
+export function rankGlyph(rank: Rank, style: 'latin' | 'ru' = 'latin'): string {
+  if (style !== 'ru') return rank
+  const map: Partial<Record<Rank, string>> = {
+    A: 'Т',
+    J: 'В',
+    Q: 'Д',
+    K: 'К',
+  }
+  return map[rank] ?? rank
+}

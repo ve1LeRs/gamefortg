@@ -253,7 +253,7 @@ export function DurakGame({
       await waitThrow()
       setStatus('Бот подкинул. Отбейтесь!')
     } else {
-      setStatus('Отбились. Нажмите «Бито», чтобы завершить.')
+      setStatus('Отбились. Нажмите «Бито».')
     }
     setBusy(false)
   }
@@ -335,80 +335,133 @@ export function DurakGame({
   const enterFor = (id: string, fallback: 'throw-player' | 'throw-bot' | 'deal' = 'deal') =>
     enterMap[id] ?? fallback
 
+  const canBito =
+    !busy && table.length > 0 && table.every((p) => p.defence) && (attacker === 'player' || attacker === 'bot')
+  const canTake = !busy && !over && attacker === 'bot' && table.some((p) => !p.defence)
+  const deckLayers = Math.min(5, Math.max(1, Math.ceil(deck.length / 6)))
+
   return (
-    <div className="table-area" onClick={startBotAttackIfNeeded}>
-      <p className={`game-status ${over === 'win' ? 'win' : over === 'lose' ? 'lose' : ''}`}>
-        {status}
-      </p>
-      <div className="felt">
-        <div className="pot-info">
-          <span>Бот: {bot.length}</span>
-          <span className="trump-badge">
-            Козырь {trumpCard.rank}
-            {trump}
-          </span>
-          <span>Колода: {deck.length}</span>
+    <div
+      className={`durak-table ${over ? `is-${over}` : ''}`}
+      onClick={startBotAttackIfNeeded}
+    >
+      <div className="durak-trump-mark" aria-hidden>
+        {trump}
+      </div>
+
+      <header className="durak-top">
+        <div className={`durak-seat ${attacker === 'bot' ? 'is-active' : ''}`}>
+          <div className="durak-avatar bot-avatar" aria-hidden>
+            🤖
+          </div>
+          <div className="durak-seat-meta">
+            <span className="durak-name">Бот</span>
+            <span className="durak-pill">{bot.length}</span>
+          </div>
+          <div className="durak-bot-cards" aria-hidden>
+            {bot.slice(0, Math.min(bot.length, 6)).map((c, i) => (
+              <span
+                key={c.id}
+                className="durak-mini-back"
+                style={{ ['--i' as string]: i, ['--n' as string]: Math.min(bot.length, 6) }}
+              />
+            ))}
+          </div>
         </div>
-        <div className="hand compact">
-          {bot.map((c, i) => (
-            <PlayingCard key={c.id} faceDown index={i} />
-          ))}
-        </div>
-        <div className="table-cards">
-          {table.length === 0 && <span style={{ opacity: 0.5 }}>Стол пуст</span>}
+        <p className={`durak-status ${over === 'win' ? 'win' : over === 'lose' ? 'lose' : ''}`}>
+          {status}
+        </p>
+      </header>
+
+      <div className="durak-field">
+        <div className="durak-table-cards">
+          {table.length === 0 && <span className="durak-empty">Ход картой</span>}
           {table.map((p) => (
-            <div className="pair-stack" key={p.attack.id}>
-              <PlayingCard card={p.attack} enter={enterFor(p.attack.id, 'throw-bot')} />
+            <div className="durak-pair" key={p.attack.id}>
+              <PlayingCard
+                card={p.attack}
+                rankStyle="ru"
+                enter={enterFor(p.attack.id, 'throw-bot')}
+                className="durak-card"
+              />
               {p.defence && (
-                <PlayingCard card={p.defence} enter={enterFor(p.defence.id, 'throw-player')} />
+                <PlayingCard
+                  card={p.defence}
+                  rankStyle="ru"
+                  enter={enterFor(p.defence.id, 'throw-player')}
+                  className="durak-card durak-defence"
+                />
               )}
             </div>
           ))}
         </div>
+
+        <div className="durak-deck" aria-label={`Колода: ${deck.length}`}>
+          {Array.from({ length: deckLayers }).map((_, i) => (
+            <span key={i} className="durak-deck-layer" style={{ ['--i' as string]: i }} />
+          ))}
+          <PlayingCard card={trumpCard} rankStyle="ru" className="durak-trump-card" enter="none" />
+          <span className="durak-deck-count">{deck.length}</span>
+        </div>
       </div>
-      <div className="hand">
-        {player.map((c, i) => (
-          <PlayingCard
-            key={c.id}
-            card={c}
-            index={i}
-            selected={selected === c.id}
-            playable={!over && !busy}
-            throwing={throwingId === c.id}
-            onClick={() => onCardClick(c)}
-          />
-        ))}
-      </div>
-      <div className="action-bar">
+
+      <div className="durak-actions" onClick={(e) => e.stopPropagation()}>
         {over ? (
-          <button type="button" className="btn btn-primary" onClick={reset}>
+          <button type="button" className="durak-btn durak-btn-primary" onClick={reset}>
             Ещё раз
-          </button>
-        ) : attacker === 'player' ? (
-          <button
-            type="button"
-            className="btn btn-accent"
-            onClick={bito}
-            disabled={table.length === 0 || busy}
-          >
-            Бито
           </button>
         ) : (
           <>
-            <button type="button" className="btn btn-danger" onClick={takeCards} disabled={busy}>
-              Беру
-            </button>
-            <button
-              type="button"
-              className="btn btn-accent"
-              onClick={bito}
-              disabled={busy || table.length === 0 || table.some((p) => !p.defence)}
-            >
-              Бито
-            </button>
+            {canTake && (
+              <button type="button" className="durak-btn durak-btn-take" onClick={takeCards}>
+                Беру
+              </button>
+            )}
+            {canBito && (
+              <button type="button" className="durak-btn durak-btn-bito" onClick={bito}>
+                Бито
+              </button>
+            )}
           </>
         )}
       </div>
+
+      <footer className="durak-bottom" onClick={(e) => e.stopPropagation()}>
+        <div className="durak-hand">
+          {player.map((c, i) => {
+            const n = player.length
+            const mid = (n - 1) / 2
+            const offset = i - mid
+            return (
+              <PlayingCard
+                key={c.id}
+                card={c}
+                index={i}
+                rankStyle="ru"
+                selected={selected === c.id}
+                playable={!over && !busy}
+                throwing={throwingId === c.id}
+                className="durak-card durak-hand-card"
+                style={{
+                  ['--fan' as string]: offset,
+                  ['--rot' as string]: `${offset * 4.5}deg`,
+                  zIndex: throwingId === c.id ? 30 : i + 1,
+                }}
+                onClick={() => onCardClick(c)}
+              />
+            )
+          })}
+        </div>
+        <div className="durak-dock">
+          <div className={`durak-seat player ${attacker === 'player' ? 'is-active' : ''}`}>
+            <div className="durak-avatar you-avatar" aria-hidden>
+              Вы
+            </div>
+            <span className="durak-name">Вы</span>
+            <span className="durak-pill">{player.length}</span>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
