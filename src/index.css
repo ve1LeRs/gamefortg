@@ -1946,6 +1946,56 @@ body.tg-webapp .app-main:not(.game-mode) {
   box-sizing: border-box;
 }
 
+.durak-hand.is-scrollable {
+  justify-content: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  height: 148px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  touch-action: pan-x;
+  padding-left: 10px;
+  padding-right: 10px;
+  scrollbar-width: thin;
+}
+
+.durak-hand.is-scrollable::-webkit-scrollbar {
+  height: 4px;
+}
+
+.durak-hand.is-scrollable::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 4px;
+}
+
+.durak-hand-track {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-end;
+  height: 100%;
+  min-width: 100%;
+  margin: 0 auto;
+}
+
+.durak-hand:not(.is-scrollable) .durak-hand-track {
+  justify-content: center;
+  width: auto !important;
+  min-width: 0;
+}
+
+.durak-hand.is-scrollable .durak-hand-card {
+  scroll-snap-align: start;
+  touch-action: pan-x;
+}
+
+.durak-hand.is-dragging,
+.durak-hand.is-dragging .durak-hand-card {
+  touch-action: none;
+}
+
+
 .durak-hand-card {
   width: var(--hand-card-w) !important;
   height: var(--hand-card-h) !important;
@@ -2026,13 +2076,35 @@ body.tg-webapp .app-main:not(.game-mode) {
   font-size: 34px;
 }
 
-/* Crowded hands: shrink face, keep corner glyphs readable */
-.durak-hand[data-count='7'] .durak-hand-card .pcard-rank,
-.durak-hand[data-count='8'] .durak-hand-card .pcard-rank,
+/* Crowded / scrollable hands: emphasize corner rank+suit in the peek strip */
+.durak-hand.is-scrollable .durak-hand-card .pcard-rank {
+  font-size: 17px;
+  height: 19px;
+  font-weight: 800;
+}
+
+.durak-hand.is-scrollable .durak-hand-card .pcard-suit {
+  font-size: 13px;
+  height: 15px;
+}
+
+.durak-hand.is-scrollable .durak-hand-card .pcard-corner {
+  gap: 3px;
+}
+
+.durak-hand.is-scrollable .durak-hand-card .suit-lg {
+  font-size: 20px;
+  opacity: 0.85;
+}
+
 .durak-hand[data-count='9'] .durak-hand-card .pcard-rank,
 .durak-hand[data-count='10'] .durak-hand-card .pcard-rank,
 .durak-hand[data-count='11'] .durak-hand-card .pcard-rank,
-.durak-hand[data-count='12'] .durak-hand-card .pcard-rank {
+.durak-hand[data-count='12'] .durak-hand-card .pcard-rank,
+.durak-hand[data-count='13'] .durak-hand-card .pcard-rank,
+.durak-hand[data-count='14'] .durak-hand-card .pcard-rank,
+.durak-hand[data-count='15'] .durak-hand-card .pcard-rank,
+.durak-hand[data-count='16'] .durak-hand-card .pcard-rank {
   font-size: 16px;
   height: 18px;
 }
