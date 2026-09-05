@@ -19,7 +19,7 @@ function loadPlays(): Record<string, number> {
 }
 
 export default function App() {
-  const { user, haptic } = useTelegram()
+  const { user, haptic, enterFullscreen } = useTelegram()
   const [tab, setTab] = useState<Tab>('store')
   const [activeGame, setActiveGame] = useState<GameId | null>(null)
   const [plays, setPlays] = useState<Record<string, number>>(loadPlays)
@@ -31,11 +31,12 @@ export default function App() {
   const play = useCallback(
     (id: string) => {
       if (!getGame(id)) return
+      enterFullscreen()
       setActiveGame(id as GameId)
       setPlays((p) => ({ ...p, [id]: (p[id] ?? 0) + 1 }))
       haptic('medium')
     },
-    [haptic],
+    [haptic, enterFullscreen],
   )
 
   const back = () => {
