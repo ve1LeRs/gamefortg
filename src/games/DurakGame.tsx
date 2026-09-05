@@ -9,7 +9,7 @@ import {
   shuffle,
   rankValue,
 } from '../lib/cards'
-import { type CardFlight, estimateTableSlot, handCardEl } from '../lib/cardFlight'
+import { type CardFlight, estimateTableSlot, handCardEl, toBox } from '../lib/cardFlight'
 
 type TablePair = { attack: Card; defence?: Card }
 
@@ -150,12 +150,14 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
   const flyToTable = useCallback(
     async (
       card: Card,
-      from: DOMRect | null,
+      fromRaw: DOMRect | null,
       opts: { from: 'player' | 'bot'; slotIndex: number },
     ) => {
       const tableEl = tableRef.current
       const soft = !prefersReducedMotion()
-      if (!soft || !from || from.width < 2 || !tableEl) {
+      const from = fromRaw && fromRaw.width >= 2 ? toBox(fromRaw) : null
+
+      if (!soft || !from || !tableEl) {
         setEnterMap((m) => ({
           ...m,
           [card.id]: opts.from === 'player' ? 'throw-player' : 'throw-bot',
