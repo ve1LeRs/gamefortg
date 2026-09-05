@@ -79,18 +79,46 @@ function maxAttackSlots(defenderHandSize: number, table: TablePair[]): number {
   return Math.min(6, defenderHandSize + defended)
 }
 
-/** Fan metrics: readable corner peeks; wide hands scroll horizontally. */
-function handFanLayout(n: number) {
-  const cardW = n >= 11 ? 58 : n >= 9 ? 64 : n >= 7 ? 72 : 86
-  const cardH = n >= 11 ? 82 : n >= 9 ? 90 : n >= 7 ? 102 : 122
-  // ~40px strip keeps Russian rank + suit legible
-  const minPeek = 40
-  const step =
-    n <= 1 ? cardW : n <= 3 ? 66 : n <= 5 ? 56 : n <= 7 ? 48 : minPeek
-  const rotStep = n <= 4 ? 3.0 : n <= 7 ? 1.8 : n <= 9 ? 0.8 : 0.25
-  const fanWidth = n <= 1 ? cardW : cardW + (n - 1) * step
-  return { cardW, cardH, step, rotStep, fanWidth, scrollable: n >= 7 }
+/** Fit the whole hand on screen — no horizontal scroll. Large hands use 2 rows. */
+function handFanLayout(n: number, viewportW = 390) {
+  const pad = 16
+  const avail = Math.max(280, Math.min(viewportW, 440) - pad)
+  const rows = n >= 9 ? 2 : 1
+  const perRow = rows === 1 ? Math.max(1, n) : Math.ceil(n / 2)
+  // Prefer readable cards; shrink until the row fits
+  let cardW = n <= 4 ? 86 : n <= 6 ? 78 : n <= 8 ? 70 : 62
+  let cardH = Math.round(cardW * (122 / 86))
+  let step = cardW
+  if (perRow > 1) {
+    // Leave at least ~28px peek for rank+suit corner
+    const minPeek = n >= 12 ? 26 : n >= 9 ? 30 : 36
+    const maxStep = (avail - cardW) / (perRow - 1)
+    step = Math.max(minPeek, Math.min(cardW - 8, maxStep))
+    // If still overflowing, shrink card width to fit minPeek
+    const need = cardW + (perRow - 1) * minPeek
+    if (need > avail) {
+      cardW = Math.max(48, Math.floor(avail - (perRow - 1) * minPeek))
+      cardH = Math.round(cardW * (122 / 86))
+      step = minPeek
+    } else {
+      // Recompute step with possibly adjusted intent
+      step = Math.max(minPeek, Math.min(cardW - 6, (avail - cardW) / (perRow - 1)))
+    }
+  }
+  const rotStep = rows === 2 ? 0.4 : n <= 4 ? 2.6 : n <= 7 ? 1.4 : 0.6
+  const rowWidth = perRow <= 1 ? cardW : cardW + (perRow - 1) * step
+  return {
+    cardW: Math.round(cardW),
+    cardH: Math.round(cardH),
+    step: Math.round(step * 10) / 10,
+    rotStep,
+    fanWidth: Math.round(rowWidth),
+    rows,
+    perRow,
+    scrollable: false,
+  }
 }
+
 
 const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 
@@ -125,6 +153,9 @@ export function DurakGame({
   const [drag, setDrag] = useState<DragState | null>(null)
   /** Bot declared take — player may still toss matching ranks (погоны). */
   const [botTaking, setBotTaking] = useState(false)
+  const [handViewportW, setHandViewportW] = useState(
+    () => (typeof window !== 'undefined' ? window.innerWidth : 390),
+  )
   const [tableFlying, setTableFlying] = useState(false)
   /** Stagger among newly dealt cards only (not hand index). */
   const [dealOrder, setDealOrder] = useState<Record<string, number>>(() =>
@@ -174,6 +205,14 @@ export function DurakGame({
     }, ms)
   }, [])
 
+
+
+  useEffect(() => {
+    const update = () => setHandViewportW(window.innerWidth)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
 
   useEffect(() => {
     const cards = initial.player
@@ -632,7 +671,10 @@ export function DurakGame({
   const canGiveToBot = !busy && !over && botTaking
   const deckLayers = Math.min(5, Math.max(1, Math.ceil(deck.length / 6)))
   const playerHand = useMemo(() => sortHand(player, trump), [player, trump])
-  const handLayout = useMemo(() => handFanLayout(playerHand.length), [playerHand.length])
+  const handLayout = useMemo(
+    () => handFanLayout(playerHand.length, handViewportW),
+    [playerHand.length, handViewportW],
+  )
   const statusClass = [
     over === 'win' ? 'win' : '',
     over === 'lose' ? 'lose' : '',
@@ -739,51 +781,62 @@ export function DurakGame({
 
       <footer className="durak-bottom" onClick={(e) => e.stopPropagation()}>
         <div
-          className={`durak-hand${drag?.active ? ' is-dragging' : ''}${Object.keys(dealOrder).length ? ' is-receiving' : ''}${handLayout.scrollable ? ' is-scrollable' : ''}${botTaking ? ' is-toss-phase' : ''}`}
+          className={`durak-hand${drag?.active ? ' is-dragging' : ''}${Object.keys(dealOrder).length ? ' is-receiving' : ''}${handLayout.rows > 1 ? ' is-multi-row' : ''}`}
           data-count={playerHand.length}
+          data-rows={handLayout.rows}
           style={{
             ['--hand-card-w' as string]: `${handLayout.cardW}px`,
             ['--hand-card-h' as string]: `${handLayout.cardH}px`,
             ['--hand-step' as string]: `${handLayout.step}px`,
             ['--hand-fan-w' as string]: `${handLayout.fanWidth}px`,
+            ['--hand-rows' as string]: handLayout.rows,
           }}
         >
-          <div className="durak-hand-track" style={{ width: handLayout.fanWidth }}>
-            {playerHand.map((c, i) => {
-              const n = playerHand.length
-              const mid = (n - 1) / 2
-              const offset = i - mid
-              const isDrag = drag?.card.id === c.id && drag.active
-              const playable = isPlayable(c)
-              const dealing = enterFor(c.id, 'none') === 'deal'
-              const dealI = dealOrder[c.id] ?? 0
-              return (
-                <PlayingCard
-                  key={c.id}
-                  card={c}
-                  index={i}
-                  rankStyle="ru"
-                  selected={selected === c.id}
-                  playable={playable}
-                  throwing={throwingId === c.id}
-                  enter={enterFor(c.id, 'none')}
-                  className={`durak-card durak-hand-card${isDrag ? ' is-drag-source' : ''}`}
-                  style={{
-                    ['--fan' as string]: offset,
-                    ['--rot' as string]: `${offset * handLayout.rotStep}deg`,
-                    ['--deal-i' as string]: dealI,
-                    zIndex: isDrag ? 50 : dealing ? 60 + dealI : throwingId === c.id ? 30 : i + 1,
-                    touchAction: handLayout.scrollable && !isDrag ? 'pan-x' : 'none',
-                  }}
-                  onClick={() => onCardClick(c)}
-                  onPointerDown={(e) => onCardPointerDown(c, e)}
-                  onPointerMove={onCardPointerMove}
-                  onPointerUp={endCardPointer}
-                  onPointerCancel={endCardPointer}
-                />
-              )
-            })}
-          </div>
+          {Array.from({ length: handLayout.rows }, (_, row) => {
+            const start = row * handLayout.perRow
+            const rowCards = playerHand.slice(start, start + handLayout.perRow)
+            return (
+              <div
+                key={row}
+                className="durak-hand-row"
+                style={{ width: handLayout.fanWidth, zIndex: row + 1 }}
+              >
+                {rowCards.map((c, i) => {
+                  const n = rowCards.length
+                  const mid = (n - 1) / 2
+                  const offset = i - mid
+                  const isDrag = drag?.card.id === c.id && drag.active
+                  const dealing = enterFor(c.id, 'none') === 'deal'
+                  const dealI = dealOrder[c.id] ?? 0
+                  return (
+                    <PlayingCard
+                      key={c.id}
+                      card={c}
+                      index={start + i}
+                      rankStyle="ru"
+                      selected={selected === c.id}
+                      playable={false}
+                      throwing={throwingId === c.id}
+                      enter={enterFor(c.id, 'none')}
+                      className={`durak-card durak-hand-card${isDrag ? ' is-drag-source' : ''}`}
+                      style={{
+                        ['--fan' as string]: offset,
+                        ['--rot' as string]: `${offset * handLayout.rotStep}deg`,
+                        ['--deal-i' as string]: dealI,
+                        zIndex: isDrag ? 50 : dealing ? 60 + dealI : throwingId === c.id ? 30 : i + 1,
+                        touchAction: 'none',
+                      }}
+                      onClick={() => onCardClick(c)}
+                      onPointerDown={(e) => onCardPointerDown(c, e)}
+                      onPointerMove={onCardPointerMove}
+                      onPointerUp={endCardPointer}
+                      onPointerCancel={endCardPointer}
+                    />
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
         <div className="durak-dock">
           <div className={`durak-seat player ${attacker === 'player' ? 'is-active' : ''}`}>
