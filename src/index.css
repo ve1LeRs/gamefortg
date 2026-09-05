@@ -1352,6 +1352,15 @@ body.tg-fullscreen
   animation: card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Must beat .table-cards .pcard so throws are not replaced by tiny card-in */
+.table-cards .pcard.enter-throw-player {
+  animation: throw-from-player 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.table-cards .pcard.enter-throw-bot {
+  animation: throw-from-bot 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -1387,12 +1396,12 @@ body.tg-fullscreen
 
 @keyframes throw-from-player {
   0% {
-    opacity: 0.35;
-    transform: translate3d(0, 140px, 0) scale(0.82) rotate(-14deg);
+    opacity: 0.2;
+    transform: translate3d(0, 180px, 0) scale(0.78) rotate(-18deg);
   }
-  58% {
+  55% {
     opacity: 1;
-    transform: translate3d(0, -14px, 0) scale(1.08) rotate(4deg);
+    transform: translate3d(0, -18px, 0) scale(1.1) rotate(5deg);
   }
   100% {
     opacity: 1;
@@ -1402,12 +1411,12 @@ body.tg-fullscreen
 
 @keyframes throw-from-bot {
   0% {
-    opacity: 0.35;
-    transform: translate3d(0, -110px, 0) scale(0.82) rotate(14deg);
+    opacity: 0.2;
+    transform: translate3d(0, -140px, 0) scale(0.78) rotate(18deg);
   }
-  58% {
+  55% {
     opacity: 1;
-    transform: translate3d(0, 12px, 0) scale(1.08) rotate(-4deg);
+    transform: translate3d(0, 16px, 0) scale(1.1) rotate(-5deg);
   }
   100% {
     opacity: 1;
