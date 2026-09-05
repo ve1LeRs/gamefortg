@@ -16,6 +16,7 @@ export function ProfilePage({
     <div className="profile-page">
       <h1 className="page-title">Профиль</h1>
       <p className="page-sub">Статистика сессии в GameForTg.</p>
+      <p className="hint build-id">Сборка {typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'}</p>
 
       <div className="profile-card">
         <div className="user-avatar profile-avatar">
