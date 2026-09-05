@@ -1688,13 +1688,14 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-top {
   position: relative;
-  z-index: 2;
+  z-index: 6;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   /* Pull bot seat up into the former empty header band */
   padding: max(8px, calc(var(--safe-top) + 4px)) 16px 2px;
+  flex-shrink: 0;
 }
 
 .game-shell--immersive .durak-top {
@@ -1783,7 +1784,8 @@ body.tg-webapp .app-main:not(.game-mode) {
   text-align: center;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   position: relative;
-  z-index: 1;
+  z-index: 7;
+  pointer-events: none;
 }
 
 .durak-status.win {
@@ -1802,24 +1804,35 @@ body.tg-webapp .app-main:not(.game-mode) {
   position: relative;
   z-index: 2;
   flex: 1;
-  min-height: 168px;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Keep play pairs clear of the sideways trump peek */
-  padding: 8px 108px 8px 12px;
+  /* Room for deck/trump on the right; keep pairs clear of peek */
+  padding: 6px 88px 6px 10px;
   isolation: isolate;
+  overflow: hidden;
 }
 
 .durak-table-cards {
+  --table-scale: 1;
   position: relative;
   z-index: 20;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px 18px;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 10px 12px;
   justify-content: center;
-  align-items: center;
-  max-width: min(320px, calc(100% - 112px));
+  align-content: center;
+  justify-items: center;
+  max-width: 100%;
+  max-height: 100%;
+  transform: scale(var(--table-scale));
+  transform-origin: center center;
+}
+
+.durak-table-cards[data-count='0'],
+.durak-table-cards[data-count='1'] {
+  grid-template-columns: auto;
 }
 
 .durak-table-cards.is-bot-taking .durak-pair {
@@ -1834,37 +1847,84 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-pair {
   position: relative;
-  width: 132px;
-  height: 168px;
+  width: 108px;
+  height: 136px;
 }
 
 .durak-pair .durak-card {
-  width: 80px !important;
-  height: 112px !important;
-  font-size: 16px;
+  width: 66px !important;
+  height: 92px !important;
+  font-size: 15px;
 }
 
 .durak-pair .durak-card .pcard-rank {
-  font-size: 16px;
-  height: 18px;
+  font-size: 15px;
+  height: 17px;
 }
 
 .durak-pair .durak-card .pcard-suit {
-  font-size: 13px;
-  height: 15px;
+  font-size: 12px;
+  height: 14px;
 }
 
 .durak-pair .durak-card .suit-lg {
-  font-size: 30px;
+  font-size: 26px;
 }
 
 .durak-pair .durak-defence {
   position: absolute;
-  top: 48px;
-  left: 42px;
+  top: 36px;
+  left: 34px;
   transform: rotate(20deg);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
   z-index: 2;
+}
+
+/* Fewer pairs can use a slightly larger footprint */
+.durak-table-cards[data-count='1'] .durak-pair,
+.durak-table-cards[data-count='2'] .durak-pair {
+  width: 120px;
+  height: 150px;
+}
+
+.durak-table-cards[data-count='1'] .durak-pair .durak-card,
+.durak-table-cards[data-count='2'] .durak-pair .durak-card {
+  width: 74px !important;
+  height: 104px !important;
+}
+
+.durak-table-cards[data-count='1'] .durak-pair .durak-defence,
+.durak-table-cards[data-count='2'] .durak-pair .durak-defence {
+  top: 42px;
+  left: 38px;
+}
+
+.durak-table-cards[data-count='5'],
+.durak-table-cards[data-count='6'] {
+  gap: 6px 8px;
+}
+
+.durak-table-cards[data-count='5'] .durak-pair,
+.durak-table-cards[data-count='6'] .durak-pair {
+  width: 96px;
+  height: 122px;
+}
+
+.durak-table-cards[data-count='5'] .durak-pair .durak-card,
+.durak-table-cards[data-count='6'] .durak-pair .durak-card {
+  width: 58px !important;
+  height: 82px !important;
+}
+
+.durak-table-cards[data-count='5'] .durak-pair .durak-defence,
+.durak-table-cards[data-count='6'] .durak-pair .durak-defence {
+  top: 30px;
+  left: 28px;
+}
+
+.durak-table-cards[data-count='5'] .durak-pair .durak-card .suit-lg,
+.durak-table-cards[data-count='6'] .durak-pair .durak-card .suit-lg {
+  font-size: 22px;
 }
 
 .durak-deck {
@@ -1920,6 +1980,8 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 
 .durak-take-banner {
+  position: relative;
+  z-index: 8;
   margin: 0 16px 8px;
   padding: 10px 14px;
   border-radius: 12px;
@@ -1931,6 +1993,7 @@ body.tg-webapp .app-main:not(.game-mode) {
   background: linear-gradient(180deg, #ffe56a, #f0c420);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
   animation: durak-banner-in 0.35s ease both;
+  flex-shrink: 0;
 }
 
 @keyframes durak-banner-in {
@@ -2008,12 +2071,13 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-actions {
   position: relative;
-  z-index: 4;
+  z-index: 8;
   display: flex;
   justify-content: center;
   gap: 10px;
   min-height: 48px;
   padding: 6px 16px 2px;
+  flex-shrink: 0;
 }
 
 .durak-btn-take {
@@ -2332,23 +2396,37 @@ body.tg-webapp .app-main:not(.game-mode) {
     height: 132px;
   }
   .durak-pair {
-    width: 112px;
-    height: 148px;
+    width: 96px;
+    height: 122px;
   }
   .durak-pair .durak-card {
-    width: 70px !important;
-    height: 98px !important;
+    width: 58px !important;
+    height: 82px !important;
   }
   .durak-pair .durak-defence {
-    top: 40px;
+    top: 30px;
+    left: 28px;
+  }
+  .durak-table-cards[data-count='1'] .durak-pair,
+  .durak-table-cards[data-count='2'] .durak-pair {
+    width: 108px;
+    height: 136px;
+  }
+  .durak-table-cards[data-count='1'] .durak-pair .durak-card,
+  .durak-table-cards[data-count='2'] .durak-pair .durak-card {
+    width: 66px !important;
+    height: 92px !important;
+  }
+  .durak-table-cards[data-count='1'] .durak-pair .durak-defence,
+  .durak-table-cards[data-count='2'] .durak-pair .durak-defence {
+    top: 36px;
     left: 34px;
   }
   .durak-field {
-    padding-right: 96px;
-    min-height: 148px;
+    padding-right: 80px;
   }
   .durak-table-cards {
-    max-width: min(260px, calc(100% - 100px));
+    gap: 8px 10px;
     z-index: 20;
   }
   .durak-deck {
