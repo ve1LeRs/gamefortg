@@ -1762,7 +1762,7 @@ body.tg-fullscreen
 /* Half-visible under the face-down pile, classic Durak layout */
 .durak-trump-card {
   position: absolute !important;
-  left: -26px;
+  left: -40px;
   top: 8px;
   width: 64px !important;
   height: 90px !important;
@@ -1977,6 +1977,6 @@ body.tg-fullscreen
     padding-right: 64px;
   }
   .durak-trump-card {
-    left: -22px;
+    left: -36px;
   }
 }
