@@ -1702,20 +1702,20 @@ body.tg-webapp .app-main:not(.game-mode) {
   position: relative;
   z-index: 2;
   flex: 1;
-  min-height: 140px;
+  min-height: 168px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 72px 8px 24px;
+  padding: 8px 78px 8px 20px;
 }
 
 .durak-table-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px 16px;
+  gap: 16px 18px;
   justify-content: center;
   align-items: center;
-  max-width: 280px;
+  max-width: 340px;
 }
 
 .durak-empty {
@@ -1726,19 +1726,34 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-pair {
   position: relative;
-  width: 108px;
-  height: 138px;
+  width: 132px;
+  height: 168px;
 }
 
 .durak-pair .durak-card {
-  width: 64px;
-  height: 90px;
+  width: 80px !important;
+  height: 112px !important;
+  font-size: 16px;
+}
+
+.durak-pair .durak-card .pcard-rank {
+  font-size: 16px;
+  height: 18px;
+}
+
+.durak-pair .durak-card .pcard-suit {
+  font-size: 13px;
+  height: 15px;
+}
+
+.durak-pair .durak-card .suit-lg {
+  font-size: 30px;
 }
 
 .durak-pair .durak-defence {
   position: absolute;
-  top: 42px;
-  left: 36px;
+  top: 48px;
+  left: 42px;
   transform: rotate(20deg);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
   z-index: 2;
@@ -1746,10 +1761,10 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-deck {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
-  width: 58px;
-  height: 100px;
+  width: 68px;
+  height: 116px;
   transform: translateY(-50%) rotate(6deg);
   z-index: 3;
 }
@@ -1770,10 +1785,10 @@ body.tg-webapp .app-main:not(.game-mode) {
 /* Half-visible under the face-down pile, classic Durak layout */
 .durak-trump-card {
   position: absolute !important;
-  left: -40px;
-  top: 8px;
-  width: 64px !important;
-  height: 90px !important;
+  left: -46px;
+  top: 10px;
+  width: 76px !important;
+  height: 108px !important;
   transform: rotate(-90deg);
   transform-origin: center center;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
@@ -1850,15 +1865,15 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .durak-hand {
-  --hand-overlap: 34px;
+  --hand-overlap: 40px;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-end;
   width: 100%;
-  height: 124px;
-  padding: 0 12px;
-  margin-bottom: -8px;
+  height: 152px;
+  padding: 0 10px;
+  margin-bottom: -6px;
 }
 
 /* Fewer cards → still a tight fan (not nearly side-by-side) */
@@ -1868,30 +1883,30 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-hand[data-count='2'],
 .durak-hand[data-count='3'] {
-  --hand-overlap: 22px;
+  --hand-overlap: 26px;
 }
 
 .durak-hand[data-count='4'],
 .durak-hand[data-count='5'],
 .durak-hand[data-count='6'] {
-  --hand-overlap: 34px;
+  --hand-overlap: 40px;
 }
 
 .durak-hand[data-count='7'],
 .durak-hand[data-count='8'] {
-  --hand-overlap: 42px;
+  --hand-overlap: 50px;
 }
 
 .durak-hand[data-count='9'],
 .durak-hand[data-count='10'],
 .durak-hand[data-count='11'],
 .durak-hand[data-count='12'] {
-  --hand-overlap: 50px;
+  --hand-overlap: 58px;
 }
 
 .durak-hand-card {
-  width: 72px !important;
-  height: 102px !important;
+  width: 92px !important;
+  height: 130px !important;
   margin-left: calc(var(--hand-overlap, 16px) * -1);
   transform: translateY(0) rotate(var(--rot, 0deg));
   transform-origin: 50% 120%;
@@ -1908,19 +1923,19 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-hand-card.playable:hover,
 .durak-hand-card.selected {
-  transform: translateY(-18px) rotate(var(--rot, 0deg)) scale(1.04);
+  transform: translateY(-20px) rotate(var(--rot, 0deg)) scale(1.05);
   z-index: 40 !important;
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.4);
 }
 
 .durak-hand-card .pcard-rank {
-  font-size: 14px;
-  height: 16px;
+  font-size: 18px;
+  height: 20px;
 }
 
 .durak-hand-card .pcard-suit {
-  font-size: 11px;
-  height: 13px;
+  font-size: 14px;
+  height: 16px;
 }
 
 .durak-hand-card .pcard-corner {
@@ -1928,7 +1943,7 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .durak-hand-card .suit-lg {
-  font-size: 26px;
+  font-size: 34px;
 }
 
 .durak-dock {
@@ -2001,40 +2016,50 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 @media (max-width: 360px) {
   .durak-hand-card {
-    width: 62px !important;
-    height: 88px !important;
+    width: 78px !important;
+    height: 110px !important;
+  }
+  .durak-hand {
+    height: 132px;
   }
   .durak-hand[data-count='2'],
   .durak-hand[data-count='3'] {
-    --hand-overlap: 18px;
+    --hand-overlap: 22px;
   }
   .durak-hand[data-count='4'],
   .durak-hand[data-count='5'],
   .durak-hand[data-count='6'] {
-    --hand-overlap: 28px;
+    --hand-overlap: 34px;
   }
   .durak-hand[data-count='7'],
   .durak-hand[data-count='8'] {
-    --hand-overlap: 36px;
+    --hand-overlap: 44px;
   }
   .durak-hand[data-count='9'],
   .durak-hand[data-count='10'],
   .durak-hand[data-count='11'],
   .durak-hand[data-count='12'] {
-    --hand-overlap: 44px;
+    --hand-overlap: 52px;
   }
   .durak-pair {
-    width: 96px;
-    height: 128px;
+    width: 112px;
+    height: 148px;
+  }
+  .durak-pair .durak-card {
+    width: 70px !important;
+    height: 98px !important;
   }
   .durak-pair .durak-defence {
-    top: 36px;
-    left: 30px;
+    top: 40px;
+    left: 34px;
   }
   .durak-field {
-    padding-right: 64px;
+    padding-right: 68px;
+    min-height: 148px;
   }
   .durak-trump-card {
-    left: -36px;
+    left: -40px;
+    width: 68px !important;
+    height: 96px !important;
   }
 }
