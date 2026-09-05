@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { PlayingCard } from '../components/PlayingCard'
 import {
   type Card,
@@ -11,6 +12,22 @@ import {
 } from '../lib/cards'
 
 type TablePair = { attack: Card; defence?: Card }
+
+type DragState = {
+  card: Card
+  pointerId: number
+  startX: number
+  startY: number
+  x: number
+  y: number
+  width: number
+  height: number
+  grabX: number
+  grabY: number
+  active: boolean
+  overTable: boolean
+}
+
 
 function beats(a: Card, b: Card, trump: Card['suit']): boolean {
   if (a.suit === b.suit) return rankValue(a.rank, DURAK_RANKS) > rankValue(b.rank, DURAK_RANKS)
@@ -83,6 +100,11 @@ export function DurakGame({
   const [busy, setBusy] = useState(false)
   const [enterMap, setEnterMap] = useState<Record<string, 'throw-player' | 'throw-bot'>>({})
   const [throwingId, setThrowingId] = useState<string | null>(null)
+  const [drag, setDrag] = useState<DragState | null>(null)
+  const fieldRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<DragState | null>(null)
+  const skipClickRef = useRef(false)
+
 
   const ranksOnTable = useMemo(() => {
     const ranks = new Set<Rank>()
@@ -273,10 +295,83 @@ export function DurakGame({
     setBusy(false)
   }
 
-  const onCardClick = (card: Card) => {
+  const pointInTable = (x: number, y: number) => {
+    const el = fieldRef.current
+    if (!el) return false
+    const r = el.getBoundingClientRect()
+    // Expand hit area a bit toward the hand so drops feel forgiving.
+    return x >= r.left - 8 && x <= r.right + 8 && y >= r.top - 12 && y <= r.bottom + 36
+  }
+
+  const playCard = (card: Card) => {
     if (over || busy) return
     if (attacker === 'player') void playPlayerAttack(card)
     else void playerDefend(card)
+  }
+
+  const onCardClick = (card: Card) => {
+    if (skipClickRef.current) {
+      skipClickRef.current = false
+      return
+    }
+    playCard(card)
+  }
+
+  const onCardPointerDown = (card: Card, e: React.PointerEvent<HTMLButtonElement>) => {
+    if (over || busy || e.button !== 0) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const next: DragState = {
+      card,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height,
+      grabX: e.clientX - rect.left,
+      grabY: e.clientY - rect.top,
+      active: false,
+      overTable: false,
+    }
+    dragRef.current = next
+    setDrag(next)
+    e.currentTarget.setPointerCapture(e.pointerId)
+  }
+
+  const onCardPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current
+    if (!d || e.pointerId !== d.pointerId) return
+    const dist = Math.hypot(e.clientX - d.startX, e.clientY - d.startY)
+    const active = d.active || dist > 12
+    const overTable = active && pointInTable(e.clientX, e.clientY)
+    const next: DragState = {
+      ...d,
+      active,
+      overTable,
+      x: e.clientX - d.grabX,
+      y: e.clientY - d.grabY,
+    }
+    dragRef.current = next
+    setDrag(next)
+  }
+
+  const endCardPointer = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current
+    if (!d || e.pointerId !== d.pointerId) return
+    const shouldPlay = d.active && d.overTable
+    if (d.active) skipClickRef.current = true
+    dragRef.current = null
+    setDrag(null)
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      /* already released */
+    }
+    if (shouldPlay) {
+      onHaptic?.('light')
+      playCard(d.card)
+    }
   }
 
   const placeBotAttack = async (atk: Card, botHand: Card[], message: string) => {
@@ -392,9 +487,14 @@ export function DurakGame({
         </p>
       </header>
 
-      <div className="durak-field">
+      <div
+        ref={fieldRef}
+        className={`durak-field${drag?.overTable ? ' is-drop-target' : ''}${drag?.active ? ' is-dragging' : ''}`}
+      >
         <div className="durak-table-cards">
-          {table.length === 0 && <span className="durak-empty">Ход картой</span>}
+          {table.length === 0 && (
+            <span className="durak-empty">{drag?.active ? 'Отпустите здесь' : 'Потяните карту сюда'}</span>
+          )}
           {table.map((p) => (
             <div className="durak-pair" key={p.attack.id}>
               <PlayingCard
@@ -449,11 +549,12 @@ export function DurakGame({
       </div>
 
       <footer className="durak-bottom" onClick={(e) => e.stopPropagation()}>
-        <div className="durak-hand" data-count={playerHand.length}>
+        <div className={`durak-hand${drag?.active ? ' is-dragging' : ''}`} data-count={playerHand.length}>
           {playerHand.map((c, i) => {
             const n = playerHand.length
             const mid = (n - 1) / 2
             const offset = i - mid
+            const isDrag = drag?.card.id === c.id && drag.active
             return (
               <PlayingCard
                 key={c.id}
@@ -463,13 +564,18 @@ export function DurakGame({
                 selected={selected === c.id}
                 playable={!over && !busy}
                 throwing={throwingId === c.id}
-                className="durak-card durak-hand-card"
+                className={`durak-card durak-hand-card${isDrag ? ' is-drag-source' : ''}`}
                 style={{
                   ['--fan' as string]: offset,
                   ['--rot' as string]: `${offset * 3.2}deg`,
-                  zIndex: throwingId === c.id ? 30 : i + 1,
+                  zIndex: isDrag ? 50 : throwingId === c.id ? 30 : i + 1,
+                  touchAction: 'none',
                 }}
                 onClick={() => onCardClick(c)}
+                onPointerDown={(e) => onCardPointerDown(c, e)}
+                onPointerMove={onCardPointerMove}
+                onPointerUp={endCardPointer}
+                onPointerCancel={endCardPointer}
               />
             )
           })}
@@ -484,6 +590,24 @@ export function DurakGame({
           </div>
         </div>
       </footer>
+
+      {drag?.active &&
+        createPortal(
+          <div
+            className={`durak-drag-ghost${drag.overTable ? ' is-over-table' : ''}`}
+            style={{
+              left: drag.x,
+              top: drag.y,
+              width: drag.width,
+              height: drag.height,
+            }}
+            aria-hidden
+          >
+            <PlayingCard card={drag.card} rankStyle="ru" enter="none" className="durak-card" />
+          </div>,
+          document.body,
+        )}
+
     </div>
   )
 }

@@ -11,6 +11,10 @@ type Props = {
   /** latin (A,K,Q,J) or Russian Durak glyphs (Т,К,Д,В) */
   rankStyle?: 'latin' | 'ru'
   onClick?: () => void
+  onPointerDown?: (e: React.PointerEvent<HTMLButtonElement>) => void
+  onPointerMove?: (e: React.PointerEvent<HTMLButtonElement>) => void
+  onPointerUp?: (e: React.PointerEvent<HTMLButtonElement>) => void
+  onPointerCancel?: (e: React.PointerEvent<HTMLButtonElement>) => void
   className?: string
   style?: React.CSSProperties
   index?: number
@@ -25,6 +29,10 @@ export function PlayingCard({
   enter = 'deal',
   rankStyle = 'latin',
   onClick,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
   className = '',
   style,
   index = 0,
@@ -49,6 +57,10 @@ export function PlayingCard({
         type="button"
         className={`pcard face-down ${throwing ? 'throwing' : ''} ${enterClass} ${className}`}
         onClick={onClick}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
         style={mergedStyle}
         data-card-id={card?.id}
         aria-label="Карта рубашкой вверх"
@@ -63,6 +75,10 @@ export function PlayingCard({
       type="button"
       className={`pcard ${red ? 'red' : ''} ${selected ? 'selected' : ''} ${playable ? 'playable' : ''} ${throwing ? 'throwing' : ''} ${enterClass} ${className}`}
       onClick={onClick}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
       style={mergedStyle}
       data-card-id={card.id}
       aria-label={`${card.rank} ${card.suit}`}
