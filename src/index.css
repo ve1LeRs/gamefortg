@@ -1865,56 +1865,79 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .durak-hand {
-  --hand-overlap: 40px;
+  --hand-overlap: 36px;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-end;
   width: 100%;
+  max-width: 100%;
   height: 152px;
-  padding: 0 10px;
+  padding: 0 8px;
   margin-bottom: -6px;
+  box-sizing: border-box;
 }
 
-/* Fewer cards → still a tight fan (not nearly side-by-side) */
+/* Overlap/size scale with count so the fan always fits the screen */
 .durak-hand[data-count='1'] {
   --hand-overlap: 0px;
 }
 
 .durak-hand[data-count='2'],
 .durak-hand[data-count='3'] {
-  --hand-overlap: 26px;
+  --hand-overlap: 22px;
 }
 
 .durak-hand[data-count='4'],
-.durak-hand[data-count='5'],
+.durak-hand[data-count='5'] {
+  --hand-overlap: 32px;
+}
+
 .durak-hand[data-count='6'] {
   --hand-overlap: 40px;
 }
 
 .durak-hand[data-count='7'],
 .durak-hand[data-count='8'] {
-  --hand-overlap: 50px;
+  --hand-overlap: 48px;
 }
 
 .durak-hand[data-count='9'],
-.durak-hand[data-count='10'],
+.durak-hand[data-count='10'] {
+  --hand-overlap: 54px;
+}
+
 .durak-hand[data-count='11'],
 .durak-hand[data-count='12'] {
-  --hand-overlap: 58px;
+  --hand-overlap: 60px;
 }
 
 .durak-hand-card {
-  width: 92px !important;
-  height: 130px !important;
+  width: 88px !important;
+  height: 124px !important;
+  flex: 0 0 auto;
   margin-left: calc(var(--hand-overlap, 16px) * -1);
   transform: translateY(0) rotate(var(--rot, 0deg));
   transform-origin: 50% 120%;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38);
   transition:
     transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-    margin 0.35s ease,
+    opacity 0.15s ease,
     box-shadow 0.35s ease;
+}
+
+.durak-hand[data-count='7'] .durak-hand-card,
+.durak-hand[data-count='8'] .durak-hand-card {
+  width: 82px !important;
+  height: 116px !important;
+}
+
+.durak-hand[data-count='9'] .durak-hand-card,
+.durak-hand[data-count='10'] .durak-hand-card,
+.durak-hand[data-count='11'] .durak-hand-card,
+.durak-hand[data-count='12'] .durak-hand-card {
+  width: 74px !important;
+  height: 104px !important;
 }
 
 .durak-hand-card:first-child {
@@ -1989,8 +2012,8 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .durak-hand-card.is-drag-source {
-  opacity: 0.2;
-  transform: translateY(0) rotate(var(--rot, 0deg)) scale(0.96) !important;
+  /* Keep the slot in the fan; hide only the face so cancel returns cleanly */
+  opacity: 0;
   box-shadow: none;
   pointer-events: none;
 }
@@ -2024,22 +2047,36 @@ body.tg-webapp .app-main:not(.game-mode) {
   }
   .durak-hand[data-count='2'],
   .durak-hand[data-count='3'] {
-    --hand-overlap: 22px;
+    --hand-overlap: 20px;
   }
   .durak-hand[data-count='4'],
-  .durak-hand[data-count='5'],
+  .durak-hand[data-count='5'] {
+    --hand-overlap: 28px;
+  }
   .durak-hand[data-count='6'] {
-    --hand-overlap: 34px;
+    --hand-overlap: 36px;
   }
   .durak-hand[data-count='7'],
   .durak-hand[data-count='8'] {
     --hand-overlap: 44px;
   }
+  .durak-hand[data-count='7'] .durak-hand-card,
+  .durak-hand[data-count='8'] .durak-hand-card {
+    width: 72px !important;
+    height: 102px !important;
+  }
   .durak-hand[data-count='9'],
   .durak-hand[data-count='10'],
   .durak-hand[data-count='11'],
   .durak-hand[data-count='12'] {
-    --hand-overlap: 52px;
+    --hand-overlap: 50px;
+  }
+  .durak-hand[data-count='9'] .durak-hand-card,
+  .durak-hand[data-count='10'] .durak-hand-card,
+  .durak-hand[data-count='11'] .durak-hand-card,
+  .durak-hand[data-count='12'] .durak-hand-card {
+    width: 66px !important;
+    height: 94px !important;
   }
   .durak-pair {
     width: 112px;
