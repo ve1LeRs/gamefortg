@@ -34,14 +34,6 @@ export function StorePage({
         </div>
 
         <p className="hero-copy">Покер, дурак, шахматы, шашки и косынка — сразу в Telegram.</p>
-        <div className="cta-row">
-          <button type="button" className="btn btn-primary" onClick={() => onPlay('poker')}>
-            Играть в покер
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={() => onPlay('durak')}>
-            Открыть дурак
-          </button>
-        </div>
       </section>
 
       <section className="section">

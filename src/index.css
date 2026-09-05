@@ -294,8 +294,8 @@ body.tg-fullscreen
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 8px;
   position: relative;
   z-index: 2;
   min-height: 36px;
@@ -303,13 +303,15 @@ body.tg-fullscreen
 
 .hero-brand {
   font-family: var(--font-display);
-  font-size: clamp(26px, 7vw, 34px);
+  font-size: clamp(22px, 5.6vw, 30px);
   font-weight: 800;
   letter-spacing: -0.04em;
-  line-height: 1;
+  line-height: 1.05;
   margin: 0;
   white-space: nowrap;
-  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -319,19 +321,11 @@ body.tg-fullscreen
 }
 
 .hero-copy {
-  margin: 0 0 14px;
+  margin: 0;
   max-width: 22rem;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
-  position: relative;
-  z-index: 2;
-}
-
-.cta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
   position: relative;
   z-index: 2;
 }
@@ -347,8 +341,8 @@ body.tg-fullscreen
   border: 1px solid var(--line);
   font-size: 12px;
   font-weight: 600;
-  max-width: 42vw;
-  flex-shrink: 0;
+  max-width: min(38vw, 132px);
+  flex: 0 0 auto;
   align-self: center;
   backdrop-filter: blur(8px);
 }
