@@ -210,7 +210,6 @@ export function DurakGame({
 
     setBusy(true)
     setSelected(null)
-    onHaptic?.('light')
 
     const newPlayer = player.filter((c) => c.id !== card.id)
     await leaveHand(card.id)
@@ -260,7 +259,6 @@ export function DurakGame({
 
     setBusy(true)
     setSelected(null)
-    onHaptic?.('light')
 
     const newPlayer = player.filter((c) => c.id !== card.id)
     await leaveHand(card.id)
@@ -369,7 +367,6 @@ export function DurakGame({
       /* already released */
     }
     if (shouldPlay) {
-      onHaptic?.('light')
       playCard(d.card)
     }
   }
