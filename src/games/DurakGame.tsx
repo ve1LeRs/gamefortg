@@ -162,6 +162,7 @@ export function DurakGame({
     Object.fromEntries(initial.player.map((c, i) => [c.id, i])),
   )
   const fieldRef = useRef<HTMLDivElement>(null)
+  const tableCardsRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
   const skipClickRef = useRef(false)
   const dealTimerRef = useRef<number | null>(null)
@@ -213,6 +214,41 @@ export function DurakGame({
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
   }, [])
+
+  /** Keep attack/defence pairs inside the play field (no overflow into hand/status). */
+  useEffect(() => {
+    const field = fieldRef.current
+    const cards = tableCardsRef.current
+    if (!field || !cards) return
+
+    const fit = () => {
+      cards.style.setProperty('--table-scale', '1')
+      cards.style.margin = '0'
+      if (table.length === 0) return
+      const pad = 8
+      const availW = Math.max(40, field.clientWidth - pad)
+      const availH = Math.max(40, field.clientHeight - pad)
+      const needW = Math.max(1, cards.scrollWidth)
+      const needH = Math.max(1, cards.scrollHeight)
+      const scale = Math.min(1, availW / needW, availH / needH)
+      const s = Number.isFinite(scale) ? scale : 1
+      cards.style.setProperty('--table-scale', String(s))
+      /* transform doesn't shrink layout — collapse the unused box with negative margins */
+      if (s < 1) {
+        cards.style.margin = `${((s - 1) * needH) / 2}px ${((s - 1) * needW) / 2}px`
+      }
+    }
+
+    fit()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(fit) : null
+    ro?.observe(field)
+    ro?.observe(cards)
+    window.addEventListener('resize', fit)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener('resize', fit)
+    }
+  }, [table])
 
   useEffect(() => {
     const cards = initial.player
@@ -715,7 +751,11 @@ export function DurakGame({
       </header>
 
       <div ref={fieldRef} className="durak-field">
-        <div className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}`}>
+        <div
+          ref={tableCardsRef}
+          className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}`}
+          data-count={table.length}
+        >
           {table.length === 0 && <span className="durak-empty">Ход картой</span>}
           {table.map((p) => (
             <div className="durak-pair" key={p.attack.id}>
