@@ -1967,19 +1967,6 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 
 /* Drag-to-play: finger pulls a card onto the table */
-.durak-field.is-dragging .durak-empty {
-  opacity: 0.9;
-  color: #ffe08a;
-  font-weight: 700;
-}
-
-.durak-field.is-drop-target {
-  outline: 2px dashed rgba(255, 224, 138, 0.7);
-  outline-offset: -6px;
-  border-radius: 18px;
-  background: rgba(255, 224, 138, 0.08);
-}
-
 .durak-hand-card {
   touch-action: none;
   -webkit-user-select: none;
@@ -2003,11 +1990,6 @@ body.tg-webapp .app-main:not(.game-mode) {
   filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.45));
   will-change: left, top, transform;
   transition: transform 0.12s ease;
-}
-
-.durak-drag-ghost.is-over-table {
-  transform: translate3d(0, 0, 0) rotate(-4deg) scale(1.12);
-  filter: drop-shadow(0 22px 28px rgba(255, 224, 138, 0.28));
 }
 
 .durak-drag-ghost .pcard {

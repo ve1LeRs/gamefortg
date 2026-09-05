@@ -487,14 +487,9 @@ export function DurakGame({
         </p>
       </header>
 
-      <div
-        ref={fieldRef}
-        className={`durak-field${drag?.overTable ? ' is-drop-target' : ''}${drag?.active ? ' is-dragging' : ''}`}
-      >
+      <div ref={fieldRef} className="durak-field">
         <div className="durak-table-cards">
-          {table.length === 0 && (
-            <span className="durak-empty">{drag?.active ? 'Отпустите здесь' : 'Потяните карту сюда'}</span>
-          )}
+          {table.length === 0 && <span className="durak-empty">Ход картой</span>}
           {table.map((p) => (
             <div className="durak-pair" key={p.attack.id}>
               <PlayingCard
