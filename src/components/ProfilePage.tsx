@@ -1,4 +1,5 @@
 import { GAMES } from '../data/games'
+import { GameCover } from './GameCover'
 import type { TgUser } from '../hooks/useTelegram'
 
 export function ProfilePage({
@@ -14,20 +15,24 @@ export function ProfilePage({
   return (
     <div className="profile-page">
       <h1 className="page-title">Профиль</h1>
-      <p className="page-sub">Статистика сессии в мини-приложении.</p>
+      <p className="page-sub">Статистика сессии в GameForTg.</p>
 
       <div className="profile-card">
-        <div className="user-avatar" style={{ width: 56, height: 56, fontSize: 22 }}>
+        <div className="user-avatar profile-avatar">
           {user?.photoUrl ? (
             <img src={user.photoUrl} alt="" />
           ) : (
             (user?.firstName?.[0] ?? 'G').toUpperCase()
           )}
         </div>
-        <h2 className="profile-name">
-          {user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}` : 'Гость GameForTg'}
-        </h2>
-        <p className="hint">{user?.username ? `@${user.username}` : 'Откройте из Telegram, чтобы подтянуть аккаунт'}</p>
+        <div className="profile-info">
+          <h2 className="profile-name">
+            {user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}` : 'Гость GameForTg'}
+          </h2>
+          <p className="hint">
+            {user?.username ? `@${user.username}` : 'Откройте из Telegram, чтобы подтянуть аккаунт'}
+          </p>
+        </div>
       </div>
 
       <div className="stat-row">
@@ -35,11 +40,11 @@ export function ProfilePage({
           <strong>{total}</strong>
           <span>Запусков</span>
         </div>
-        <div className="stat" style={{ animationDelay: '0.05s' }}>
+        <div className="stat">
           <strong>{GAMES.length}</strong>
           <span>Игр</span>
         </div>
-        <div className="stat" style={{ animationDelay: '0.1s' }}>
+        <div className="stat">
           <strong>{favorites[0] ? plays[favorites[0].id] ?? 0 : 0}</strong>
           <span>Топ</span>
         </div>
@@ -50,13 +55,11 @@ export function ProfilePage({
       </div>
       <div className="game-list">
         {favorites.map((g) => (
-          <div key={g.id} className="game-row" style={{ cursor: 'default' }}>
-            <div className="game-row-art" style={{ '--tile-glow': g.glow } as React.CSSProperties}>
-              <span>
-                {g.id === 'poker' ? '♠' : g.id === 'durak' ? '♦' : g.id === 'chess' ? '♟' : g.id === 'checkers' ? '●' : '♣'}
-              </span>
+          <div key={g.id} className="game-row is-static">
+            <div className="game-row-art">
+              <GameCover game={g} square />
             </div>
-            <div>
+            <div className="game-row-text">
               <h3>{g.title}</h3>
               <p>{plays[g.id] ?? 0} запусков</p>
             </div>
