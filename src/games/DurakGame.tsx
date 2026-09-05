@@ -4,6 +4,7 @@ import {
   type Card,
   type Rank,
   DURAK_RANKS,
+  SUITS,
   makeDeck,
   shuffle,
   rankValue,
@@ -21,6 +22,18 @@ function canDefend(card: Card, attack: Card, trump: Card['suit']): boolean {
   return beats(card, attack, trump)
 }
 
+/** Low → high by rank; same rank by suit; trumps always on the right. */
+function sortHand(hand: Card[], trump: Card['suit']): Card[] {
+  return [...hand].sort((a, b) => {
+    const aTrump = a.suit === trump ? 1 : 0
+    const bTrump = b.suit === trump ? 1 : 0
+    if (aTrump !== bTrump) return aTrump - bTrump
+    const byRank = rankValue(a.rank, DURAK_RANKS) - rankValue(b.rank, DURAK_RANKS)
+    if (byRank !== 0) return byRank
+    return SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit)
+  })
+}
+
 function dealDurak() {
   const deck = shuffle(makeDeck(DURAK_RANKS))
   const player: Card[] = []
@@ -30,7 +43,8 @@ function dealDurak() {
     bot.push(deck.pop()!)
   }
   const trumpCard = deck[0]
-  return { deck, player, bot, trump: trumpCard.suit, trumpCard }
+  const trump = trumpCard.suit
+  return { deck, player: sortHand(player, trump), bot, trump, trumpCard }
 }
 
 function refill(hand: Card[], deck: Card[], n = 6): { hand: Card[]; deck: Card[] } {
@@ -106,6 +120,7 @@ export function DurakGame({
       ;({ hand: botNow, deck: deckNow } = refill(botNow, deckNow))
       ;({ hand: playerNow, deck: deckNow } = refill(playerNow, deckNow))
     }
+    playerNow = sortHand(playerNow, trump)
     setPlayer(playerNow)
     setBot(botNow)
     setDeck(deckNow)
@@ -277,10 +292,13 @@ export function DurakGame({
 
   const takeCards = () => {
     if (over || attacker !== 'bot' || busy) return
-    const taken = [
-      ...player,
-      ...table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack])),
-    ]
+    const taken = sortHand(
+      [
+        ...player,
+        ...table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack])),
+      ],
+      trump,
+    )
     setPlayer(taken)
     setTable([])
     setEnterMap({})
@@ -339,6 +357,7 @@ export function DurakGame({
     !busy && table.length > 0 && table.every((p) => p.defence) && (attacker === 'player' || attacker === 'bot')
   const canTake = !busy && !over && attacker === 'bot' && table.some((p) => !p.defence)
   const deckLayers = Math.min(5, Math.max(1, Math.ceil(deck.length / 6)))
+  const playerHand = useMemo(() => sortHand(player, trump), [player, trump])
 
   return (
     <div
@@ -430,9 +449,9 @@ export function DurakGame({
       </div>
 
       <footer className="durak-bottom" onClick={(e) => e.stopPropagation()}>
-        <div className="durak-hand" data-count={player.length}>
-          {player.map((c, i) => {
-            const n = player.length
+        <div className="durak-hand" data-count={playerHand.length}>
+          {playerHand.map((c, i) => {
+            const n = playerHand.length
             const mid = (n - 1) / 2
             const offset = i - mid
             return (
@@ -461,7 +480,7 @@ export function DurakGame({
               👤
             </div>
             <span className="durak-name">Вы</span>
-            <span className="durak-pill">{player.length}</span>
+            <span className="durak-pill">{playerHand.length}</span>
           </div>
         </div>
       </footer>
