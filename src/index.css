@@ -1482,21 +1482,38 @@ body.tg-webapp .app-main:not(.game-mode) {
   }
 }
 
-/* New cards drop into their fan slot from above — no sideways slide over neighbors */
+/* New card flies from the deck and seats into the opened fan slot */
 @keyframes durak-deal-in {
   0% {
     opacity: 0;
-    transform: translate3d(0, -96px, 0) scale(0.82) rotate(var(--rot, 0deg));
-    filter: brightness(1.15);
+    transform: translate3d(72px, -130px, 0) scale(0.62) rotate(calc(var(--rot, 0deg) - 18deg));
+    filter: brightness(1.35) drop-shadow(0 0 0 rgba(255, 230, 120, 0));
+    box-shadow: 0 0 0 rgba(255, 220, 100, 0);
   }
-  65% {
+  40% {
     opacity: 1;
-    transform: translate3d(0, 6px, 0) scale(1.03) rotate(var(--rot, 0deg));
-    filter: brightness(1);
+    transform: translate3d(18px, -36px, 0) scale(1.08) rotate(calc(var(--rot, 0deg) + 6deg));
+    filter: brightness(1.12) drop-shadow(0 0 12px rgba(255, 230, 120, 0.55));
+  }
+  72% {
+    opacity: 1;
+    transform: translate3d(-2px, 10px, 0) scale(1.06) rotate(var(--rot, 0deg));
+    filter: brightness(1.05) drop-shadow(0 0 10px rgba(120, 255, 180, 0.45));
+    box-shadow: 0 0 0 3px rgba(120, 255, 180, 0.75), 0 14px 28px rgba(0, 0, 0, 0.35);
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1) rotate(var(--rot, 0deg));
+    filter: none;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38);
+  }
+}
+
+@keyframes durak-hand-open {
+  0% {
+    filter: brightness(0.92);
+  }
+  100% {
     filter: none;
   }
 }
@@ -1949,11 +1966,26 @@ body.tg-webapp .app-main:not(.game-mode) {
     height 0.35s ease;
 }
 
+.durak-hand.is-receiving {
+  animation: durak-hand-open 0.45s ease both;
+}
+
+/* Settled cards dim and ease aside while a new one inserts */
+.durak-hand.is-receiving .durak-hand-card:not(.enter-deal) {
+  filter: brightness(0.88);
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    margin 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.35s ease,
+    box-shadow 0.35s ease;
+}
+
 .durak-hand-card.enter-deal {
-  animation: durak-deal-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--deal-i, 0) * 0.09s);
+  animation: durak-deal-in 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(0.12s + var(--deal-i, 0) * 0.14s);
   /* Above settled cards while inserting so the join is obvious */
-  z-index: 60 !important;
+  z-index: 70 !important;
+  pointer-events: none;
 }
 
 .durak-hand-card.playable {

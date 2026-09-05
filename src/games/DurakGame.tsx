@@ -96,7 +96,7 @@ function prefersReducedMotion() {
 }
 
 const THROW_MS = 900
-const DEAL_MS = 700
+const DEAL_MS = 980
 
 export function DurakGame({
   onHaptic,
@@ -154,7 +154,7 @@ export function DurakGame({
       return next
     })
     if (dealTimerRef.current) window.clearTimeout(dealTimerRef.current)
-    const ms = prefersReducedMotion() ? 40 : DEAL_MS + cards.length * 90
+    const ms = prefersReducedMotion() ? 40 : DEAL_MS + cards.length * 140
     dealTimerRef.current = window.setTimeout(() => {
       setEnterMap((m) => {
         const next = { ...m }
@@ -229,7 +229,10 @@ export function DurakGame({
     setPlayer(playerNow)
     setBot(botNow)
     setDeck(deckNow)
-    if (dealt.length > 0) markDealCards(dealt)
+    if (dealt.length > 0) {
+      markDealCards(dealt)
+      setStatus(dealt.length === 1 ? 'Добор — карта в руку' : `Добор — ${dealt.length} в руку`)
+    }
     return { playerNow, botNow, deckNow }
   }
 
@@ -539,7 +542,11 @@ export function DurakGame({
     setPlayer(taken)
     setTable([])
     setEnterMap({})
-    markDealCards(taken.filter((c) => !player.some((p) => p.id === c.id)))
+    const joined = taken.filter((c) => !player.some((p) => p.id === c.id))
+    markDealCards(joined)
+    if (joined.length > 0) {
+      setStatus(joined.length === 1 ? 'Карта вошла в руку' : `${joined.length} карты вошли в руку`)
+    }
     onHaptic?.('medium')
     const drawn = drawUp(taken, bot, deck, 'bot')
     if (!checkEnd(drawn.playerNow, drawn.botNow, drawn.deckNow.length)) {
@@ -702,7 +709,7 @@ export function DurakGame({
 
       <footer className="durak-bottom" onClick={(e) => e.stopPropagation()}>
         <div
-          className={`durak-hand${drag?.active ? ' is-dragging' : ''}`}
+          className={`durak-hand${drag?.active ? ' is-dragging' : ''}${Object.keys(dealOrder).length ? ' is-receiving' : ''}`}
           data-count={playerHand.length}
           style={{
             ['--hand-card-w' as string]: `${handLayout.cardW}px`,
