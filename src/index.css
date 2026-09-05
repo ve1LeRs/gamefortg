@@ -1009,9 +1009,15 @@ body.tg-fullscreen
   font-size: 15px;
   line-height: 1;
   position: relative;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease;
+  transition:
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    outline-color 0.35s ease,
+    filter 0.35s ease;
+  will-change: transform;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  animation: card-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .pcard.red {
@@ -1019,13 +1025,14 @@ body.tg-fullscreen
 }
 
 .pcard.selected {
-  transform: translateY(-8px);
-  box-shadow: 0 10px 20px rgba(232, 168, 56, 0.45);
-  outline: 2px solid var(--accent);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 18px rgba(232, 168, 56, 0.28);
+  outline: 2px solid rgba(232, 168, 56, 0.85);
 }
 
 .pcard.playable:active {
-  transform: translateY(-4px) scale(0.98);
+  transform: translateY(-2px) scale(0.99);
+  transition-duration: 0.18s;
 }
 
 .pcard.face-down {
@@ -1225,6 +1232,12 @@ body.tg-fullscreen
   aspect-ratio: 5 / 7;
   font-size: clamp(10px, 2.8vw, 13px);
   padding: 4px;
+  animation: none;
+  transition:
+    top 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.45s ease,
+    outline-color 0.35s ease;
 }
 
 .sol-col .pcard .suit-lg {
@@ -1279,6 +1292,25 @@ body.tg-fullscreen
   position: absolute;
   top: 14px;
   left: 10px;
+  transition:
+    top 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    left 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.45s ease;
+}
+
+.hand .pcard {
+  animation: card-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+.sol-slot .pcard,
+.community .pcard {
+  animation: card-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.table-cards .pcard {
+  animation: card-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes rise {
@@ -1289,6 +1321,17 @@ body.tg-fullscreen
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

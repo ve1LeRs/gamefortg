@@ -291,8 +291,8 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
           <span>Колода: {deck.length}</span>
         </div>
         <div className="hand compact">
-          {bot.map((c) => (
-            <PlayingCard key={c.id} faceDown />
+          {bot.map((c, i) => (
+            <PlayingCard key={c.id} faceDown index={i} />
           ))}
         </div>
         <div className="table-cards">
@@ -306,10 +306,11 @@ export function DurakGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
         </div>
       </div>
       <div className="hand">
-        {player.map((c) => (
+        {player.map((c, i) => (
           <PlayingCard
             key={c.id}
             card={c}
+            index={i}
             selected={selected === c.id}
             playable={!over}
             onClick={() => onCardClick(c)}
