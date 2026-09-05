@@ -17,7 +17,10 @@ export function CardFlightOverlay({ flight, onDone }: Props) {
   useEffect(() => {
     if (!flight) return
     const el = nodeRef.current
-    if (!el) return
+    if (!el) {
+      const t = window.setTimeout(() => doneRef.current(flight.id), 0)
+      return () => window.clearTimeout(t)
+    }
 
     const from = rectCenter(flight.from)
     const to = rectCenter(flight.to)
@@ -29,6 +32,9 @@ export function CardFlightOverlay({ flight, onDone }: Props) {
     el.style.top = `${flight.from.top}px`
     el.style.width = `${Math.max(flight.from.width, 56)}px`
     el.style.height = `${Math.max(flight.from.height, 80)}px`
+    el.style.opacity = '1'
+    el.style.visibility = 'visible'
+    el.style.zIndex = '99999'
 
     let finished = false
     const finish = () => {
@@ -78,6 +84,8 @@ export function CardFlightOverlay({ flight, onDone }: Props) {
       } catch {
         /* ignore */
       }
+      // If React tears down mid-flight, still unblock the game loop.
+      finish()
     }
   }, [flight])
 
