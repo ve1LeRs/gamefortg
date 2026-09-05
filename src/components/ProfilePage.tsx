@@ -10,63 +10,77 @@ export function ProfilePage({
   plays: Record<string, number>
 }) {
   const total = Object.values(plays).reduce((a, b) => a + b, 0)
-  const favorites = [...GAMES].sort((a, b) => (plays[b.id] ?? 0) - (plays[a.id] ?? 0)).slice(0, 3)
+  const favorites = [...GAMES]
+    .map((g) => ({ game: g, count: plays[g.id] ?? 0 }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3)
+  const topCount = favorites[0]?.count ?? 0
+  const displayName = user
+    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
+    : 'Гость GameForTg'
+  const initial = (user?.firstName?.[0] ?? 'G').toUpperCase()
 
   return (
     <div className="profile-page">
-      <h1 className="page-title">Профиль</h1>
-      <p className="page-sub">Статистика сессии в GameForTg.</p>
-      <p className="hint build-id">Сборка {typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'}</p>
-
-      <div className="profile-card">
-        <div className="user-avatar profile-avatar">
-          {user?.photoUrl ? (
-            <img src={user.photoUrl} alt="" />
-          ) : (
-            (user?.firstName?.[0] ?? 'G').toUpperCase()
-          )}
+      <header className="profile-hero">
+        <div className="profile-hero-glow" aria-hidden />
+        <div className="profile-identity">
+          <div className="profile-avatar" aria-hidden>
+            {user?.photoUrl ? <img src={user.photoUrl} alt="" /> : initial}
+          </div>
+          <div className="profile-identity-text">
+            <p className="profile-kicker">Профиль</p>
+            <h1 className="profile-name">{displayName}</h1>
+            <p className="profile-handle">
+              {user?.username
+                ? `@${user.username}`
+                : 'Откройте из Telegram, чтобы подтянуть аккаунт'}
+            </p>
+          </div>
         </div>
-        <div className="profile-info">
-          <h2 className="profile-name">
-            {user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}` : 'Гость GameForTg'}
-          </h2>
-          <p className="hint">
-            {user?.username ? `@${user.username}` : 'Откройте из Telegram, чтобы подтянуть аккаунт'}
-          </p>
-        </div>
-      </div>
+      </header>
 
-      <div className="stat-row">
-        <div className="stat">
+      <section className="profile-stats" aria-label="Статистика сессии">
+        <div className="profile-stat">
           <strong>{total}</strong>
           <span>Запусков</span>
         </div>
-        <div className="stat">
+        <div className="profile-stat">
           <strong>{GAMES.length}</strong>
           <span>Игр</span>
         </div>
-        <div className="stat">
-          <strong>{favorites[0] ? plays[favorites[0].id] ?? 0 : 0}</strong>
+        <div className="profile-stat">
+          <strong>{topCount}</strong>
           <span>Топ</span>
         </div>
-      </div>
+      </section>
 
-      <div className="section-head">
-        <h2>Любимые</h2>
-      </div>
-      <div className="game-list">
-        {favorites.map((g) => (
-          <div key={g.id} className="game-row is-static">
-            <div className="game-row-art">
-              <GameCover game={g} square />
+      <section className="profile-fav">
+        <div className="section-head">
+          <h2>Любимые</h2>
+          <p>За эту сессию</p>
+        </div>
+        <div className="profile-fav-list">
+          {favorites.map(({ game, count }, i) => (
+            <div key={game.id} className="profile-fav-row">
+              <span className="profile-fav-rank">{i + 1}</span>
+              <div className="profile-fav-art">
+                <GameCover game={game} square />
+              </div>
+              <div className="profile-fav-text">
+                <h3>{game.title}</h3>
+                <p>
+                  {game.genre} · {count} {count === 1 ? 'запуск' : 'запусков'}
+                </p>
+              </div>
             </div>
-            <div className="game-row-text">
-              <h3>{g.title}</h3>
-              <p>{plays[g.id] ?? 0} запусков</p>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </section>
+
+      <p className="profile-build" aria-hidden>
+        {typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'}
+      </p>
     </div>
   )
 }
