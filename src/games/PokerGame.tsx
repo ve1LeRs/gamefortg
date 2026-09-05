@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { PlayingCard } from '../components/PlayingCard'
 import {
   type Card,
@@ -9,12 +9,15 @@ import {
   rankValue,
 } from '../lib/cards'
 
-type Phase = 'betting' | 'flop' | 'turn' | 'river' | 'showdown' | 'over'
+type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'over'
 
 type HandRank = {
   score: number
   label: string
 }
+
+const START_STACK = 1000
+const BLIND = 15
 
 function evaluate(cards: Card[]): HandRank {
   const values = cards
@@ -36,8 +39,7 @@ function evaluate(cards: Card[]): HandRank {
         break
       }
     }
-    // Wheel A-5
-    if (!isStraight && uniq.includes(12) && uniq.includes(0) && uniq.includes(1) && uniq.includes(2) && uniq.includes(3)) {
+    if (!isStraight && uniq.includes(12) && [0, 1, 2, 3].every((v) => uniq.includes(v))) {
       isStraight = true
       straightHigh = 3
     }
@@ -91,11 +93,7 @@ function bestHand(hole: Card[], board: Card[]): HandRank {
   return best
 }
 
-function deal(): {
-  deck: Card[]
-  player: Card[]
-  bot: Card[]
-} {
+function dealHole() {
   const deck = shuffle(makeDeck(POKER_RANKS as Rank[]))
   return {
     player: [deck.pop()!, deck.pop()!],
@@ -104,133 +102,244 @@ function deal(): {
   }
 }
 
-export function PokerGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void }) {
-  const initial = useMemo(() => deal(), [])
-  const [deck, setDeck] = useState(initial.deck)
-  const [player, setPlayer] = useState(initial.player)
-  const [bot, setBot] = useState(initial.bot)
+function postBlinds(playerStack: number, botStack: number) {
+  const pBlind = Math.min(BLIND, playerStack)
+  const bBlind = Math.min(BLIND, botStack)
+  return {
+    stack: playerStack - pBlind,
+    botStack: botStack - bBlind,
+    pot: pBlind + bBlind,
+  }
+}
+
+function betSize(phase: Phase) {
+  if (phase === 'preflop') return 20
+  if (phase === 'flop') return 40
+  if (phase === 'turn') return 60
+  return 80
+}
+
+export function PokerGame({
+  onHaptic,
+}: {
+  onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
+}) {
+  const firstDeal = useMemo(() => dealHole(), [])
+  const firstBlinds = useMemo(() => postBlinds(START_STACK, START_STACK), [])
+
+  const [deck, setDeck] = useState(firstDeal.deck)
+  const [player, setPlayer] = useState(firstDeal.player)
+  const [bot, setBot] = useState(firstDeal.bot)
   const [board, setBoard] = useState<Card[]>([])
-  const [phase, setPhase] = useState<Phase>('betting')
-  const [pot, setPot] = useState(30)
-  const [stack, setStack] = useState(970)
-  const [botStack, setBotStack] = useState(970)
+  const [phase, setPhase] = useState<Phase>('preflop')
+  const [pot, setPot] = useState(firstBlinds.pot)
+  const [stack, setStack] = useState(firstBlinds.stack)
+  const [botStack, setBotStack] = useState(firstBlinds.botStack)
   const [showBot, setShowBot] = useState(false)
-  const [status, setStatus] = useState('Ваш ход. Чек или ставка 20?')
+  const [status, setStatus] = useState(`Блайнды по ${BLIND}. Чек или ставка ${betSize('preflop')}?`)
   const [resultClass, setResultClass] = useState('')
+  const [matchOver, setMatchOver] = useState(false)
 
-  const reset = useCallback(() => {
-    const next = deal()
-    setDeck(next.deck)
-    setPlayer(next.player)
-    setBot(next.bot)
-    setBoard([])
-    setPhase('betting')
-    setPot(30)
-    setStack((s) => Math.max(0, s - 15))
-    setBotStack((s) => Math.max(0, s - 15))
-    setShowBot(false)
-    setStatus('Блайнды поставлены. Чек или ставка 20?')
-    setResultClass('')
-    onHaptic?.('medium')
-  }, [onHaptic])
+  const totalChips = stack + botStack + pot
+  const stackRef = useRef(stack)
+  const botStackRef = useRef(botStack)
+  stackRef.current = stack
+  botStackRef.current = botStack
 
-  const advanceBoard = useCallback(
-    (from: Phase, d: Card[]) => {
-      const copy = [...d]
-      if (from === 'betting') {
-        copy.pop() // burn
+  const settlePot = useCallback((winner: 'player' | 'bot' | 'tie', potAmount: number) => {
+    if (winner === 'player') {
+      stackRef.current += potAmount
+      setStack(stackRef.current)
+    } else if (winner === 'bot') {
+      botStackRef.current += potAmount
+      setBotStack(botStackRef.current)
+    } else {
+      const half = Math.floor(potAmount / 2)
+      stackRef.current += half
+      botStackRef.current += potAmount - half
+      setStack(stackRef.current)
+      setBotStack(botStackRef.current)
+    }
+    setPot(0)
+  }, [])
+
+  const dealNextHand = useCallback(
+    (playerStack: number, botChips: number) => {
+      if (playerStack <= 0 || botChips <= 0) {
+        setMatchOver(true)
+        setPhase('over')
+        setShowBot(false)
+        setPot(0)
+        setStack(Math.max(0, playerStack))
+        setBotStack(Math.max(0, botChips))
+        if (playerStack <= 0 && botChips <= 0) {
+          setStatus('Фишки закончились у обоих.')
+        } else if (playerStack <= 0) {
+          setStatus('У вас закончились фишки. Бот забрал стол.')
+          setResultClass('lose')
+        } else {
+          setStatus('У бота закончились фишки. Вы выиграли стол!')
+          setResultClass('win')
+        }
+        return
+      }
+
+      const hole = dealHole()
+      const blinds = postBlinds(playerStack, botChips)
+      setDeck(hole.deck)
+      setPlayer(hole.player)
+      setBot(hole.bot)
+      setBoard([])
+      setPhase('preflop')
+      setPot(blinds.pot)
+      setStack(blinds.stack)
+      setBotStack(blinds.botStack)
+      setShowBot(false)
+      setResultClass('')
+      setMatchOver(false)
+      setStatus(`Блайнды по ${BLIND}. Чек или ставка ${betSize('preflop')}?`)
+      onHaptic?.('medium')
+    },
+    [onHaptic],
+  )
+
+  const resetMatch = useCallback(() => {
+    dealNextHand(START_STACK, START_STACK)
+  }, [dealNextHand])
+
+  const nextHand = useCallback(() => {
+    dealNextHand(stackRef.current, botStackRef.current)
+  }, [dealNextHand])
+
+  const showdown = useCallback(
+    (community: Card[], potAmount: number, playerHole: Card[], botHole: Card[]) => {
+      setShowBot(true)
+      setPhase('over')
+      const p = bestHand(playerHole, community)
+      const o = bestHand(botHole, community)
+      if (p.score > o.score) {
+        settlePot('player', potAmount)
+        setStatus(`Победа! ${p.label} бьёт ${o.label}. +${potAmount}`)
+        setResultClass('win')
+        onHaptic?.('success')
+      } else if (p.score < o.score) {
+        settlePot('bot', potAmount)
+        setStatus(`Поражение. У бота ${o.label}, у вас ${p.label}. −банк`)
+        setResultClass('lose')
+        onHaptic?.('error')
+      } else {
+        settlePot('tie', potAmount)
+        setStatus(`Ничья: ${p.label}. Банк пополам.`)
+        setResultClass('')
+        onHaptic?.('medium')
+      }
+    },
+    [onHaptic, settlePot],
+  )
+
+  const advance = useCallback(
+    (
+      from: Phase,
+      currentDeck: Card[],
+      currentBoard: Card[],
+      potAmount: number,
+      playerHole: Card[],
+      botHole: Card[],
+    ) => {
+      const copy = [...currentDeck]
+      if (from === 'preflop') {
+        copy.pop()
         const flop = [copy.pop()!, copy.pop()!, copy.pop()!]
         setBoard(flop)
         setDeck(copy)
         setPhase('flop')
-        setStatus('Флоп. Чек или ставка 40?')
+        setStatus(`Флоп. Чек или ставка ${betSize('flop')}?`)
       } else if (from === 'flop') {
         copy.pop()
-        setBoard((b) => [...b, copy.pop()!])
+        const nextBoard = [...currentBoard, copy.pop()!]
+        setBoard(nextBoard)
         setDeck(copy)
         setPhase('turn')
-        setStatus('Тёрн. Чек или ставка 60?')
+        setStatus(`Тёрн. Чек или ставка ${betSize('turn')}?`)
       } else if (from === 'turn') {
         copy.pop()
-        setBoard((b) => [...b, copy.pop()!])
+        const nextBoard = [...currentBoard, copy.pop()!]
+        setBoard(nextBoard)
         setDeck(copy)
         setPhase('river')
-        setStatus('Ривер. Чек или ставка 80?')
+        setStatus(`Ривер. Чек или ставка ${betSize('river')}?`)
       } else {
-        finish(copy)
+        showdown(currentBoard, potAmount, playerHole, botHole)
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [showdown],
   )
 
-  const finish = (currentBoard?: Card[]) => {
-    const b = currentBoard ?? board
-    setShowBot(true)
-    setPhase('over')
-    const p = bestHand(player, b.length ? b : board)
-    const o = bestHand(bot, b.length ? b : board)
-    if (p.score > o.score) {
-      setStack((s) => s + pot)
-      setStatus(`Победа! ${p.label} бьёт ${o.label}. +${pot}`)
-      setResultClass('win')
-      onHaptic?.('success')
-    } else if (p.score < o.score) {
-      setStatus(`Поражение. У бота ${o.label}, у вас ${p.label}.`)
-      setResultClass('lose')
-      onHaptic?.('error')
-    } else {
-      setStack((s) => s + Math.floor(pot / 2))
-      setBotStack((s) => s + Math.floor(pot / 2))
-      setStatus(`Ничья: ${p.label}. Банк пополам.`)
-      setResultClass('')
-    }
-  }
-
   const check = () => {
-    if (phase === 'over' || phase === 'showdown') return
+    if (phase === 'over' || matchOver) return
     onHaptic?.('light')
-    // Bot sometimes bets
+
+    let nextPot = pot
+    let nextStack = stack
+    let nextBot = botStack
+
+    // Bot occasionally bets; both put in the same amount (auto-call)
     if (Math.random() < 0.25 && phase !== 'river') {
-      const bet = phase === 'betting' ? 20 : phase === 'flop' ? 40 : 60
-      if (stack >= bet && botStack >= bet) {
-        setPot((p) => p + bet * 2)
-        setStack((s) => s - bet)
-        setBotStack((s) => s - bet)
-        setStatus(`Бот поднял на ${bet}. Добор автоматом.`)
+      const amount = betSize(phase)
+      if (nextStack >= amount && nextBot >= amount) {
+        nextPot += amount * 2
+        nextStack -= amount
+        nextBot -= amount
+        setPot(nextPot)
+        setStack(nextStack)
+        setBotStack(nextBot)
+        setStatus(`Бот поставил ${amount}. Добор автоматом.`)
       }
     }
+
     if (phase === 'river') {
-      finish()
+      showdown(board, nextPot, player, bot)
     } else {
-      advanceBoard(phase, deck)
+      advance(phase, deck, board, nextPot, player, bot)
     }
   }
 
   const bet = () => {
-    if (phase === 'over') return
-    const amount = phase === 'betting' ? 20 : phase === 'flop' ? 40 : phase === 'turn' ? 60 : 80
+    if (phase === 'over' || matchOver) return
+    const amount = betSize(phase)
     if (stack < amount || botStack < amount) {
-      setStatus('Недостаточно фишек — чек.')
+      setStatus('Недостаточно фишек для ставки — нажмите чек.')
       return
     }
     onHaptic?.('medium')
-    setPot((p) => p + amount * 2)
-    setStack((s) => s - amount)
-    setBotStack((s) => s - amount)
+    const nextPot = pot + amount * 2
+    const nextStack = stack - amount
+    const nextBot = botStack - amount
+    setPot(nextPot)
+    setStack(nextStack)
+    setBotStack(nextBot)
     setStatus(`Ставка ${amount}. Бот коллирует.`)
-    if (phase === 'river') {
-      setTimeout(() => finish(), 300)
-    } else {
-      setTimeout(() => advanceBoard(phase, deck), 300)
-    }
+
+    const phaseNow = phase
+    const deckNow = deck
+    const boardNow = board
+    const playerNow = player
+    const botNow = bot
+
+    window.setTimeout(() => {
+      if (phaseNow === 'river') {
+        showdown(boardNow, nextPot, playerNow, botNow)
+      } else {
+        advance(phaseNow, deckNow, boardNow, nextPot, playerNow, botNow)
+      }
+    }, 280)
   }
 
   const fold = () => {
-    if (phase === 'over') return
+    if (phase === 'over' || matchOver) return
     setPhase('over')
-    setBotStack((s) => s + pot)
-    setStatus('Вы сбросили. Банк уходит боту.')
+    settlePot('bot', pot)
+    setStatus(`Вы сбросили. Банк ${pot} уходит боту.`)
     setResultClass('lose')
     onHaptic?.('error')
   }
@@ -247,6 +356,9 @@ export function PokerGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
           </span>
           <span>Бот: {botStack}</span>
         </div>
+        <p className="poker-chip-audit" aria-hidden>
+          Стол {totalChips}
+        </p>
         <div className="hand compact">
           {bot.map((c, i) => (
             <PlayingCard key={c.id} card={c} faceDown={!showBot} index={i} />
@@ -265,20 +377,24 @@ export function PokerGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
         ))}
       </div>
       <div className="action-bar">
-        {phase !== 'over' ? (
+        {phase !== 'over' && !matchOver ? (
           <>
             <button type="button" className="btn btn-soft" onClick={check}>
               Чек
             </button>
             <button type="button" className="btn btn-primary" onClick={bet}>
-              Ставка
+              Ставка {betSize(phase)}
             </button>
             <button type="button" className="btn btn-danger" onClick={fold}>
               Фолд
             </button>
           </>
+        ) : matchOver ? (
+          <button type="button" className="btn btn-primary" onClick={resetMatch}>
+            Новый матч
+          </button>
         ) : (
-          <button type="button" className="btn btn-primary" onClick={reset}>
+          <button type="button" className="btn btn-primary" onClick={nextHand}>
             Новая раздача
           </button>
         )}
