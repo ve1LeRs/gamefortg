@@ -16,18 +16,12 @@ export function StorePage({
     <div className="store-page">
       <section className="hero">
         <div className="hero-bg" />
-        <div className="hero-suits" aria-hidden>
-          <span>♠</span>
-          <span>♥</span>
-          <span>♣</span>
-          <span>♦</span>
-        </div>
 
         <div className="hero-top">
           <h1 className="hero-brand">
             GameFor<em>Tg</em>
           </h1>
-          <div className="user-chip">
+          <div className="user-chip" aria-label={user?.firstName ?? 'Гость'}>
             <div className="user-avatar">
               {user?.photoUrl ? (
                 <img src={user.photoUrl} alt="" />
@@ -73,13 +67,12 @@ export function StorePage({
               key={game.id}
               type="button"
               className="game-row"
-              style={{ '--tile-glow': game.glow } as React.CSSProperties}
               onClick={() => onPlay(game.id)}
             >
               <div className="game-row-art">
                 <GameCover game={game} square />
               </div>
-              <div>
+              <div className="game-row-text">
                 <h3>{game.title}</h3>
                 <p>
                   {game.genre} · {game.players}
@@ -97,9 +90,8 @@ export function StorePage({
 function FeaturedTile({ game, onPlay }: { game: GameMeta; onPlay: (id: string) => void }) {
   return (
     <button type="button" className="game-tile" onClick={() => onPlay(game.id)}>
-      <GameCover game={game} />
+      <GameCover game={game} showTitle />
       <div className="game-meta">
-        <h3>{game.title}</h3>
         <p>{game.tagline}</p>
         <div className="game-tags">
           <span>{game.genre}</span>
