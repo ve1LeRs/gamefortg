@@ -1026,7 +1026,8 @@ body.tg-fullscreen
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  justify-content: flex-start;
+  gap: 5px;
   line-height: 1;
   font-size: 13px;
   z-index: 1;
@@ -1038,16 +1039,30 @@ body.tg-fullscreen
 }
 
 .pcard-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 15px;
+  padding: 0;
   font-family: Georgia, 'Times New Roman', serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1;
+  overflow: hidden;
 }
 
 .pcard-suit {
-  font-size: 11px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 12px;
   margin-top: 0;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  overflow: hidden;
 }
 
 .pcard.red {
@@ -1888,15 +1903,17 @@ body.tg-fullscreen
 }
 
 .durak-hand-card .pcard-rank {
-  font-size: 15px;
+  font-size: 14px;
+  height: 16px;
 }
 
 .durak-hand-card .pcard-suit {
   font-size: 11px;
+  height: 13px;
 }
 
 .durak-hand-card .pcard-corner {
-  gap: 2px;
+  gap: 6px;
 }
 
 .durak-hand-card .suit-lg {
