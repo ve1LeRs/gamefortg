@@ -397,10 +397,13 @@ export function DurakGame({
         </div>
 
         <div className="durak-deck" aria-label={`Колода: ${deck.length}`}>
+          {/* Trump under the stack — half visible, like a real Durak table */}
+          {deck.length > 0 && (
+            <PlayingCard card={trumpCard} rankStyle="ru" className="durak-trump-card" enter="none" />
+          )}
           {Array.from({ length: deckLayers }).map((_, i) => (
             <span key={i} className="durak-deck-layer" style={{ ['--i' as string]: i }} />
           ))}
-          <PlayingCard card={trumpCard} rankStyle="ru" className="durak-trump-card" enter="none" />
           <span className="durak-deck-count">{deck.length}</span>
         </div>
       </div>
@@ -427,7 +430,7 @@ export function DurakGame({
       </div>
 
       <footer className="durak-bottom" onClick={(e) => e.stopPropagation()}>
-        <div className="durak-hand">
+        <div className="durak-hand" data-count={player.length}>
           {player.map((c, i) => {
             const n = player.length
             const mid = (n - 1) / 2
@@ -444,7 +447,7 @@ export function DurakGame({
                 className="durak-card durak-hand-card"
                 style={{
                   ['--fan' as string]: offset,
-                  ['--rot' as string]: `${offset * 4.5}deg`,
+                  ['--rot' as string]: `${offset * 3.2}deg`,
                   zIndex: throwingId === c.id ? 30 : i + 1,
                 }}
                 onClick={() => onCardClick(c)}

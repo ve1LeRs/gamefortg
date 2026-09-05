@@ -1679,7 +1679,7 @@ body.tg-fullscreen
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 64px 8px 24px;
+  padding: 8px 72px 8px 24px;
 }
 
 .durak-table-cards {
@@ -1699,30 +1699,31 @@ body.tg-fullscreen
 
 .durak-pair {
   position: relative;
-  width: 62px;
-  height: 92px;
+  width: 108px;
+  height: 138px;
 }
 
 .durak-pair .durak-card {
-  width: 62px;
-  height: 88px;
+  width: 64px;
+  height: 90px;
 }
 
 .durak-pair .durak-defence {
   position: absolute;
-  top: 14px;
-  left: 12px;
-  transform: rotate(12deg);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  top: 42px;
+  left: 36px;
+  transform: rotate(20deg);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  z-index: 2;
 }
 
 .durak-deck {
   position: absolute;
-  right: 6px;
+  right: 10px;
   top: 50%;
   width: 58px;
   height: 100px;
-  transform: translateY(-50%) rotate(8deg);
+  transform: translateY(-50%) rotate(6deg);
   z-index: 3;
 }
 
@@ -1736,17 +1737,21 @@ body.tg-fullscreen
   border: 1px solid rgba(255, 255, 255, 0.18);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
   transform: translate(calc(var(--i) * -1.5px), calc(var(--i) * -1.5px));
+  z-index: 2;
 }
 
+/* Half-visible under the face-down pile, classic Durak layout */
 .durak-trump-card {
   position: absolute !important;
-  left: -34px;
-  top: 10px;
-  width: 58px !important;
-  height: 82px !important;
+  left: -26px;
+  top: 8px;
+  width: 64px !important;
+  height: 90px !important;
   transform: rotate(-90deg);
+  transform-origin: center center;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-  z-index: 0;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .durak-deck-count {
@@ -1758,6 +1763,7 @@ body.tg-fullscreen
   font-weight: 800;
   opacity: 0.85;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  z-index: 4;
 }
 
 .durak-actions {
@@ -1817,20 +1823,46 @@ body.tg-fullscreen
 }
 
 .durak-hand {
+  --hand-overlap: 12px;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-end;
   width: 100%;
-  height: 118px;
-  padding: 0 8px;
+  height: 124px;
+  padding: 0 12px;
   margin-bottom: -8px;
+}
+
+/* Fewer cards → less overlap so ranks stay readable */
+.durak-hand[data-count='1'],
+.durak-hand[data-count='2'],
+.durak-hand[data-count='3'],
+.durak-hand[data-count='4'] {
+  --hand-overlap: 4px;
+}
+
+.durak-hand[data-count='5'],
+.durak-hand[data-count='6'] {
+  --hand-overlap: 10px;
+}
+
+.durak-hand[data-count='7'],
+.durak-hand[data-count='8'] {
+  --hand-overlap: 18px;
+}
+
+.durak-hand[data-count='9'],
+.durak-hand[data-count='10'],
+.durak-hand[data-count='11'],
+.durak-hand[data-count='12'] {
+  --hand-overlap: 26px;
 }
 
 .durak-hand-card {
   width: 72px !important;
   height: 102px !important;
-  margin-left: -34px;
+  margin-left: calc(var(--hand-overlap, 16px) * -1);
   transform: translateY(0) rotate(var(--rot, 0deg));
   transform-origin: 50% 120%;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38);
@@ -1895,11 +1927,27 @@ body.tg-fullscreen
 
 @media (max-width: 360px) {
   .durak-hand-card {
-    width: 60px !important;
-    height: 86px !important;
-    margin-left: -24px;
+    width: 62px !important;
+    height: 88px !important;
+  }
+  .durak-hand[data-count='1'],
+  .durak-hand[data-count='2'],
+  .durak-hand[data-count='3'],
+  .durak-hand[data-count='4'] {
+    --hand-overlap: 6px;
+  }
+  .durak-pair {
+    width: 96px;
+    height: 128px;
+  }
+  .durak-pair .durak-defence {
+    top: 36px;
+    left: 30px;
   }
   .durak-field {
-    padding-right: 52px;
+    padding-right: 64px;
+  }
+  .durak-trump-card {
+    left: -22px;
   }
 }
