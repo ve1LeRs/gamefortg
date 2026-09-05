@@ -14,7 +14,13 @@
   --tg-safe-right: 0px;
   --tg-content-top: 0px;
   --tg-content-bottom: 0px;
-  --safe-top: max(env(safe-area-inset-top, 0px), var(--tg-safe-top), var(--tg-content-top));
+  --tg-chrome-top: 0px;
+  --safe-top: max(
+    env(safe-area-inset-top, 0px),
+    var(--tg-safe-top),
+    var(--tg-content-top),
+    var(--tg-chrome-top)
+  );
   --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-bottom), var(--tg-content-bottom));
   --safe-left: max(env(safe-area-inset-left, 0px), var(--tg-safe-left));
   --safe-right: max(env(safe-area-inset-right, 0px), var(--tg-safe-right));
@@ -77,10 +83,12 @@ img {
     linear-gradient(180deg, #0a141f 0%, var(--bg) 40%, #050b11 100%);
 }
 
-body.tg-fullscreen 
-.library-page,
-.profile-page {
-  padding: calc(12px + var(--safe-top)) 16px 24px;
+body.tg-fullscreen .library-page,
+body.tg-fullscreen .profile-page,
+body.tg-webapp .library-page,
+body.tg-webapp .profile-page {
+  /* app-main already applies --safe-top */
+  padding: 12px 16px 24px;
 }
 
 .page-title {
@@ -213,12 +221,18 @@ body.tg-fullscreen
 .app-main {
   flex: 1;
   overflow: auto;
-  padding-top: var(--safe-top);
+  padding-top: calc(var(--safe-top) + 8px);
   padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 12px);
   -webkit-overflow-scrolling: touch;
 }
 
+body.tg-webapp .app-main:not(.game-mode) {
+  /* Keep lobby content clear of Telegram’s floating Close */
+  padding-top: max(calc(var(--safe-top) + 12px), 76px);
+}
+
 .app-main.game-mode {
+  padding-top: 0;
   padding-bottom: calc(12px + var(--safe-bottom));
 }
 
@@ -272,14 +286,14 @@ body.tg-fullscreen
 
 /* Store hero */
 .store-page {
-  padding: 8px 0 16px;
+  padding: 4px 0 16px;
 }
 
 .hero {
   position: relative;
   min-height: 0;
   margin: 0 12px 16px;
-  padding: 16px;
+  padding: 18px 16px 16px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
