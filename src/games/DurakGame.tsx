@@ -589,7 +589,7 @@ export function DurakGame({
       {drag?.active &&
         createPortal(
           <div
-            className={`durak-drag-ghost${drag.overTable ? ' is-over-table' : ''}`}
+            className="durak-drag-ghost"
             style={{
               left: drag.x,
               top: drag.y,
