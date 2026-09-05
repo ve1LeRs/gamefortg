@@ -1612,6 +1612,39 @@ body.tg-webapp .app-main:not(.game-mode) {
   border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 
+/* Immersive Durak: no second title bar — reclaim the dead band under Telegram chrome */
+.game-shell--immersive.game-shell--durak {
+  /* Recompute safe-top locally — :root value already baked in the tall chrome floor */
+  --safe-top: max(
+    env(safe-area-inset-top, 0px),
+    var(--tg-safe-top),
+    var(--tg-content-top),
+    48px
+  );
+}
+
+.durak-float-back {
+  position: absolute;
+  top: max(8px, calc(var(--safe-top) + 4px));
+  left: max(10px, var(--safe-left));
+  z-index: 40;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(10, 16, 24, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+.durak-float-back:active {
+  transform: scale(0.96);
+}
+
 .game-body--felt {
   padding: 0;
   overflow: hidden;
@@ -1652,8 +1685,13 @@ body.tg-webapp .app-main:not(.game-mode) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 16px 4px;
+  gap: 2px;
+  /* Pull bot seat up into the former empty header band */
+  padding: max(8px, calc(var(--safe-top) + 4px)) 16px 2px;
+}
+
+.game-shell--immersive .durak-top {
+  padding-top: max(10px, calc(var(--safe-top) + 6px));
 }
 
 .durak-seat {
@@ -1668,8 +1706,8 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .durak-avatar {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   border-radius: 10px;
   display: grid;
   place-items: center;
