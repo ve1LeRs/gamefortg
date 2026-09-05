@@ -23,10 +23,16 @@ npm run dev
 npm run build
 ```
 
+## GitHub Pages
+
+Сайт: **https://ve1lers.github.io/gamefortg/**
+
+Деплой идёт автоматически из `main` через Actions (workflow `Deploy to GitHub Pages`).
+
 ## Telegram Mini App
 
 1. Создайте бота через [@BotFather](https://t.me/BotFather)
-2. Команда `/newapp` — укажите HTTPS URL со сборкой (`dist` через любой хостинг)
+2. Команда `/newapp` — укажите URL: `https://ve1lers.github.io/gamefortg/`
 3. Откройте мини-приложение из бота
 
 Локально приложение работает и без Telegram (режим гостя).
