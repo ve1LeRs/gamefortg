@@ -214,16 +214,90 @@ const VALUE: Record<string, number> = {
   k: 20000,
 }
 
+/** Piece-square tables from white's POV (row 0 = black back rank). */
+const PST: Record<string, number[][]> = {
+  P: [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [50, 50, 50, 50, 50, 50, 50, 50],
+    [10, 10, 20, 30, 30, 20, 10, 10],
+    [5, 5, 10, 25, 25, 10, 5, 5],
+    [0, 0, 0, 20, 20, 0, 0, 0],
+    [5, -5, -10, 0, 0, -10, -5, 5],
+    [5, 10, 10, -20, -20, 10, 10, 5],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+  ],
+  N: [
+    [-50, -40, -30, -30, -30, -30, -40, -50],
+    [-40, -20, 0, 0, 0, 0, -20, -40],
+    [-30, 0, 10, 15, 15, 10, 0, -30],
+    [-30, 5, 15, 20, 20, 15, 5, -30],
+    [-30, 0, 15, 20, 20, 15, 0, -30],
+    [-30, 5, 10, 15, 15, 10, 5, -30],
+    [-40, -20, 0, 5, 5, 0, -20, -40],
+    [-50, -40, -30, -30, -30, -30, -40, -50],
+  ],
+  B: [
+    [-20, -10, -10, -10, -10, -10, -10, -20],
+    [-10, 0, 0, 0, 0, 0, 0, -10],
+    [-10, 0, 5, 10, 10, 5, 0, -10],
+    [-10, 5, 5, 10, 10, 5, 5, -10],
+    [-10, 0, 10, 10, 10, 10, 0, -10],
+    [-10, 10, 10, 10, 10, 10, 10, -10],
+    [-10, 5, 0, 0, 0, 0, 5, -10],
+    [-20, -10, -10, -10, -10, -10, -10, -20],
+  ],
+  R: [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [5, 10, 10, 10, 10, 10, 10, 5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [0, 0, 0, 5, 5, 0, 0, 0],
+  ],
+  Q: [
+    [-20, -10, -10, -5, -5, -10, -10, -20],
+    [-10, 0, 0, 0, 0, 0, 0, -10],
+    [-10, 0, 5, 5, 5, 5, 0, -10],
+    [-5, 0, 5, 5, 5, 5, 0, -5],
+    [0, 0, 5, 5, 5, 5, 0, -5],
+    [-10, 5, 5, 5, 5, 5, 0, -10],
+    [-10, 0, 5, 0, 0, 0, 0, -10],
+    [-20, -10, -10, -5, -5, -10, -10, -20],
+  ],
+  K: [
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-20, -30, -30, -40, -40, -30, -30, -20],
+    [-10, -20, -20, -20, -20, -20, -20, -10],
+    [20, 20, 0, 0, 0, 0, 20, 20],
+    [20, 30, 10, 0, 0, 10, 30, 20],
+  ],
+}
+
+function pieceValue(p: Piece): number {
+  return p ? VALUE[p] ?? 0 : 0
+}
+
 function scoreBoard(board: Piece[][]): number {
   let s = 0
   for (let r = 0; r < 8; r += 1) {
     for (let c = 0; c < 8; c += 1) {
       const p = board[r][c]
       if (!p) continue
-      const v = VALUE[p] ?? 0
-      s += isWhite(p) ? v : -v
+      const kind = p.toUpperCase()
+      const table = PST[kind]
+      const pst = table ? (isWhite(p) ? table[r][c] : table[7 - r][c]) : 0
+      const v = (VALUE[p] ?? 0) + pst
+      if (isWhite(p)) s += v
+      else s -= v
     }
   }
+  if (isInCheck(board, true)) s -= 50
+  if (isInCheck(board, false)) s += 50
   return s
 }
 
@@ -237,27 +311,76 @@ function applyMove(board: Piece[][], from: Sq, to: Sq): Piece[][] {
   return next
 }
 
+function moveOrderKey(board: Piece[][], m: { from: Sq; to: Sq }): number {
+  const victim = board[m.to.r][m.to.c]
+  const attacker = board[m.from.r][m.from.c]
+  // MVV-LVA: prefer valuable captures first for alpha-beta cutoffs
+  const cap = victim ? pieceValue(victim) * 10 - pieceValue(attacker) : 0
+  return cap
+}
+
+function orderedMoves(board: Piece[][], white: boolean): { from: Sq; to: Sq }[] {
+  const moves = allMoves(board, white)
+  moves.sort((a, b) => moveOrderKey(board, b) - moveOrderKey(board, a))
+  return moves
+}
+
+const BOT_DEPTH = 3
+
+function minimax(
+  board: Piece[][],
+  depth: number,
+  alpha: number,
+  beta: number,
+  maximizingWhite: boolean,
+): number {
+  if (depth === 0) return scoreBoard(board)
+
+  const moves = orderedMoves(board, maximizingWhite)
+  if (moves.length === 0) {
+    // Checkmate is catastrophic; stalemate is draw
+    if (maximizingWhite) return isInCheck(board, true) ? -100000 - depth : 0
+    return isInCheck(board, false) ? 100000 + depth : 0
+  }
+
+  if (maximizingWhite) {
+    let best = -Infinity
+    for (const m of moves) {
+      const sc = minimax(applyMove(board, m.from, m.to), depth - 1, alpha, beta, false)
+      if (sc > best) best = sc
+      if (sc > alpha) alpha = sc
+      if (beta <= alpha) break
+    }
+    return best
+  }
+
+  let best = Infinity
+  for (const m of moves) {
+    const sc = minimax(applyMove(board, m.from, m.to), depth - 1, alpha, beta, true)
+    if (sc < best) best = sc
+    if (sc < beta) beta = sc
+    if (beta <= alpha) break
+  }
+  return best
+}
+
 function botMove(board: Piece[][]): Piece[][] {
-  const moves = allMoves(board, false)
+  const moves = orderedMoves(board, false)
   if (moves.length === 0) return board
+
   let best = moves[0]
   let bestScore = Infinity
+  let alpha = -Infinity
+  let beta = Infinity
+
   for (const m of moves) {
     const next = applyMove(board, m.from, m.to)
-    // 1-ply reply
-    const replies = allMoves(next, true)
-    let worst = scoreBoard(next)
-    if (replies.length) {
-      worst = -Infinity
-      for (const r of replies.slice(0, 24)) {
-        const after = applyMove(next, r.from, r.to)
-        const sc = scoreBoard(after)
-        if (sc > worst) worst = sc
-      }
-    }
-    if (worst < bestScore || (worst === bestScore && Math.random() < 0.3)) {
-      bestScore = worst
+    // Bot is black: minimize white's score
+    const sc = minimax(next, BOT_DEPTH - 1, alpha, beta, true)
+    if (sc < bestScore) {
+      bestScore = sc
       best = m
+      beta = Math.min(beta, sc)
     }
   }
   return applyMove(board, best.from, best.to)
@@ -319,7 +442,7 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
           }
           setTurn('w')
           setStatus(isInCheck(next, true) ? 'Шах! Ваш ход (белые).' : 'Вы — белые. Ваш ход')
-        }, 350)
+        }, 420)
         return
       }
     }
