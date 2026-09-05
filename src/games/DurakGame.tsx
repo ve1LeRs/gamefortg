@@ -79,6 +79,16 @@ function maxAttackSlots(defenderHandSize: number, table: TablePair[]): number {
   return Math.min(6, defenderHandSize + defended)
 }
 
+/** Fan metrics so every card keeps a readable corner peek. */
+function handFanLayout(n: number) {
+  const cardW = n >= 9 ? 68 : n >= 7 ? 76 : 86
+  const cardH = n >= 9 ? 96 : n >= 7 ? 108 : 122
+  const step =
+    n <= 1 ? cardW : n <= 3 ? 64 : n <= 5 ? 52 : n <= 6 ? 44 : n <= 8 ? 36 : 30
+  const rotStep = n <= 4 ? 3.2 : n <= 7 ? 2.4 : 1.5
+  return { cardW, cardH, step, rotStep }
+}
+
 const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 
 function prefersReducedMotion() {
@@ -113,6 +123,10 @@ export function DurakGame({
   /** Bot declared take — player may still toss matching ranks (погоны). */
   const [botTaking, setBotTaking] = useState(false)
   const [tableFlying, setTableFlying] = useState(false)
+  /** Stagger among newly dealt cards only (not hand index). */
+  const [dealOrder, setDealOrder] = useState<Record<string, number>>(() =>
+    Object.fromEntries(initial.player.map((c, i) => [c.id, i])),
+  )
   const fieldRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
   const skipClickRef = useRef(false)
@@ -129,16 +143,18 @@ export function DurakGame({
 
   const markDealCards = useCallback((cards: Card[]) => {
     if (cards.length === 0) return
+    const order: Record<string, number> = {}
+    cards.forEach((c, i) => {
+      order[c.id] = i
+    })
+    setDealOrder((prev) => ({ ...prev, ...order }))
     setEnterMap((m) => {
       const next = { ...m }
-      cards.forEach((c, i) => {
-        next[c.id] = 'deal'
-        void i
-      })
+      for (const c of cards) next[c.id] = 'deal'
       return next
     })
     if (dealTimerRef.current) window.clearTimeout(dealTimerRef.current)
-    const ms = prefersReducedMotion() ? 40 : DEAL_MS + cards.length * 80
+    const ms = prefersReducedMotion() ? 40 : DEAL_MS + cards.length * 90
     dealTimerRef.current = window.setTimeout(() => {
       setEnterMap((m) => {
         const next = { ...m }
@@ -147,8 +163,14 @@ export function DurakGame({
         }
         return next
       })
+      setDealOrder((prev) => {
+        const next = { ...prev }
+        for (const c of cards) delete next[c.id]
+        return next
+      })
     }, ms)
   }, [])
+
 
   useEffect(() => {
     const cards = initial.player
@@ -161,6 +183,7 @@ export function DurakGame({
         }
         return next
       })
+      setDealOrder({})
       setStatus('Ваш ход — ходите картой')
     }, ms)
     return () => window.clearTimeout(t)
@@ -577,6 +600,7 @@ export function DurakGame({
   const canGiveToBot = !busy && !over && botTaking
   const deckLayers = Math.min(5, Math.max(1, Math.ceil(deck.length / 6)))
   const playerHand = useMemo(() => sortHand(player, trump), [player, trump])
+  const handLayout = useMemo(() => handFanLayout(playerHand.length), [playerHand.length])
   const statusClass = [
     over === 'win' ? 'win' : '',
     over === 'lose' ? 'lose' : '',
@@ -677,13 +701,23 @@ export function DurakGame({
       </div>
 
       <footer className="durak-bottom" onClick={(e) => e.stopPropagation()}>
-        <div className={`durak-hand${drag?.active ? ' is-dragging' : ''}`} data-count={playerHand.length}>
+        <div
+          className={`durak-hand${drag?.active ? ' is-dragging' : ''}`}
+          data-count={playerHand.length}
+          style={{
+            ['--hand-card-w' as string]: `${handLayout.cardW}px`,
+            ['--hand-card-h' as string]: `${handLayout.cardH}px`,
+            ['--hand-step' as string]: `${handLayout.step}px`,
+          }}
+        >
           {playerHand.map((c, i) => {
             const n = playerHand.length
             const mid = (n - 1) / 2
             const offset = i - mid
             const isDrag = drag?.card.id === c.id && drag.active
             const playable = isPlayable(c)
+            const dealing = enterFor(c.id, 'none') === 'deal'
+            const dealI = dealOrder[c.id] ?? 0
             return (
               <PlayingCard
                 key={c.id}
@@ -697,9 +731,9 @@ export function DurakGame({
                 className={`durak-card durak-hand-card${isDrag ? ' is-drag-source' : ''}`}
                 style={{
                   ['--fan' as string]: offset,
-                  ['--rot' as string]: `${offset * 3.2}deg`,
-                  ['--deal-i' as string]: i,
-                  zIndex: isDrag ? 50 : throwingId === c.id ? 30 : i + 1,
+                  ['--rot' as string]: `${offset * handLayout.rotStep}deg`,
+                  ['--deal-i' as string]: dealI,
+                  zIndex: isDrag ? 50 : dealing ? 60 + dealI : throwingId === c.id ? 30 : i + 1,
                   touchAction: 'none',
                 }}
                 onClick={() => onCardClick(c)}

@@ -1482,18 +1482,22 @@ body.tg-webapp .app-main:not(.game-mode) {
   }
 }
 
+/* New cards drop into their fan slot from above — no sideways slide over neighbors */
 @keyframes durak-deal-in {
   0% {
     opacity: 0;
-    transform: translate3d(42px, -120px, 0) scale(0.72) rotate(-28deg);
+    transform: translate3d(0, -96px, 0) scale(0.82) rotate(var(--rot, 0deg));
+    filter: brightness(1.15);
   }
-  55% {
+  65% {
     opacity: 1;
-    transform: translate3d(-4px, 10px, 0) scale(1.04) rotate(calc(var(--rot, 0deg) + 4deg));
+    transform: translate3d(0, 6px, 0) scale(1.03) rotate(var(--rot, 0deg));
+    filter: brightness(1);
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1) rotate(var(--rot, 0deg));
+    filter: none;
   }
 }
 
@@ -1909,7 +1913,10 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .durak-hand {
-  --hand-overlap: 18px;
+  /* --hand-step = visible strip of each card (set in JS); overlap derived from card width */
+  --hand-card-w: 86px;
+  --hand-card-h: 122px;
+  --hand-step: 56px;
   position: relative;
   display: flex;
   justify-content: center;
@@ -1917,63 +1924,36 @@ body.tg-webapp .app-main:not(.game-mode) {
   width: 100%;
   max-width: 100%;
   height: 152px;
-  padding: 0 10px;
+  padding: 0 8px;
   margin-bottom: -6px;
   box-sizing: border-box;
 }
 
-/* Keep faces readable: small hands almost side-by-side */
-.durak-hand[data-count='1'] {
-  --hand-overlap: 0px;
-}
-
-.durak-hand[data-count='2'],
-.durak-hand[data-count='3'] {
-  --hand-overlap: 8px;
-}
-
-.durak-hand[data-count='4'],
-.durak-hand[data-count='5'] {
-  --hand-overlap: 16px;
-}
-
-.durak-hand[data-count='6'] {
-  --hand-overlap: 28px;
-}
-
-.durak-hand[data-count='7'],
-.durak-hand[data-count='8'] {
-  --hand-overlap: 40px;
-}
-
-.durak-hand[data-count='9'],
-.durak-hand[data-count='10'] {
-  --hand-overlap: 50px;
-}
-
-.durak-hand[data-count='11'],
-.durak-hand[data-count='12'] {
-  --hand-overlap: 56px;
-}
-
 .durak-hand-card {
-  width: 86px !important;
-  height: 122px !important;
+  width: var(--hand-card-w) !important;
+  height: var(--hand-card-h) !important;
   flex: 0 0 auto;
-  margin-left: calc(var(--hand-overlap, 16px) * -1);
-  transform: translateY(0) rotate(var(--rot, 0deg));
-  transform-origin: 50% 120%;
+  /* Guaranteed peek: step is the visible strip; rest tucks under the next card */
+  margin-left: calc(var(--hand-step, 56px) - var(--hand-card-w, 86px));
+  transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg));
+  transform-origin: 50% 130%;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38);
+  /* Isolate so deal transforms cannot reshuffle paint order vs neighbors */
+  isolation: isolate;
   transition:
     transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.15s ease,
     box-shadow 0.35s ease,
-    margin 0.35s ease;
+    margin 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.35s ease,
+    height 0.35s ease;
 }
 
 .durak-hand-card.enter-deal {
-  animation: durak-deal-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--deal-i, var(--i, 0)) * 0.08s);
+  animation: durak-deal-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--deal-i, 0) * 0.09s);
+  /* Above settled cards while inserting so the join is obvious */
+  z-index: 60 !important;
 }
 
 .durak-hand-card.playable {
@@ -1985,28 +1965,14 @@ body.tg-webapp .app-main:not(.game-mode) {
   animation: none;
 }
 
-.durak-hand[data-count='7'] .durak-hand-card,
-.durak-hand[data-count='8'] .durak-hand-card {
-  width: 78px !important;
-  height: 110px !important;
-}
-
-.durak-hand[data-count='9'] .durak-hand-card,
-.durak-hand[data-count='10'] .durak-hand-card,
-.durak-hand[data-count='11'] .durak-hand-card,
-.durak-hand[data-count='12'] .durak-hand-card {
-  width: 70px !important;
-  height: 98px !important;
-}
-
 .durak-hand-card:first-child {
   margin-left: 0;
 }
 
 .durak-hand-card.playable:hover,
 .durak-hand-card.selected {
-  transform: translateY(-20px) rotate(var(--rot, 0deg)) scale(1.05);
-  z-index: 40 !important;
+  transform: translate3d(0, -22px, 0) rotate(var(--rot, 0deg)) scale(1.05);
+  z-index: 80 !important;
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.4);
 }
 
@@ -2026,6 +1992,26 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-hand-card .suit-lg {
   font-size: 34px;
+}
+
+/* Crowded hands: shrink face, keep corner glyphs readable */
+.durak-hand[data-count='7'] .durak-hand-card .pcard-rank,
+.durak-hand[data-count='8'] .durak-hand-card .pcard-rank,
+.durak-hand[data-count='9'] .durak-hand-card .pcard-rank,
+.durak-hand[data-count='10'] .durak-hand-card .pcard-rank,
+.durak-hand[data-count='11'] .durak-hand-card .pcard-rank,
+.durak-hand[data-count='12'] .durak-hand-card .pcard-rank {
+  font-size: 16px;
+  height: 18px;
+}
+
+.durak-hand[data-count='7'] .durak-hand-card .suit-lg,
+.durak-hand[data-count='8'] .durak-hand-card .suit-lg,
+.durak-hand[data-count='9'] .durak-hand-card .suit-lg,
+.durak-hand[data-count='10'] .durak-hand-card .suit-lg,
+.durak-hand[data-count='11'] .durak-hand-card .suit-lg,
+.durak-hand[data-count='12'] .durak-hand-card .suit-lg {
+  font-size: 26px;
 }
 
 .durak-dock {
@@ -2097,45 +2083,8 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 @media (max-width: 360px) {
-  .durak-hand-card {
-    width: 78px !important;
-    height: 110px !important;
-  }
   .durak-hand {
     height: 132px;
-  }
-  .durak-hand[data-count='2'],
-  .durak-hand[data-count='3'] {
-    --hand-overlap: 10px;
-  }
-  .durak-hand[data-count='4'],
-  .durak-hand[data-count='5'] {
-    --hand-overlap: 18px;
-  }
-  .durak-hand[data-count='6'] {
-    --hand-overlap: 26px;
-  }
-  .durak-hand[data-count='7'],
-  .durak-hand[data-count='8'] {
-    --hand-overlap: 36px;
-  }
-  .durak-hand[data-count='7'] .durak-hand-card,
-  .durak-hand[data-count='8'] .durak-hand-card {
-    width: 72px !important;
-    height: 102px !important;
-  }
-  .durak-hand[data-count='9'],
-  .durak-hand[data-count='10'],
-  .durak-hand[data-count='11'],
-  .durak-hand[data-count='12'] {
-    --hand-overlap: 50px;
-  }
-  .durak-hand[data-count='9'] .durak-hand-card,
-  .durak-hand[data-count='10'] .durak-hand-card,
-  .durak-hand[data-count='11'] .durak-hand-card,
-  .durak-hand[data-count='12'] .durak-hand-card {
-    width: 66px !important;
-    height: 94px !important;
   }
   .durak-pair {
     width: 112px;
