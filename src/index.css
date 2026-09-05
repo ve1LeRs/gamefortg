@@ -1026,7 +1026,7 @@ body.tg-fullscreen
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  gap: 1px;
   line-height: 1;
   font-size: 13px;
   z-index: 1;
@@ -1041,11 +1041,13 @@ body.tg-fullscreen
   font-family: Georgia, 'Times New Roman', serif;
   font-weight: 700;
   font-size: 14px;
+  line-height: 1;
 }
 
 .pcard-suit {
-  font-size: 12px;
-  margin-top: -1px;
+  font-size: 11px;
+  line-height: 1;
+  margin-top: 0;
 }
 
 .pcard.red {
@@ -1577,8 +1579,8 @@ body.tg-fullscreen
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px 0;
+  gap: 4px;
+  padding: 10px 16px 4px;
 }
 
 .durak-seat {
@@ -1605,9 +1607,7 @@ body.tg-fullscreen
 }
 
 .you-avatar {
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-size: 20px;
   background: linear-gradient(160deg, #3d5168, #243140);
 }
 
@@ -1636,8 +1636,9 @@ body.tg-fullscreen
 
 .durak-bot-cards {
   display: flex;
-  height: 18px;
-  margin-top: 2px;
+  height: 32px;
+  margin-top: 4px;
+  margin-bottom: 2px;
 }
 
 .durak-mini-back {
@@ -1656,12 +1657,15 @@ body.tg-fullscreen
 }
 
 .durak-status {
-  margin: 0;
+  margin: 6px 0 0;
+  padding: 0 12px;
   font-size: 13px;
   font-weight: 600;
   opacity: 0.9;
   text-align: center;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  position: relative;
+  z-index: 1;
 }
 
 .durak-status.win {
@@ -1884,11 +1888,19 @@ body.tg-fullscreen
 }
 
 .durak-hand-card .pcard-rank {
-  font-size: 16px;
+  font-size: 15px;
+}
+
+.durak-hand-card .pcard-suit {
+  font-size: 11px;
+}
+
+.durak-hand-card .pcard-corner {
+  gap: 2px;
 }
 
 .durak-hand-card .suit-lg {
-  font-size: 28px;
+  font-size: 26px;
 }
 
 .durak-dock {
