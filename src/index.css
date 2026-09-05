@@ -1688,7 +1688,7 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-top {
   position: relative;
-  z-index: 6;
+  z-index: 30;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1696,6 +1696,7 @@ body.tg-webapp .app-main:not(.game-mode) {
   /* Pull bot seat up into the former empty header band */
   padding: max(8px, calc(var(--safe-top) + 4px)) 16px 2px;
   flex-shrink: 0;
+  isolation: isolate;
 }
 
 .game-shell--immersive .durak-top {
@@ -1776,16 +1777,23 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .durak-status {
-  margin: 6px 0 0;
-  padding: 0 12px;
+  margin: 6px 10px 0;
+  padding: 6px 12px;
   font-size: 13px;
   font-weight: 600;
-  opacity: 0.9;
+  opacity: 1;
   text-align: center;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   position: relative;
-  z-index: 7;
+  z-index: 30;
   pointer-events: none;
+  max-width: min(92vw, 420px);
+  border-radius: 12px;
+  background: rgba(12, 18, 28, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
 }
 
 .durak-status.win {
@@ -1798,11 +1806,13 @@ body.tg-webapp .app-main:not(.game-mode) {
   color: #ffe56a;
   font-size: 14px;
   letter-spacing: 0.01em;
+  background: rgba(28, 24, 8, 0.82);
+  border-color: rgba(255, 229, 106, 0.35);
 }
 
 .durak-field {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -1812,15 +1822,16 @@ body.tg-webapp .app-main:not(.game-mode) {
   padding: 6px 88px 6px 10px;
   isolation: isolate;
   overflow: hidden;
+  contain: layout paint;
 }
 
 .durak-table-cards {
   --table-scale: 1;
   position: relative;
-  z-index: 20;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, auto);
-  gap: 10px 12px;
+  gap: 8px 10px;
   justify-content: center;
   align-content: center;
   justify-items: center;
@@ -1847,14 +1858,15 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-pair {
   position: relative;
-  width: 108px;
-  height: 136px;
+  width: 100px;
+  height: 126px;
+  overflow: visible;
 }
 
 .durak-pair .durak-card {
-  width: 66px !important;
-  height: 92px !important;
-  font-size: 15px;
+  width: 62px !important;
+  height: 88px !important;
+  font-size: 14px;
 }
 
 .durak-pair .durak-card .pcard-rank {
@@ -1873,10 +1885,17 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-pair .durak-defence {
   position: absolute;
-  top: 36px;
-  left: 34px;
+  top: 32px;
+  left: 30px;
   transform: rotate(20deg);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+
+/* Throw flights stay in the field stacking context — never above hints */
+.durak-field .pcard.enter-throw-player,
+.durak-field .pcard.enter-throw-bot {
+  position: relative;
   z-index: 2;
 }
 
@@ -1981,7 +2000,7 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-take-banner {
   position: relative;
-  z-index: 8;
+  z-index: 40;
   margin: 0 16px 8px;
   padding: 10px 14px;
   border-radius: 12px;
@@ -1994,6 +2013,7 @@ body.tg-webapp .app-main:not(.game-mode) {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
   animation: durak-banner-in 0.35s ease both;
   flex-shrink: 0;
+  isolation: isolate;
 }
 
 @keyframes durak-banner-in {
@@ -2071,13 +2091,14 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-actions {
   position: relative;
-  z-index: 8;
+  z-index: 40;
   display: flex;
   justify-content: center;
   gap: 10px;
   min-height: 48px;
   padding: 6px 16px 2px;
   flex-shrink: 0;
+  isolation: isolate;
 }
 
 .durak-btn-take {
@@ -2118,12 +2139,13 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-bottom {
   position: relative;
-  z-index: 5;
+  z-index: 40;
   padding: 0 0 calc(10px + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
+  isolation: isolate;
 }
 
 .durak-hand {
@@ -2426,8 +2448,8 @@ body.tg-webapp .app-main:not(.game-mode) {
     padding-right: 80px;
   }
   .durak-table-cards {
-    gap: 8px 10px;
-    z-index: 20;
+    gap: 6px 8px;
+    z-index: 1;
   }
   .durak-deck {
     z-index: 0;
