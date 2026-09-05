@@ -458,7 +458,7 @@ export function DurakGame({
         <div className="durak-dock">
           <div className={`durak-seat player ${attacker === 'player' ? 'is-active' : ''}`}>
             <div className="durak-avatar you-avatar" aria-hidden>
-              Вы
+              👤
             </div>
             <span className="durak-name">Вы</span>
             <span className="durak-pill">{player.length}</span>
