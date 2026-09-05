@@ -1644,6 +1644,8 @@ body.tg-webapp .app-main:not(.game-mode) {
   .pcard.enter-deal,
   .durak-hand-card.enter-deal,
   .durak-table-cards.is-bot-taking .durak-pair,
+  .durak-table-cards.is-to-bito .durak-pair,
+  .durak-bito.is-catching,
   .card-flight {
     animation: none !important;
     transition: none !important;
@@ -1919,8 +1921,8 @@ body.tg-webapp .app-main:not(.game-mode) {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Room for deck/trump on the right; keep pairs clear of peek */
-  padding: 6px 88px 6px 10px;
+  /* Room for messy bito (left) and deck/trump (right) */
+  padding: 6px 88px 6px 76px;
   isolation: isolate;
   overflow: hidden;
   contain: layout paint;
@@ -2046,6 +2048,110 @@ body.tg-webapp .app-main:not(.game-mode) {
 .durak-table-cards[data-count='6'] .durak-pair .durak-card .suit-lg {
   font-size: 22px;
 }
+
+
+/* Discard pile (бита) — messy stack, clearly not the neat stock */
+.durak-bito {
+  position: absolute;
+  left: 6px;
+  top: 52%;
+  width: 64px;
+  height: 92px;
+  transform: translateY(-50%) rotate(-8deg);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.durak-bito-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.durak-bito-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 54px;
+  height: 76px;
+  margin-left: -27px;
+  margin-top: -38px;
+  border-radius: 7px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.06) 20%, transparent 20%) 0 0 / 10px 10px,
+    linear-gradient(160deg, #243a58, #101c30);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 2px 2px rgba(0, 0, 0, 0.25),
+    0 8px 14px rgba(0, 0, 0, 0.35);
+  transform: translate(var(--dx, 0), var(--dy, 0)) rotate(var(--rot, 0deg)) scale(var(--sc, 1));
+  transform-origin: 50% 60%;
+}
+
+.durak-bito.has-cards .durak-bito-card:nth-last-child(2) {
+  /* topmost visible card gets a slight lift */
+  filter: brightness(1.05);
+}
+
+.durak-bito-count {
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.85;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.durak-bito.is-catching {
+  animation: durak-bito-catch 0.45s ease both;
+}
+
+@keyframes durak-bito-catch {
+  0% { transform: translateY(-50%) rotate(-8deg) scale(1); }
+  40% { transform: translateY(-50%) rotate(-4deg) scale(1.08); }
+  100% { transform: translateY(-50%) rotate(-8deg) scale(1); }
+}
+
+@keyframes durak-fly-to-bito {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+    filter: brightness(1);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(-70px, 18px, 0) scale(0.72) rotate(-18deg);
+    filter: brightness(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-130px, 36px, 0) scale(0.38) rotate(-32deg);
+    filter: brightness(0.9);
+  }
+}
+
+.durak-table-cards.is-to-bito .durak-pair {
+  animation: durak-fly-to-bito 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.durak-table-cards.is-to-bito .durak-pair:nth-child(1) { animation-delay: 0.02s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(2) { animation-delay: 0.07s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(3) { animation-delay: 0.12s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(4) { animation-delay: 0.17s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(5) { animation-delay: 0.22s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(6) { animation-delay: 0.27s; }
 
 .durak-deck {
   position: absolute;
@@ -2547,6 +2653,18 @@ body.tg-webapp .app-main:not(.game-mode) {
   }
   .durak-field {
     padding-right: 80px;
+    padding-left: 64px;
+  }
+  .durak-bito {
+    width: 54px;
+    height: 80px;
+    left: 2px;
+  }
+  .durak-bito-card {
+    width: 46px;
+    height: 66px;
+    margin-left: -23px;
+    margin-top: -33px;
   }
   .durak-table-cards {
     gap: 6px 8px;

@@ -122,11 +122,29 @@ function handFanLayout(n: number, viewportW = 390) {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 
+
+/** Stable messy offsets for discard pile cards (look untidy vs neat deck). */
+function bitoMess(seed: string, i: number) {
+  let h = 0
+  for (let k = 0; k < seed.length; k += 1) h = (Math.imul(h, 31) + seed.charCodeAt(k)) | 0
+  const a = ((h + i * 47) % 1000) / 1000
+  const b = ((h * 3 + i * 91) % 1000) / 1000
+  const c = ((h * 7 + i * 13) % 1000) / 1000
+  return {
+    ['--dx' as string]: `${((a - 0.5) * 26).toFixed(1)}px`,
+    ['--dy' as string]: `${((b - 0.5) * 20).toFixed(1)}px`,
+    ['--rot' as string]: `${((a - 0.5) * 64 + (c - 0.5) * 24).toFixed(1)}deg`,
+    ['--sc' as string]: `${(0.92 + c * 0.12).toFixed(3)}`,
+    zIndex: i + 1,
+  }
+}
+
 function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 const THROW_MS = 900
+const BITO_MS = 780
 const DEAL_MS = 980
 
 export function DurakGame({
@@ -157,6 +175,8 @@ export function DurakGame({
     () => (typeof window !== 'undefined' ? window.innerWidth : 390),
   )
   const [tableFlying, setTableFlying] = useState(false)
+  const [discard, setDiscard] = useState<Card[]>([])
+  const [bitoFlying, setBitoFlying] = useState(false)
   /** Stagger among newly dealt cards only (not hand index). */
   const [dealOrder, setDealOrder] = useState<Record<string, number>>(() =>
     Object.fromEntries(initial.player.map((c, i) => [c.id, i])),
@@ -371,6 +391,8 @@ export function DurakGame({
     setThrowingId(null)
     setBotTaking(false)
     setTableFlying(false)
+    setDiscard([])
+    setBitoFlying(false)
     setEnterMap(Object.fromEntries(next.player.map((c) => [c.id, 'deal' as const])))
     markDealCards(next.player)
     window.setTimeout(() => {
@@ -669,20 +691,31 @@ export function DurakGame({
     }
   }
 
-  const bito = () => {
-    if (over || busy || botTaking) return
+  const bito = async () => {
+    if (over || busy || botTaking || bitoFlying) return
     if (table.length === 0 || table.some((p) => !p.defence)) {
       setStatus('Сначала закройте все атаки')
       return
     }
+    setBusy(true)
     onHaptic?.('medium')
+    setStatus('Бито — карты уходят в сброс')
+    const cleared = table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack]))
+    setBitoFlying(true)
+    if (!prefersReducedMotion()) await sleep(BITO_MS)
+    setDiscard((d) => [...d, ...cleared])
     setTable([])
+    setBitoFlying(false)
     setEnterMap({})
     const first = attacker
     const nextAttacker = attacker === 'player' ? 'bot' : 'player'
     const drawn = drawUp(player, bot, deck, first)
-    if (checkEnd(drawn.playerNow, drawn.botNow, drawn.deckNow.length)) return
+    if (checkEnd(drawn.playerNow, drawn.botNow, drawn.deckNow.length)) {
+      setBusy(false)
+      return
+    }
     setAttacker(nextAttacker)
+    setBusy(false)
     if (nextAttacker === 'bot') {
       const atk = botAttackCard(drawn.botNow)
       if (atk) {
@@ -696,6 +729,8 @@ export function DurakGame({
     }
   }
 
+
+
   const startBotAttackIfNeeded = () => {
     if (busy || attacker !== 'bot' || table.length !== 0 || over || botTaking) return
     const atk = botAttackCard(bot)
@@ -708,6 +743,7 @@ export function DurakGame({
   const canBito =
     !busy &&
     !botTaking &&
+    !bitoFlying &&
     table.length > 0 &&
     table.every((p) => p.defence) &&
     (attacker === 'player' || attacker === 'bot')
@@ -722,7 +758,7 @@ export function DurakGame({
   const statusClass = [
     over === 'win' ? 'win' : '',
     over === 'lose' ? 'lose' : '',
-    botTaking || tableFlying ? 'is-take' : '',
+    botTaking || tableFlying || bitoFlying ? 'is-take' : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -755,7 +791,7 @@ export function DurakGame({
             ))}
           </div>
         </div>
-        {!botTaking && !tableFlying && (
+        {!botTaking && !tableFlying && !bitoFlying && (
           <p className={`durak-status ${statusClass}`}>{status}</p>
         )}
       </header>
@@ -763,7 +799,7 @@ export function DurakGame({
       <div ref={fieldRef} className="durak-field">
         <div
           ref={tableCardsRef}
-          className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}`}
+          className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}${bitoFlying ? ' is-to-bito' : ''}`}
           data-count={table.length}
         >
           {table.length === 0 && <span className="durak-empty">Ход картой</span>}
@@ -785,6 +821,27 @@ export function DurakGame({
               )}
             </div>
           ))}
+        </div>
+
+        <div
+          className={`durak-bito${discard.length ? ' has-cards' : ''}${bitoFlying ? ' is-catching' : ''}`}
+          aria-label={discard.length ? `Бита: ${discard.length}` : 'Бита пуста'}
+        >
+          {discard.length === 0 ? (
+            <span className="durak-bito-empty">Бита</span>
+          ) : (
+            <>
+              {discard.slice(-10).map((c, i) => (
+                <span
+                  key={`${c.id}-bito`}
+                  className="durak-bito-card"
+                  style={bitoMess(c.id, i)}
+                  aria-hidden
+                />
+              ))}
+              <span className="durak-bito-count">{discard.length}</span>
+            </>
+          )}
         </div>
 
         <div className="durak-deck" aria-label={`Колода: ${deck.length}`}>
@@ -821,7 +878,7 @@ export function DurakGame({
               </button>
             )}
             {canBito && (
-              <button type="button" className="durak-btn durak-btn-bito" onClick={bito}>
+              <button type="button" className="durak-btn durak-btn-bito" onClick={() => void bito()}>
                 Бито
               </button>
             )}
