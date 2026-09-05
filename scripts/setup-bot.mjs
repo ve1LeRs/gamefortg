@@ -37,7 +37,7 @@ const steps = [
     'setMyDescription',
     {
       description:
-        'GameForTg — мобильный игровой хаб в Telegram.\n\nПокер, дурак, шахматы, шашки и косынка. Без установок, сразу на весь экран.',
+        'GameForTg — мобильный игровой хаб в Telegram.\n\nПокер, дурак, шахматы, шашки и косынка. Без установок — просто откройте и играйте.',
     },
   ],
   [
@@ -79,4 +79,3 @@ for (const [method, body] of steps) {
 
 console.log('\nDone. Open the bot and tap the menu button «Играть».')
 console.log('In BotFather also set Main Mini App if needed: /mybots → Bot Settings → Configure Mini App')
-console.log('Enable fullscreen there when Telegram offers the option.')
