@@ -294,6 +294,7 @@ export function SolitaireGame({
                   faceDown={!up}
                   selected={!!isSel}
                   playable={up}
+                  index={index}
                   onClick={() => onTableauClick(ti, index)}
                   style={{ top: index * 18 }}
                 />

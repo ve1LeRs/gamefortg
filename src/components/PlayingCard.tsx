@@ -9,6 +9,7 @@ type Props = {
   onClick?: () => void
   className?: string
   style?: React.CSSProperties
+  index?: number
 }
 
 export function PlayingCard({
@@ -19,14 +20,20 @@ export function PlayingCard({
   onClick,
   className = '',
   style,
+  index = 0,
 }: Props) {
+  const mergedStyle = {
+    ...style,
+    ['--i' as string]: index,
+  }
+
   if (faceDown || !card) {
     return (
       <button
         type="button"
         className={`pcard face-down ${className}`}
         onClick={onClick}
-        style={style}
+        style={mergedStyle}
         aria-label="Карта рубашкой вверх"
       />
     )
@@ -38,7 +45,7 @@ export function PlayingCard({
       type="button"
       className={`pcard ${red ? 'red' : ''} ${selected ? 'selected' : ''} ${playable ? 'playable' : ''} ${className}`}
       onClick={onClick}
-      style={style}
+      style={mergedStyle}
       aria-label={`${card.rank} ${card.suit}`}
     >
       <span>

@@ -248,20 +248,20 @@ export function PokerGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
           <span>Бот: {botStack}</span>
         </div>
         <div className="hand compact">
-          {bot.map((c) => (
-            <PlayingCard key={c.id} card={c} faceDown={!showBot} />
+          {bot.map((c, i) => (
+            <PlayingCard key={c.id} card={c} faceDown={!showBot} index={i} />
           ))}
         </div>
         <div className="community">
           {board.length === 0 && <span style={{ opacity: 0.5 }}>Общие карты появятся здесь</span>}
-          {board.map((c) => (
-            <PlayingCard key={c.id} card={c} className="compact" />
+          {board.map((c, i) => (
+            <PlayingCard key={c.id} card={c} className="compact" index={i} />
           ))}
         </div>
       </div>
       <div className="hand">
-        {player.map((c) => (
-          <PlayingCard key={c.id} card={c} />
+        {player.map((c, i) => (
+          <PlayingCard key={c.id} card={c} index={i} />
         ))}
       </div>
       <div className="action-bar">
