@@ -25,7 +25,7 @@ export function ProfilePage({
           )}
         </div>
         <h2 className="profile-name">
-          {user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}` : 'Гость GameFort'}
+          {user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}` : 'Гость GameForTg'}
         </h2>
         <p className="hint">{user?.username ? `@${user.username}` : 'Откройте из Telegram, чтобы подтянуть аккаунт'}</p>
       </div>

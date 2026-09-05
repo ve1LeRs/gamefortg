@@ -1,13 +1,13 @@
-# GameFort
+# GameForTg
 
-Мобильный игровой хаб (Steam-like) внутри Telegram Mini App.
+Мобильный игровой хаб внутри Telegram Mini App.
 
 ## Игры
 
 - **Покер** — техасский холдем против бота
 - **Дурак** — классика против бота
 - **Шахматы** — полная доска с простым ИИ
-- **Шашки** — русские шашки, бить обязательно
+- **Шашки** — обязательный бой
 - **Косынка** — пасьянс Klondike
 
 ## Запуск
@@ -27,12 +27,22 @@ npm run build
 
 Сайт: **https://ve1lers.github.io/gamefortg/**
 
-Деплой идёт автоматически из `main` через Actions (workflow `Deploy to GitHub Pages`).
+Деплой автоматически из `main` (workflow `Deploy to GitHub Pages`).
 
-## Telegram Mini App
+## Telegram-бот
 
-1. Создайте бота через [@BotFather](https://t.me/BotFather)
-2. Команда `/newapp` — укажите URL: `https://ve1lers.github.io/gamefortg/`
-3. Откройте мини-приложение из бота
+1. В [@BotFather](https://t.me/BotFather) задайте имя бота: **GameForTg**
+2. Main Mini App / Menu Button URL:
 
-Локально приложение работает и без Telegram (режим гостя).
+```text
+https://ve1lers.github.io/gamefortg/
+```
+
+3. Аватар: `public/bot-avatar.png`
+4. Автонастройка через API (нужен токен бота):
+
+```bash
+BOT_TOKEN=123:ABC npm run setup:bot
+```
+
+Мини-приложение само вызывает `expand()` + `requestFullscreen()` и подстраивает safe-area под вырез экрана.

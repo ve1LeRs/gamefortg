@@ -8,8 +8,16 @@
   --accent: #e8a838;
   --accent-2: #3ddc97;
   --danger: #ff6b4a;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tg-safe-top: 0px;
+  --tg-safe-bottom: 0px;
+  --tg-safe-left: 0px;
+  --tg-safe-right: 0px;
+  --tg-content-top: 0px;
+  --tg-content-bottom: 0px;
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--tg-safe-top), var(--tg-content-top));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--tg-safe-bottom), var(--tg-content-bottom));
+  --safe-left: max(env(safe-area-inset-left, 0px), var(--tg-safe-left));
+  --safe-right: max(env(safe-area-inset-right, 0px), var(--tg-safe-right));
   --nav-h: 64px;
   --font-display: 'Syne', sans-serif;
   --font-body: 'Manrope', sans-serif;
@@ -58,12 +66,20 @@ img {
 
 .app-shell {
   height: 100%;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
   background:
     radial-gradient(120% 80% at 10% -10%, rgba(232, 168, 56, 0.14), transparent 55%),
     radial-gradient(90% 60% at 100% 0%, rgba(61, 220, 151, 0.1), transparent 50%),
     linear-gradient(180deg, #0a141f 0%, var(--bg) 40%, #050b11 100%);
+}
+
+body.tg-fullscreen .brand-bar,
+body.tg-fullscreen .game-topbar {
+  padding-top: calc(10px + var(--safe-top));
 }
 
 .app-main {
