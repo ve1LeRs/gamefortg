@@ -15,13 +15,14 @@ const START: Piece[][] = [
   ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
 ]
 
+/** Filled glyphs for both sides — color comes from CSS (.piece-w / .piece-b). */
 const GLYPH: Record<string, string> = {
-  K: '♔',
-  Q: '♕',
-  R: '♖',
-  B: '♗',
-  N: '♘',
-  P: '♙',
+  K: '♚',
+  Q: '♛',
+  R: '♜',
+  B: '♝',
+  N: '♞',
+  P: '♟',
   k: '♚',
   q: '♛',
   r: '♜',
@@ -266,7 +267,7 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
   const [board, setBoard] = useState(() => clone(START))
   const [turn, setTurn] = useState<Color>('w')
   const [selected, setSelected] = useState<Sq | null>(null)
-  const [status, setStatus] = useState('Ваш ход (белые)')
+  const [status, setStatus] = useState('Вы — белые. Ваш ход')
   const [over, setOver] = useState(false)
 
   const hints = useMemo(() => {
@@ -278,7 +279,7 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     setBoard(clone(START))
     setTurn('w')
     setSelected(null)
-    setStatus('Ваш ход (белые)')
+    setStatus('Вы — белые. Ваш ход')
     setOver(false)
     onHaptic?.('medium')
   }, [onHaptic])
@@ -317,13 +318,14 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
             return
           }
           setTurn('w')
-          setStatus(isInCheck(next, true) ? 'Шах! Ваш ход.' : 'Ваш ход (белые)')
+          setStatus(isInCheck(next, true) ? 'Шах! Ваш ход (белые).' : 'Вы — белые. Ваш ход')
         }, 350)
         return
       }
     }
 
-    if (p && isWhite(p)) {
+    // Player always owns white; black is bot-only
+    if (p && isWhite(p) && turn === 'w') {
       setSelected({ r, c })
       onHaptic?.('light')
     } else {
@@ -335,6 +337,10 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     <div className="table-area">
       <p className={`game-status ${over && status.includes('Победа') ? 'win' : over && status.includes('Поражение') ? 'lose' : ''}`}>
         {status}
+      </p>
+      <p className="chess-sides" aria-hidden>
+        <span className="chess-side chess-side-bot">Бот · чёрные</span>
+        <span className="chess-side chess-side-you">Вы · белые</span>
       </p>
       <div className="board-wrap">
         <div className="board chess">
@@ -351,7 +357,7 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
                   className={`cell ${dark ? 'dark' : 'light'} ${isSel ? 'selected' : ''} ${isHint && !capture ? 'move-hint' : ''} ${capture ? 'capture-hint' : ''}`}
                   onClick={() => onCell(r, c)}
                 >
-                  {p && <span className="piece">{GLYPH[p]}</span>}
+                  {p && <span className={`piece ${isWhite(p) ? 'piece-w' : 'piece-b'}`}>{GLYPH[p]}</span>}
                 </button>
               )
             }),
