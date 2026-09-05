@@ -1740,18 +1740,20 @@ body.tg-webapp .app-main:not(.game-mode) {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 88px 8px 16px;
+  /* Keep play pairs clear of the sideways trump peek */
+  padding: 8px 108px 8px 12px;
+  isolation: isolate;
 }
 
 .durak-table-cards {
   position: relative;
-  z-index: 5;
+  z-index: 20;
   display: flex;
   flex-wrap: wrap;
   gap: 16px 18px;
   justify-content: center;
   align-items: center;
-  max-width: min(340px, calc(100% - 96px));
+  max-width: min(320px, calc(100% - 112px));
 }
 
 .durak-table-cards.is-bot-taking .durak-pair {
@@ -1801,12 +1803,13 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-deck {
   position: absolute;
-  right: 6px;
+  right: 4px;
   top: 50%;
   width: 68px;
   height: 116px;
   transform: translateY(-50%) rotate(6deg);
-  z-index: 1;
+  /* Always below in-play table cards */
+  z-index: 0;
   pointer-events: none;
 }
 
@@ -1826,14 +1829,14 @@ body.tg-webapp .app-main:not(.game-mode) {
 /* Half-visible under the face-down pile, classic Durak layout */
 .durak-trump-card {
   position: absolute !important;
-  left: -46px;
+  left: -34px;
   top: 10px;
   width: 76px !important;
   height: 108px !important;
   transform: rotate(-90deg);
   transform-origin: center center;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-  z-index: 1;
+  z-index: 0;
   pointer-events: none;
 }
 
@@ -2147,12 +2150,20 @@ body.tg-webapp .app-main:not(.game-mode) {
     left: 34px;
   }
   .durak-field {
-    padding-right: 68px;
+    padding-right: 96px;
     min-height: 148px;
   }
+  .durak-table-cards {
+    max-width: min(260px, calc(100% - 100px));
+    z-index: 20;
+  }
+  .durak-deck {
+    z-index: 0;
+  }
   .durak-trump-card {
-    left: -40px;
+    left: -28px;
     width: 68px !important;
     height: 96px !important;
+    z-index: 0;
   }
 }
