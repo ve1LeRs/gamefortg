@@ -1,28 +1,51 @@
 import type { Card } from './cards'
 
+export type Box = {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
 export type CardFlight = {
   id: string
   card: Card
   faceDown?: boolean
-  from: DOMRect
-  to: DOMRect
+  from: Box
+  to: Box
   rotate?: number
 }
 
-export function rectCenter(r: DOMRect) {
+export function toBox(r: DOMRect | Box): Box {
+  return {
+    left: r.left,
+    top: r.top,
+    width: r.width,
+    height: r.height,
+  }
+}
+
+export function rectCenter(r: Box) {
   return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
 }
 
 /** Estimate where the next table card should land inside the table-cards box. */
-export function estimateTableSlot(tableEl: HTMLElement, slotIndex: number): DOMRect {
+export function estimateTableSlot(tableEl: HTMLElement, slotIndex: number): Box {
   const box = tableEl.getBoundingClientRect()
   const cardW = 56
   const cardH = 80
   const gap = 8
   const pairW = cardW + 10
-  const x = box.left + box.width / 2 - pairW / 2 + (slotIndex % 3) * (pairW + gap) - pairW
-  const y = box.top + box.height / 2 - cardH / 2 + Math.floor(slotIndex / 3) * 12
-  return new DOMRect(Math.max(box.left + 4, x), Math.max(box.top + 4, y), cardW, cardH)
+  const total = Math.max(1, slotIndex + 1)
+  const rowY = box.top + Math.max(8, (box.height - cardH) / 2)
+  const startX = box.left + Math.max(8, (box.width - (Math.min(total, 3) * (pairW + gap) - gap)) / 2)
+  const col = slotIndex % 3
+  return {
+    left: startX + col * (pairW + gap),
+    top: rowY + Math.floor(slotIndex / 3) * 16,
+    width: cardW,
+    height: cardH,
+  }
 }
 
 export function handCardEl(handEl: HTMLElement | null, cardId: string): HTMLElement | null {
