@@ -2964,15 +2964,15 @@ body.tg-webapp .app-main:not(.game-mode) {
 .durak-online-join input {
   width: 100%;
   box-sizing: border-box;
-  min-height: 56px;
-  padding: 16px 18px;
+  min-height: 64px;
+  padding: 18px 18px;
   border-radius: 14px;
   border: 1.5px solid rgba(255, 255, 255, 0.28);
   background: rgba(0, 0, 0, 0.38);
   color: #fff;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-align: center;
   text-transform: uppercase;
 }
