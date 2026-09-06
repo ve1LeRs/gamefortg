@@ -22,7 +22,7 @@ Deep link (если задан `VITE_BOT_USERNAME`):
 https://t.me/<bot>?startapp=durak_<CODE>
 ```
 
-Связь идёт peer-to-peer (PeerJS). Хост комнаты ведёт партию.
+Связь через MQTT (WebSocket), без WebRTC — так стабильнее в Telegram на LTE. Хост комнаты ведёт партию.
 ## Запуск
 
 ```bash

@@ -2970,9 +2970,9 @@ body.tg-webapp .app-main:not(.game-mode) {
   border: 1.5px solid rgba(255, 255, 255, 0.28);
   background: rgba(0, 0, 0, 0.38);
   color: #fff;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   text-align: center;
   text-transform: uppercase;
 }
