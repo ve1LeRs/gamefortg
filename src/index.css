@@ -1706,6 +1706,22 @@ body.tg-webapp .app-main:not(.game-mode) {
   }
 }
 
+/* Defence must finish on its angled overlap seat — not flat under the attack */
+@keyframes throw-from-player-defence {
+  0% {
+    opacity: 0.2;
+    transform: translate3d(-18px, 160px, 0) scale(0.78) rotate(-12deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(4px, -10px, 0) scale(1.08) rotate(12deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotate(20deg);
+  }
+}
+
 @keyframes throw-from-bot {
   0% {
     opacity: 0.2;
@@ -1718,6 +1734,21 @@ body.tg-webapp .app-main:not(.game-mode) {
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes throw-from-bot-defence {
+  0% {
+    opacity: 0.2;
+    transform: translate3d(12px, -130px, 0) scale(0.78) rotate(28deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translate3d(-2px, 12px, 0) scale(1.08) rotate(14deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotate(20deg);
   }
 }
 
@@ -2146,11 +2177,16 @@ body.tg-webapp .app-main:not(.game-mode) {
   z-index: 2;
 }
 
-/* Throw flights stay in the field stacking context — never above hints */
-.durak-field .pcard.enter-throw-player,
-.durak-field .pcard.enter-throw-bot {
+/* Attack throws may use relative stacking; defence must stay absolute on the pair */
+.durak-field .pcard.enter-throw-player:not(.durak-defence),
+.durak-field .pcard.enter-throw-bot:not(.durak-defence) {
   position: relative;
   z-index: 2;
+}
+
+.durak-field .pcard.durak-defence.enter-throw-player,
+.durak-field .pcard.durak-defence.enter-throw-bot {
+  z-index: 3;
 }
 
 /* Fewer pairs can use a slightly larger footprint */
@@ -2737,6 +2773,16 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-pair .pcard.enter-throw-bot {
   animation: throw-from-bot 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.durak-pair .pcard.durak-defence.enter-throw-player,
+.durak-field .pcard.durak-defence.enter-throw-player {
+  animation: throw-from-player-defence 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.durak-pair .pcard.durak-defence.enter-throw-bot,
+.durak-field .pcard.durak-defence.enter-throw-bot {
+  animation: throw-from-bot-defence 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 
