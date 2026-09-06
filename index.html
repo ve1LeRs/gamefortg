@@ -24,7 +24,8 @@
       ;(function () {
         // Bust Telegram WebView HTML/JS cache when a newer deploy exists.
         try {
-          var base = location.pathname.indexOf('/gamefortg') === 0 ? '/gamefortg/' : '/'
+          var base = '/gamefortg/'
+          if (location.pathname.indexOf('/gamefortg') !== 0) base = '/'
           var KEY = 'gft-build-id'
           var url = base + 'version.json?t=' + Date.now()
           fetch(url, { cache: 'no-store' })

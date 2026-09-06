@@ -45,12 +45,13 @@ npm run build
 ## Telegram-бот
 
 1. В [@BotFather](https://t.me/BotFather) задайте имя бота: **GameForTg**
-2. Main Mini App / Menu Button URL:
+2. Main Mini App / Menu Button URL (новый путь — сбрасывает кэш Telegram):
 
 ```text
-https://ve1lers.github.io/gamefortg/
+https://ve1lers.github.io/gamefortg/play/?v=mqtt1
 ```
 
+Старый URL `.../gamefortg/` тоже работает, но Telegram часто кэширует PeerJS-оболочку.
 3. Аватар: `public/bot-avatar.png`
 4. Автонастройка через API (нужен токен бота):
 

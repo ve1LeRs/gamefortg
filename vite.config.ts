@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
@@ -21,6 +21,19 @@ export default defineConfig({
           join(dir, 'version.json'),
           JSON.stringify({ id: buildId, at: new Date().toISOString() }),
         )
+      },
+      closeBundle() {
+        // Alternate entry so Telegram can drop a stale cached root HTML shell.
+        const dist = join(process.cwd(), 'dist')
+        const src = join(dist, 'index.html')
+        if (!existsSync(src)) return
+        const playDir = join(dist, 'play')
+        mkdirSync(playDir, { recursive: true })
+        copyFileSync(src, join(playDir, 'index.html'))
+        for (const name of ['favicon.svg', 'bot-avatar.png']) {
+          const file = join(dist, name)
+          if (existsSync(file)) copyFileSync(file, join(playDir, name))
+        }
       },
     },
   ],

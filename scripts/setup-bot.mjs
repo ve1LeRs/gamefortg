@@ -11,7 +11,7 @@
 const TOKEN = process.env.BOT_TOKEN
 // Query param forces Telegram to drop a stale Mini App HTML shell.
 const APP_URL =
-  process.env.APP_URL || `https://ve1lers.github.io/gamefortg/?v=${Date.now().toString(36)}`
+  process.env.APP_URL || `https://ve1lers.github.io/gamefortg/play/?v=${Date.now().toString(36)}`
 
 if (!TOKEN) {
   console.error('Missing BOT_TOKEN. Example:\n  BOT_TOKEN=123:ABC node scripts/setup-bot.mjs')
