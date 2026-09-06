@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { PlayingCard } from '../../components/PlayingCard'
 import { isRed } from '../../lib/cards'
 import { getWebApp } from '../../lib/telegram'
+import { createSoloDurakRoom } from './localRoom'
 import { type DurakRoom, type PlayerInfo, hostDurakRoom, joinDurakRoom } from './peerRoom'
 
-type Mode = 'menu' | 'host' | 'join'
+type Mode = 'menu' | 'host' | 'join' | 'solo'
 
 function playerFromTelegram(): PlayerInfo {
   const u = getWebApp()?.initDataUnsafe?.user
@@ -125,6 +126,28 @@ export function DurakOnline({
     }
   }
 
+  const startSolo = () => {
+    const session = ++sessionRef.current
+    roomRef.current?.destroy()
+    roomRef.current = null
+    setError(null)
+    setBusy(false)
+    setMode('solo')
+    setRoom(null)
+    try {
+      const solo = createSoloDurakRoom(you, {
+        onUpdate: (next) => syncRoom(next, session),
+      })
+      syncRoom(solo, session)
+      onHaptic?.('medium')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не удалось начать тест')
+      setMode('menu')
+      setRoom(null)
+      onHaptic?.('error')
+    }
+  }
+
   const copyInvite = async () => {
     if (!room) return
     try {
@@ -195,12 +218,26 @@ export function DurakOnline({
             </div>
           </div>
           <p className="durak-status">
-            {view.yourTurn
-              ? view.status
-              : view.table.length === 0
-                ? `Ход: ${room.opponent?.name ?? 'соперник'} — ждите первую карту`
-                : view.status}
+            {room.solo
+              ? `${view.yourTurn ? 'Ваш ход' : 'Ждём ход'} · ${room.you.name}`
+              : view.yourTurn
+                ? view.status
+                : view.table.length === 0
+                  ? `Ход: ${room.opponent?.name ?? 'соперник'} — ждите первую карту`
+                  : view.status}
           </p>
+          {room.solo && (
+            <button
+              type="button"
+              className="durak-solo-switch"
+              onClick={() => {
+                room.switchSeat?.()
+                onHaptic?.('light')
+              }}
+            >
+              Сменить игрока ({room.controllingSeat === 'a' ? '1→2' : '2→1'})
+            </button>
+          )}
         </header>
 
         <div className="durak-field">
@@ -287,6 +324,11 @@ export function DurakOnline({
               Выйти
             </button>
           )}
+          {room.solo && view.youWon === null && (
+            <button type="button" className="durak-btn" onClick={leave}>
+              Выйти из теста
+            </button>
+          )}
         </div>
 
         <footer className="durak-bottom">
@@ -334,7 +376,7 @@ export function DurakOnline({
               🧑
             </div>
             <div className="durak-seat-meta">
-              <span className="durak-name">Вы</span>
+              <span className="durak-name">{room.solo ? room.you.name : 'Вы'}</span>
               <span className="durak-pill">{view.you.length}</span>
             </div>
           </div>
@@ -379,6 +421,14 @@ export function DurakOnline({
             onClick={() => void connectHost()}
           >
             Создать комнату
+          </button>
+          <button
+            type="button"
+            className="durak-btn durak-btn-bito"
+            disabled={busy}
+            onClick={startSolo}
+          >
+            Тест на одном устройстве
           </button>
           <div className="durak-online-join">
             <label className="durak-online-join-label" htmlFor="durak-room-code">

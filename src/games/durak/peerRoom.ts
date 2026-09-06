@@ -34,6 +34,10 @@ export type DurakRoom = {
   view: SeatView | null
   sendAction: (action: DurakAction) => void
   destroy: () => void
+  /** Present in local solo test mode */
+  solo?: boolean
+  controllingSeat?: 'a' | 'b'
+  switchSeat?: () => void
 }
 
 type RoomHandlers = {
