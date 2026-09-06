@@ -22,9 +22,10 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
       ;(function () {
-        // Bust Telegram WebView HTML cache when a newer deploy exists.
+        // Bust Telegram WebView HTML/JS cache when a newer deploy exists.
         try {
           var base = location.pathname.indexOf('/gamefortg') === 0 ? '/gamefortg/' : '/'
+          var KEY = 'gft-build-id'
           var url = base + 'version.json?t=' + Date.now()
           fetch(url, { cache: 'no-store' })
             .then(function (r) {
@@ -34,11 +35,35 @@
               if (!v || !v.id) return
               var meta = document.querySelector('meta[name="build-id"]')
               var embedded = meta && meta.getAttribute('content')
-              if (!embedded || embedded === '__BUILD_ID__' || embedded === v.id) return
+              var stored = null
+              try {
+                stored = localStorage.getItem(KEY)
+              } catch (e) {}
               var next = new URL(location.href)
-              if (next.searchParams.get('v') === v.id) return
-              next.searchParams.set('v', v.id)
-              location.replace(next.toString())
+              var already = next.searchParams.get('v') === v.id
+              // Stale HTML shell vs current Pages deploy.
+              if (embedded && embedded !== '__BUILD_ID__' && embedded !== v.id && !already) {
+                next.searchParams.set('v', v.id)
+                next.searchParams.set('_', String(Date.now()))
+                try {
+                  localStorage.setItem(KEY, v.id)
+                } catch (e) {}
+                location.replace(next.toString())
+                return
+              }
+              // Remember the newest id we have successfully loaded.
+              if (embedded && embedded === v.id) {
+                try {
+                  localStorage.setItem(KEY, v.id)
+                } catch (e) {}
+                return
+              }
+              // If we previously loaded a newer build than this HTML, force again.
+              if (stored && embedded && stored !== embedded && stored === v.id && !already) {
+                next.searchParams.set('v', v.id)
+                next.searchParams.set('_', String(Date.now()))
+                location.replace(next.toString())
+              }
             })
             .catch(function () {})
         } catch (e) {}
