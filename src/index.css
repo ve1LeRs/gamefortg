@@ -2056,14 +2056,27 @@ body.tg-webapp .app-main:not(.game-mode) {
   z-index: 1;
   flex: 1;
   min-height: 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) 96px;
   align-items: center;
-  justify-content: center;
-  /* Room for messy bito (left) and deck/trump (right) */
-  padding: 6px 88px 6px 76px;
+  column-gap: 4px;
+  padding: 6px 4px;
   isolation: isolate;
   overflow: hidden;
   contain: layout paint;
+}
+
+/* Clips pair overflow so defence cards cannot paint onto trump/deck */
+.durak-table-zone {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .durak-table-cards {
@@ -2143,20 +2156,20 @@ body.tg-webapp .app-main:not(.game-mode) {
 /* Fewer pairs can use a slightly larger footprint */
 .durak-table-cards[data-count='1'] .durak-pair,
 .durak-table-cards[data-count='2'] .durak-pair {
-  width: 120px;
-  height: 150px;
+  width: 108px;
+  height: 136px;
 }
 
 .durak-table-cards[data-count='1'] .durak-pair .durak-card,
 .durak-table-cards[data-count='2'] .durak-pair .durak-card {
-  width: 74px !important;
-  height: 104px !important;
+  width: 66px !important;
+  height: 94px !important;
 }
 
 .durak-table-cards[data-count='1'] .durak-pair .durak-defence,
 .durak-table-cards[data-count='2'] .durak-pair .durak-defence {
-  top: 42px;
-  left: 38px;
+  top: 34px;
+  left: 30px;
 }
 
 .durak-table-cards[data-count='5'],
@@ -2190,12 +2203,13 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 /* Discard pile (бита) — messy stack, clearly not the neat stock */
 .durak-bito {
-  position: absolute;
-  left: 6px;
-  top: 52%;
+  position: relative;
+  left: auto;
+  top: auto;
   width: 64px;
   height: 92px;
-  transform: translateY(-50%) rotate(-8deg);
+  justify-self: center;
+  transform: rotate(-8deg);
   z-index: 1;
   pointer-events: none;
 }
@@ -2257,9 +2271,9 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 @keyframes durak-bito-catch {
-  0% { transform: translateY(-50%) rotate(-8deg) scale(1); }
-  40% { transform: translateY(-50%) rotate(-4deg) scale(1.08); }
-  100% { transform: translateY(-50%) rotate(-8deg) scale(1); }
+  0% { transform: rotate(-8deg) scale(1); }
+  40% { transform: rotate(-4deg) scale(1.08); }
+  100% { transform: rotate(-8deg) scale(1); }
 }
 
 @keyframes durak-fly-to-bito {
@@ -2292,14 +2306,15 @@ body.tg-webapp .app-main:not(.game-mode) {
 .durak-table-cards.is-to-bito .durak-pair:nth-child(6) { animation-delay: 0.27s; }
 
 .durak-deck {
-  position: absolute;
-  right: 4px;
-  top: 50%;
+  position: relative;
+  right: auto;
+  top: auto;
   width: 68px;
   height: 116px;
-  transform: translateY(-50%) rotate(6deg);
-  /* Always below in-play table cards */
-  z-index: 0;
+  justify-self: center;
+  transform: rotate(6deg);
+  /* Own column — stays clear of table pairs */
+  z-index: 2;
   pointer-events: none;
 }
 
@@ -2319,10 +2334,10 @@ body.tg-webapp .app-main:not(.game-mode) {
 /* Half-visible under the face-down pile, classic Durak layout */
 .durak-trump-card {
   position: absolute !important;
-  left: -34px;
+  left: -30px;
   top: 10px;
-  width: 76px !important;
-  height: 108px !important;
+  width: 72px !important;
+  height: 102px !important;
   transform: rotate(-90deg);
   transform-origin: center center;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
@@ -2804,17 +2819,24 @@ body.tg-webapp .app-main:not(.game-mode) {
     margin-left: -23px;
     margin-top: -33px;
   }
+  .durak-field {
+    grid-template-columns: 58px minmax(0, 1fr) 84px;
+    column-gap: 2px;
+    padding: 4px 2px;
+  }
   .durak-table-cards {
     gap: 6px 8px;
     z-index: 1;
   }
   .durak-deck {
-    z-index: 0;
+    z-index: 2;
+    width: 60px;
+    height: 104px;
   }
   .durak-trump-card {
-    left: -28px;
-    width: 68px !important;
-    height: 96px !important;
+    left: -26px;
+    width: 64px !important;
+    height: 90px !important;
     z-index: 0;
   }
 }
