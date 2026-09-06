@@ -1,4 +1,4 @@
-import Peer, { type DataConnection, type PeerJSOption } from 'peerjs'
+import type { MqttClient } from 'mqtt'
 import {
   type DurakAction,
   type DurakState,
@@ -6,7 +6,6 @@ import {
   applyAction,
   createDurakGame,
   makeRoomCode,
-  peerIdForRoom,
   seatView,
 } from './engine'
 
@@ -15,12 +14,12 @@ export type PlayerInfo = {
   name: string
 }
 
-type HelloMsg = { type: 'hello'; player: PlayerInfo }
-type ActionMsg = { type: 'action'; action: DurakAction }
-type StateMsg = { type: 'state'; view: SeatView; opponent: PlayerInfo }
-type ReadyMsg = { type: 'ready' }
-type ErrorMsg = { type: 'error'; message: string }
-type NetMsg = HelloMsg | ActionMsg | StateMsg | ReadyMsg | ErrorMsg
+type HelloMsg = { type: 'hello'; role: 'guest'; player: PlayerInfo }
+type ActionMsg = { type: 'action'; role: 'guest'; action: DurakAction }
+type StateMsg = { type: 'state'; role: 'host'; view: SeatView; opponent: PlayerInfo }
+type BusyMsg = { type: 'busy'; role: 'host' }
+type ByeMsg = { type: 'bye'; role: 'host' | 'guest' }
+type NetMsg = HelloMsg | ActionMsg | StateMsg | BusyMsg | ByeMsg
 
 export type RoomStatus = 'connecting' | 'waiting' | 'playing' | 'disconnected' | 'error'
 
@@ -40,18 +39,19 @@ type RoomHandlers = {
   onUpdate: (room: DurakRoom) => void
 }
 
-const PEER_OPTS: PeerJSOption = {
-  debug: 1,
-  config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-    ],
-  },
-}
+/** Public MQTT over WebSocket — works on mobile LTE where WebRTC/PeerJS often fails. */
+const BROKERS = [
+  'wss://broker.emqx.io:8084/mqtt',
+  'wss://broker.hivemq.com:8884/mqtt',
+] as const
 
-const PEER_OPEN_MS = 12_000
-const HANDSHAKE_MS = 20_000
+const CONNECT_MS = 12_000
+const HANDSHAKE_MS = 25_000
+const HELLO_RETRY_MS = 2_000
+
+function topicFor(code: string): string {
+  return `gft/durak/v1/${code.toUpperCase()}/bus`
+}
 
 function emit(room: DurakRoom, handlers: RoomHandlers) {
   handlers.onUpdate(room)
@@ -63,32 +63,81 @@ function failRoom(room: DurakRoom, handlers: RoomHandlers, message: string) {
   emit(room, handlers)
 }
 
-function waitPeerOpen(peer: Peer, timeoutMs: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    if (!peer.destroyed && peer.id && peer.open) {
-      resolve(peer.id)
-      return
+function parseMsg(raw: string): NetMsg | null {
+  try {
+    const msg = JSON.parse(raw) as NetMsg
+    if (!msg || typeof msg !== 'object' || !('type' in msg)) return null
+    return msg
+  } catch {
+    return null
+  }
+}
+
+function connectMqtt(clientId: string): Promise<MqttClient> {
+  let attempt = 0
+  const tryNext = async (): Promise<MqttClient> => {
+    const url = BROKERS[attempt]
+    if (!url) {
+      throw new Error('Не удалось связаться с сервером комнат. Проверьте интернет.')
     }
-    const t = window.setTimeout(() => {
-      cleanup()
-      reject(new Error('Сервер соединений не ответил. Попробуйте ещё раз.'))
-    }, timeoutMs)
-    const onOpen = (id: string) => {
-      cleanup()
-      resolve(id)
-    }
-    const onError = (err: Error) => {
-      cleanup()
-      reject(err)
-    }
-    const cleanup = () => {
-      window.clearTimeout(t)
-      peer.off('open', onOpen)
-      peer.off('error', onError)
-    }
-    peer.on('open', onOpen)
-    peer.on('error', onError)
-  })
+    attempt += 1
+    const mqtt = (await import('mqtt')).default
+    return new Promise<MqttClient>((resolve, reject) => {
+      let settled = false
+      const client = mqtt.connect(url, {
+        clientId,
+        clean: true,
+        connectTimeout: CONNECT_MS,
+        reconnectPeriod: 0,
+        protocolVersion: 4,
+      })
+      const finish = (fn: () => void) => {
+        if (settled) return
+        settled = true
+        window.clearTimeout(t)
+        client.off('connect', onConnect)
+        client.off('error', onError)
+        client.off('close', onClose)
+        fn()
+      }
+      const t = window.setTimeout(() => {
+        try {
+          client.end(true)
+        } catch {
+          /* noop */
+        }
+        finish(() => {
+          tryNext().then(resolve, reject)
+        })
+      }, CONNECT_MS)
+      const onConnect = () => {
+        finish(() => resolve(client))
+      }
+      const onError = () => {
+        /* timeout / close handle retry */
+      }
+      const onClose = () => {
+        if (settled) return
+        try {
+          client.end(true)
+        } catch {
+          /* noop */
+        }
+        finish(() => {
+          tryNext().then(resolve, reject)
+        })
+      }
+      client.on('connect', onConnect)
+      client.on('error', onError)
+      client.on('close', onClose)
+    })
+  }
+  return tryNext()
+}
+
+function publish(client: MqttClient, topic: string, msg: NetMsg) {
+  if (!client.connected) return
+  client.publish(topic, JSON.stringify(msg), { qos: 1 })
 }
 
 export async function hostDurakRoom(
@@ -96,11 +145,11 @@ export async function hostDurakRoom(
   handlers: RoomHandlers,
 ): Promise<DurakRoom> {
   const code = makeRoomCode()
-  const peer = new Peer(peerIdForRoom(code), PEER_OPTS)
-
+  const topic = topicFor(code)
   let state: DurakState | null = null
-  let conn: DataConnection | null = null
   let opponent: PlayerInfo | null = null
+  let client: MqttClient | null = null
+  let alive = true
 
   const room: DurakRoom = {
     code,
@@ -111,31 +160,34 @@ export async function hostDurakRoom(
     view: null,
     sendAction: () => undefined,
     destroy: () => {
+      alive = false
       try {
-        conn?.close()
+        if (client?.connected) {
+          publish(client, topic, { type: 'bye', role: 'host' })
+        }
       } catch {
         /* noop */
       }
       try {
-        peer.destroy()
+        client?.end(true)
       } catch {
         /* noop */
       }
+      client = null
     },
   }
 
   emit(room, handlers)
 
   const pushViews = () => {
-    if (!state || !conn || !opponent) return
+    if (!alive || !state || !opponent || !client) return
     const hostView = seatView(state, 'a')
     const guestView = seatView(state, 'b')
     room.view = hostView
     room.status = 'playing'
     room.opponent = opponent
     emit(room, handlers)
-    const msg: StateMsg = { type: 'state', view: guestView, opponent: you }
-    if (conn.open) conn.send(msg)
+    publish(client, topic, { type: 'state', role: 'host', view: guestView, opponent: you })
   }
 
   room.sendAction = (action) => {
@@ -145,7 +197,7 @@ export async function hostDurakRoom(
   }
 
   try {
-    await waitPeerOpen(peer, PEER_OPEN_MS)
+    client = await connectMqtt(`gft-h-${code}-${Math.random().toString(36).slice(2, 8)}`)
   } catch (e) {
     room.destroy()
     const message = e instanceof Error ? e.message : 'Не удалось создать комнату'
@@ -153,62 +205,58 @@ export async function hostDurakRoom(
     throw new Error(message)
   }
 
+  if (!alive) {
+    client.end(true)
+    throw new Error('Отменено')
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    client!.subscribe(topic, { qos: 1 }, (err) => {
+      if (err) reject(err)
+      else resolve()
+    })
+  }).catch((e) => {
+    room.destroy()
+    const message = e instanceof Error ? e.message : 'Не удалось открыть комнату'
+    failRoom(room, handlers, message)
+    throw new Error(message)
+  })
+
   room.status = 'waiting'
   emit(room, handlers)
 
-  peer.on('connection', (c) => {
-    if (conn) {
-      c.on('open', () => {
-        c.send({ type: 'error', message: 'Комната уже занята' } satisfies ErrorMsg)
-        c.close()
-      })
-      return
-    }
-    conn = c
-
-    const onGuestData = (raw: unknown) => {
-      const msg = raw as NetMsg
-      if (msg.type === 'hello') {
-        opponent = msg.player
-        room.opponent = opponent
-        state = createDurakGame('a')
-        room.status = 'playing'
-        if (c.open) {
-          c.send({ type: 'ready' } satisfies ReadyMsg)
-          pushViews()
-        }
+  client.on('message', (_t, payload) => {
+    if (!alive) return
+    const msg = parseMsg(payload.toString())
+    if (!msg) return
+    if (msg.type === 'hello' && msg.role === 'guest') {
+      if (opponent && opponent.id !== msg.player.id) {
+        publish(client!, topic, { type: 'busy', role: 'host' })
         return
       }
-      if (msg.type === 'action' && state) {
-        state = applyAction(state, 'b', msg.action)
-        pushViews()
-      }
+      opponent = msg.player
+      room.opponent = opponent
+      if (!state) state = createDurakGame('a')
+      pushViews()
+      return
     }
-
-    c.on('data', onGuestData)
-    c.on('open', () => {
-      // If hello already arrived before open, push again once channel is writable.
-      if (opponent && state) {
-        c.send({ type: 'ready' } satisfies ReadyMsg)
-        pushViews()
-      }
-    })
-    c.on('close', () => {
+    if (msg.type === 'action' && msg.role === 'guest' && state) {
+      state = applyAction(state, 'b', msg.action)
+      pushViews()
+      return
+    }
+    if (msg.type === 'bye' && msg.role === 'guest') {
       room.status = 'disconnected'
       room.error = 'Соперник отключился'
       emit(room, handlers)
-    })
-    c.on('error', () => {
-      room.status = 'disconnected'
-      room.error = 'Ошибка соединения с соперником'
-      emit(room, handlers)
-    })
+    }
   })
 
-  peer.on('error', (err) => {
-    if (room.status === 'playing') {
+  client.on('close', () => {
+    if (!alive) return
+    if (room.status === 'playing' || room.status === 'waiting') {
       room.status = 'disconnected'
-      room.error = err.message || 'Ошибка сети'
+      room.error = 'Связь с сервером потеряна'
       emit(room, handlers)
     }
   })
@@ -222,8 +270,10 @@ export async function joinDurakRoom(
   handlers: RoomHandlers,
 ): Promise<DurakRoom> {
   const clean = code.trim().toUpperCase()
-  const peer = new Peer(PEER_OPTS)
-  let conn: DataConnection | null = null
+  const topic = topicFor(clean)
+  let client: MqttClient | null = null
+  let alive = true
+  let helloTimer: number | null = null
 
   const room: DurakRoom = {
     code: clean,
@@ -233,28 +283,32 @@ export async function joinDurakRoom(
     opponent: null,
     view: null,
     sendAction: (action) => {
-      if (conn?.open) {
-        conn.send({ type: 'action', action } satisfies ActionMsg)
-      }
+      if (!client?.connected) return
+      publish(client, topic, { type: 'action', role: 'guest', action })
     },
     destroy: () => {
+      alive = false
+      if (helloTimer != null) window.clearInterval(helloTimer)
       try {
-        conn?.close()
+        if (client?.connected) {
+          publish(client, topic, { type: 'bye', role: 'guest' })
+        }
       } catch {
         /* noop */
       }
       try {
-        peer.destroy()
+        client?.end(true)
       } catch {
         /* noop */
       }
+      client = null
     },
   }
 
   emit(room, handlers)
 
   try {
-    await waitPeerOpen(peer, PEER_OPEN_MS)
+    client = await connectMqtt(`gft-g-${clean}-${Math.random().toString(36).slice(2, 8)}`)
   } catch (e) {
     room.destroy()
     const message = e instanceof Error ? e.message : 'Не удалось подключиться'
@@ -262,62 +316,15 @@ export async function joinDurakRoom(
     throw new Error(message)
   }
 
-  room.status = 'waiting'
-  emit(room, handlers)
-
-  conn = peer.connect(peerIdForRoom(clean), { reliable: true })
+  if (!alive) {
+    client.end(true)
+    throw new Error('Отменено')
+  }
 
   await new Promise<void>((resolve, reject) => {
-    let settled = false
-    const t = window.setTimeout(() => {
-      settle(() => reject(new Error('Не удалось подключиться. Проверьте код и что хост ждёт в комнате.')))
-    }, HANDSHAKE_MS)
-
-    const settle = (fn: () => void) => {
-      if (settled) return
-      settled = true
-      window.clearTimeout(t)
-      fn()
-    }
-
-    const onData = (raw: unknown) => {
-      const msg = raw as NetMsg
-      if (msg.type === 'state') {
-        room.view = msg.view
-        room.opponent = msg.opponent
-        room.status = 'playing'
-        emit(room, handlers)
-        settle(() => resolve())
-        return
-      }
-      if (msg.type === 'ready') {
-        // Host acknowledged; wait for state (or treat as almost done).
-        return
-      }
-      if (msg.type === 'error') {
-        room.status = 'error'
-        room.error = msg.message
-        emit(room, handlers)
-        settle(() => reject(new Error(msg.message)))
-      }
-    }
-
-    // Attach listeners BEFORE open completes so we never miss early host packets.
-    conn!.on('data', onData)
-    conn!.on('open', () => {
-      conn!.send({ type: 'hello', player: you } satisfies HelloMsg)
-    })
-    conn!.on('error', (err) => {
-      settle(() => reject(err instanceof Error ? err : new Error('Ошибка соединения')))
-    })
-    conn!.on('close', () => {
-      if (room.status === 'playing') {
-        room.status = 'disconnected'
-        room.error = 'Связь с хостом потеряна'
-        emit(room, handlers)
-        return
-      }
-      settle(() => reject(new Error('Хост закрыл соединение. Проверьте код.')))
+    client!.subscribe(topic, { qos: 1 }, (err) => {
+      if (err) reject(err)
+      else resolve()
     })
   }).catch((e) => {
     room.destroy()
@@ -326,12 +333,82 @@ export async function joinDurakRoom(
     throw new Error(message)
   })
 
-  conn.on('close', () => {
-    if (room.status === 'playing') {
-      room.status = 'disconnected'
-      room.error = 'Связь с хостом потеряна'
-      emit(room, handlers)
+  room.status = 'waiting'
+  emit(room, handlers)
+
+  const sendHello = () => {
+    if (!alive || !client?.connected || room.status === 'playing') return
+    publish(client, topic, { type: 'hello', role: 'guest', player: you })
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    let settled = false
+    const t = window.setTimeout(() => {
+      settle(() =>
+        reject(
+          new Error(
+            'Хост не ответил. Убедитесь, что друг открыл «Создать комнату» и ждёт с этим кодом.',
+          ),
+        ),
+      )
+    }, HANDSHAKE_MS)
+
+    const settle = (fn: () => void) => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(t)
+      if (helloTimer != null) {
+        window.clearInterval(helloTimer)
+        helloTimer = null
+      }
+      fn()
     }
+
+    client!.on('message', (_topic, payload) => {
+      if (!alive) return
+      const msg = parseMsg(payload.toString())
+      if (!msg) return
+      if (msg.type === 'state' && msg.role === 'host') {
+        room.view = msg.view
+        room.opponent = msg.opponent
+        room.status = 'playing'
+        emit(room, handlers)
+        settle(() => resolve())
+        return
+      }
+      if (msg.type === 'busy') {
+        settle(() => reject(new Error('Комната уже занята')))
+        return
+      }
+      if (msg.type === 'bye' && msg.role === 'host') {
+        if (room.status === 'playing') {
+          room.status = 'disconnected'
+          room.error = 'Связь с хостом потеряна'
+          emit(room, handlers)
+          return
+        }
+        settle(() => reject(new Error('Хост вышел из комнаты')))
+      }
+    })
+
+    client!.on('close', () => {
+      if (!alive) return
+      if (room.status === 'playing') {
+        room.status = 'disconnected'
+        room.error = 'Связь с сервером потеряна'
+        emit(room, handlers)
+        return
+      }
+      settle(() => reject(new Error('Соединение прервалось')))
+    })
+
+    sendHello()
+    helloTimer = window.setInterval(sendHello, HELLO_RETRY_MS)
+  }).catch((e) => {
+    room.destroy()
+    const message = e instanceof Error ? e.message : 'Не удалось подключиться'
+    failRoom(room, handlers, message)
+    throw new Error(message)
   })
 
   return room
