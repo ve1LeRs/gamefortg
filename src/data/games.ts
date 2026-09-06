@@ -29,9 +29,9 @@ export const GAMES: GameMeta[] = [
   {
     id: 'durak',
     title: 'Дурак',
-    tagline: 'Классика двора. Бей козырем, скидывай пары, не останься последним.',
+    tagline: 'Классика двора. С ботом или с другом по ссылке.',
     genre: 'Карты',
-    players: '1 vs бот',
+    players: '1 vs бот · 2 онлайн',
     accent: '#3DDC97',
     glow: 'rgba(61, 220, 151, 0.3)',
     cover: 'durak',

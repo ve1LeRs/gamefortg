@@ -2902,3 +2902,118 @@ body.tg-webapp .app-main:not(.game-mode) {
 .durak-hand .pcard.playable {
   outline: none !important;
 }
+
+/* ---- Durak mode pick + online lobby ---- */
+.durak-mode-pick,
+.durak-online-lobby {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 60vh;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.durak-mode-pick h2,
+.durak-online-lobby h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.durak-mode-pick p,
+.durak-online-lead {
+  margin: 0 0 8px;
+  max-width: 280px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.durak-mode-pick .durak-btn,
+.durak-online-actions .durak-btn {
+  width: min(280px, 100%);
+}
+
+.durak-online-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.durak-online-join {
+  display: flex;
+  gap: 8px;
+  width: min(280px, 100%);
+}
+
+.durak-online-join input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.durak-online-join input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 500;
+}
+
+.durak-online-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(220, 60, 60, 0.2);
+  color: #ffb4b4;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.durak-online-wait {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.durak-online-code {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.durak-online-code strong {
+  font-size: 28px;
+  letter-spacing: 0.14em;
+  color: #fff;
+}
+
+.durak-online .durak-hand-card {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+.durak-online .durak-hand-card:disabled {
+  opacity: 0.72;
+}
+
+.durak-online .durak-hand-card.playable {
+  filter: brightness(1.06);
+  transform: translateY(-6px);
+}

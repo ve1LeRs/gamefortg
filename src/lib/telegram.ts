@@ -29,6 +29,7 @@ export type TelegramWebApp = {
     notificationOccurred: (type: 'error' | 'success' | 'warning') => void
   }
   initDataUnsafe?: {
+    start_param?: string
     user?: {
       id: number
       first_name: string
@@ -39,6 +40,8 @@ export type TelegramWebApp = {
   }
   safeAreaInset?: TgSafeArea
   contentSafeAreaInset?: TgSafeArea
+  openTelegramLink?: (url: string) => void
+  openLink?: (url: string, options?: { try_instant_view?: boolean }) => void
 }
 
 declare global {
