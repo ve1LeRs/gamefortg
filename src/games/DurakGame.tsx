@@ -9,6 +9,7 @@ import {
   makeDeck,
   shuffle,
   rankValue,
+  isRed,
 } from '../lib/cards'
 
 type TablePair = { attack: Card; defence?: Card }
@@ -81,24 +82,24 @@ function maxAttackSlots(defenderHandSize: number, table: TablePair[]): number {
 
 /** Fit the whole hand on screen — no horizontal scroll. Large hands use 2 rows. */
 function handFanLayout(n: number, viewportW = 390) {
-  const pad = 16
+  const pad = 12
   const avail = Math.max(280, Math.min(viewportW, 440) - pad)
   const rows = n >= 9 ? 2 : 1
   const perRow = rows === 1 ? Math.max(1, n) : Math.ceil(n / 2)
-  // Prefer readable cards; shrink until the row fits
-  let cardW = n <= 4 ? 86 : n <= 6 ? 78 : n <= 8 ? 70 : 62
-  let cardH = Math.round(cardW * (122 / 86))
+  // Hand cards stay large vs table; shrink only enough to fit the row
+  let cardW = n <= 4 ? 98 : n <= 6 ? 90 : n <= 8 ? 80 : 70
+  let cardH = Math.round(cardW * (138 / 98))
   let step = cardW
   if (perRow > 1) {
     // Leave at least ~28px peek for rank+suit corner
-    const minPeek = n >= 12 ? 26 : n >= 9 ? 30 : 36
+    const minPeek = n >= 12 ? 28 : n >= 9 ? 32 : 38
     const maxStep = (avail - cardW) / (perRow - 1)
     step = Math.max(minPeek, Math.min(cardW - 8, maxStep))
     // If still overflowing, shrink card width to fit minPeek
     const need = cardW + (perRow - 1) * minPeek
     if (need > avail) {
-      cardW = Math.max(48, Math.floor(avail - (perRow - 1) * minPeek))
-      cardH = Math.round(cardW * (122 / 86))
+      cardW = Math.max(52, Math.floor(avail - (perRow - 1) * minPeek))
+      cardH = Math.round(cardW * (138 / 98))
       step = minPeek
     } else {
       // Recompute step with possibly adjusted intent
@@ -773,10 +774,6 @@ export function DurakGame({
       className={`durak-table ${over ? `is-${over}` : ''}`}
       onClick={startBotAttackIfNeeded}
     >
-      <div className="durak-trump-mark" aria-hidden>
-        {trump}
-      </div>
-
       <header className="durak-top">
         <div className={`durak-seat${attacker === 'bot' ? ' is-active' : ''}${botTaking ? ' is-taking' : ''}${tableFlying ? ' is-receiving-cards' : ''}`}>
           <div className="durak-avatar bot-avatar" aria-hidden>
@@ -802,13 +799,63 @@ export function DurakGame({
       </header>
 
       <div ref={fieldRef} className="durak-field">
+        {/* Deck hangs off the left edge; when empty only a trump suit mark remains */}
         <div
-          className={`durak-bito${discard.length ? ' has-cards' : ''}${bitoFlying ? ' is-catching' : ''}`}
+          className={`durak-deck${deck.length === 0 ? ' is-empty' : ''}`}
+          aria-label={deck.length > 0 ? `Колода: ${deck.length}` : `Козырь ${trump}`}
+        >
+          {deck.length > 0 ? (
+            <>
+              <PlayingCard card={trumpCard} rankStyle="ru" className="durak-trump-card" enter="none" />
+              {Array.from({ length: deckLayers }).map((_, i) => (
+                <span key={i} className="durak-deck-layer" style={{ ['--i' as string]: i }} />
+              ))}
+              <span className="durak-deck-count">{deck.length}</span>
+            </>
+          ) : (
+            <span
+              className={`durak-trump-suit${isRed(trump) ? ' is-red' : ''}`}
+              aria-hidden
+            >
+              {trump}
+            </span>
+          )}
+        </div>
+
+        <div className="durak-table-zone">
+          <div
+            ref={tableCardsRef}
+            className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}${bitoFlying ? ' is-to-bito' : ''}`}
+            data-count={table.length}
+          >
+            {table.length === 0 && <span className="durak-empty">Ход картой</span>}
+            {table.map((p) => (
+              <div className="durak-pair" key={p.attack.id}>
+                <PlayingCard
+                  card={p.attack}
+                  rankStyle="ru"
+                  enter={enterFor(p.attack.id, 'none')}
+                  className="durak-card"
+                />
+                {p.defence && (
+                  <PlayingCard
+                    card={p.defence}
+                    rankStyle="ru"
+                    enter={enterFor(p.defence.id, 'none')}
+                    className="durak-card durak-defence"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bita hangs off the right edge — barely visible, like classic mobile Durak */}
+        <div
+          className={`durak-bito${discard.length ? ' has-cards' : ' is-empty'}${bitoFlying ? ' is-catching' : ''}`}
           aria-label={discard.length ? `Бита: ${discard.length}` : 'Бита пуста'}
         >
-          {discard.length === 0 ? (
-            <span className="durak-bito-empty">Бита</span>
-          ) : (
+          {discard.length > 0 && (
             <>
               {discard.slice(-10).map((c, i) => (
                 <span
@@ -818,47 +865,8 @@ export function DurakGame({
                   aria-hidden
                 />
               ))}
-              <span className="durak-bito-count">{discard.length}</span>
             </>
           )}
-        </div>
-
-        <div className="durak-table-zone">
-        <div
-          ref={tableCardsRef}
-          className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}${bitoFlying ? ' is-to-bito' : ''}`}
-          data-count={table.length}
-        >
-          {table.length === 0 && <span className="durak-empty">Ход картой</span>}
-          {table.map((p) => (
-            <div className="durak-pair" key={p.attack.id}>
-              <PlayingCard
-                card={p.attack}
-                rankStyle="ru"
-                enter={enterFor(p.attack.id, 'none')}
-                className="durak-card"
-              />
-              {p.defence && (
-                <PlayingCard
-                  card={p.defence}
-                  rankStyle="ru"
-                  enter={enterFor(p.defence.id, 'none')}
-                  className="durak-card durak-defence"
-                />
-              )}
-            </div>
-          ))}
-        </div>
-        </div>
-
-        <div className="durak-deck" aria-label={`Колода: ${deck.length}`}>
-          {deck.length > 0 && (
-            <PlayingCard card={trumpCard} rankStyle="ru" className="durak-trump-card" enter="none" />
-          )}
-          {Array.from({ length: deckLayers }).map((_, i) => (
-            <span key={i} className="durak-deck-layer" style={{ ['--i' as string]: i }} />
-          ))}
-          <span className="durak-deck-count">{deck.length}</span>
         </div>
       </div>
 
