@@ -1194,11 +1194,11 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .pcard.enter-throw-player {
-  animation: throw-from-player 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: throw-from-player 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .pcard.enter-throw-bot {
-  animation: throw-from-bot 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: throw-from-bot 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .card-flight {
@@ -1651,11 +1651,11 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 /* Must beat .table-cards .pcard so throws are not replaced by tiny card-in */
 .table-cards .pcard.enter-throw-player {
-  animation: throw-from-player 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: throw-from-player 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .table-cards .pcard.enter-throw-bot {
-  animation: throw-from-bot 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: throw-from-bot 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes rise {
@@ -1693,12 +1693,8 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 @keyframes throw-from-player {
   0% {
-    opacity: 0.2;
-    transform: translate3d(0, 180px, 0) scale(0.78) rotate(-18deg);
-  }
-  55% {
-    opacity: 1;
-    transform: translate3d(0, -18px, 0) scale(1.1) rotate(5deg);
+    opacity: 0.35;
+    transform: translate3d(0, 72px, 0) scale(0.92) rotate(-8deg);
   }
   100% {
     opacity: 1;
@@ -1709,27 +1705,19 @@ body.tg-webapp .app-main:not(.game-mode) {
 /* Defence must finish on its angled overlap seat — not flat under the attack */
 @keyframes throw-from-player-defence {
   0% {
-    opacity: 0.2;
-    transform: translate3d(-18px, 160px, 0) scale(0.78) rotate(-12deg);
-  }
-  55% {
-    opacity: 1;
-    transform: translate3d(4px, -10px, 0) scale(1.08) rotate(12deg);
+    opacity: 0.35;
+    transform: translate3d(-10px, 64px, 0) scale(0.92) rotate(6deg);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1) rotate(20deg);
+    transform: translate3d(0, 0, 0) scale(1) rotate(18deg);
   }
 }
 
 @keyframes throw-from-bot {
   0% {
-    opacity: 0.2;
-    transform: translate3d(0, -140px, 0) scale(0.78) rotate(18deg);
-  }
-  55% {
-    opacity: 1;
-    transform: translate3d(0, 16px, 0) scale(1.1) rotate(-5deg);
+    opacity: 0.35;
+    transform: translate3d(0, -64px, 0) scale(0.92) rotate(8deg);
   }
   100% {
     opacity: 1;
@@ -1739,16 +1727,12 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 @keyframes throw-from-bot-defence {
   0% {
-    opacity: 0.2;
-    transform: translate3d(12px, -130px, 0) scale(0.78) rotate(28deg);
-  }
-  55% {
-    opacity: 1;
-    transform: translate3d(-2px, 12px, 0) scale(1.08) rotate(14deg);
+    opacity: 0.35;
+    transform: translate3d(8px, -56px, 0) scale(0.92) rotate(26deg);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1) rotate(20deg);
+    transform: translate3d(0, 0, 0) scale(1) rotate(18deg);
   }
 }
 
@@ -2108,6 +2092,9 @@ body.tg-webapp .app-main:not(.game-mode) {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  /* Keep rotated defence clear of trump peek that intrudes from the deck column */
+  padding: 2px 10px;
+  box-sizing: border-box;
 }
 
 .durak-table-cards {
@@ -2124,6 +2111,8 @@ body.tg-webapp .app-main:not(.game-mode) {
   max-height: 100%;
   transform: scale(var(--table-scale));
   transform-origin: center center;
+  /* Avoid mid-throw layout thrash when scale updates after busy clears */
+  transition: none;
 }
 
 .durak-table-cards[data-count='0'],
@@ -2143,36 +2132,37 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-pair {
   position: relative;
-  width: 100px;
-  height: 126px;
+  /* Sized for rotated defence AABB; zone clips any leftover spill into колода */
+  width: 104px;
+  height: 132px;
   overflow: visible;
 }
 
 .durak-pair .durak-card {
-  width: 62px !important;
-  height: 88px !important;
+  width: 58px !important;
+  height: 82px !important;
   font-size: 14px;
 }
 
 .durak-pair .durak-card .pcard-rank {
-  font-size: 15px;
-  height: 17px;
+  font-size: 14px;
+  height: 16px;
 }
 
 .durak-pair .durak-card .pcard-suit {
-  font-size: 12px;
-  height: 14px;
+  font-size: 11px;
+  height: 13px;
 }
 
 .durak-pair .durak-card .suit-lg {
-  font-size: 26px;
+  font-size: 24px;
 }
 
 .durak-pair .durak-defence {
   position: absolute;
-  top: 32px;
-  left: 30px;
-  transform: rotate(20deg);
+  top: 28px;
+  left: 24px;
+  transform: rotate(18deg);
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
   z-index: 2;
 }
@@ -2192,21 +2182,52 @@ body.tg-webapp .app-main:not(.game-mode) {
 /* Fewer pairs can use a slightly larger footprint */
 .durak-table-cards[data-count='1'] .durak-pair,
 .durak-table-cards[data-count='2'] .durak-pair {
-  width: 108px;
-  height: 136px;
+  width: 112px;
+  height: 140px;
 }
 
 .durak-table-cards[data-count='1'] .durak-pair .durak-card,
 .durak-table-cards[data-count='2'] .durak-pair .durak-card {
-  width: 66px !important;
-  height: 94px !important;
+  width: 64px !important;
+  height: 90px !important;
 }
 
 .durak-table-cards[data-count='1'] .durak-pair .durak-defence,
 .durak-table-cards[data-count='2'] .durak-pair .durak-defence {
-  top: 34px;
-  left: 30px;
+  top: 32px;
+  left: 28px;
 }
+
+/* 3–4 pairs: tighter so the right column cannot reach the deck */
+.durak-table-cards[data-count='3'],
+.durak-table-cards[data-count='4'] {
+  gap: 6px 8px;
+}
+
+.durak-table-cards[data-count='3'] .durak-pair,
+.durak-table-cards[data-count='4'] .durak-pair {
+  width: 92px;
+  height: 118px;
+}
+
+.durak-table-cards[data-count='3'] .durak-pair .durak-card,
+.durak-table-cards[data-count='4'] .durak-pair .durak-card {
+  width: 52px !important;
+  height: 74px !important;
+}
+
+.durak-table-cards[data-count='3'] .durak-pair .durak-defence,
+.durak-table-cards[data-count='4'] .durak-pair .durak-defence {
+  top: 24px;
+  left: 22px;
+  transform: rotate(16deg);
+}
+
+.durak-table-cards[data-count='3'] .durak-pair .durak-card .suit-lg,
+.durak-table-cards[data-count='4'] .durak-pair .durak-card .suit-lg {
+  font-size: 22px;
+}
+
 
 .durak-table-cards[data-count='5'],
 .durak-table-cards[data-count='6'] {
@@ -2350,8 +2371,9 @@ body.tg-webapp .app-main:not(.game-mode) {
   justify-self: center;
   transform: rotate(6deg);
   /* Own column — stays clear of table pairs */
-  z-index: 2;
+  z-index: 5;
   pointer-events: none;
+  overflow: visible;
 }
 
 .durak-deck-layer {
@@ -2370,10 +2392,10 @@ body.tg-webapp .app-main:not(.game-mode) {
 /* Half-visible under the face-down pile, classic Durak layout */
 .durak-trump-card {
   position: absolute !important;
-  left: -30px;
-  top: 10px;
-  width: 72px !important;
-  height: 102px !important;
+  left: -16px;
+  top: 12px;
+  width: 68px !important;
+  height: 96px !important;
   transform: rotate(-90deg);
   transform-origin: center center;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
@@ -2473,10 +2495,6 @@ body.tg-webapp .app-main:not(.game-mode) {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
-
-.durak-table-cards.is-bot-taking .durak-pair {
-  animation: durak-fly-to-bot 0.85s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .durak-hand.is-receiving .durak-hand-card.playable,
@@ -2768,21 +2786,21 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-table .table-cards .pcard.enter-throw-player,
 .durak-pair .pcard.enter-throw-player {
-  animation: throw-from-player 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: throw-from-player 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .durak-pair .pcard.enter-throw-bot {
-  animation: throw-from-bot 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: throw-from-bot 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .durak-pair .pcard.durak-defence.enter-throw-player,
 .durak-field .pcard.durak-defence.enter-throw-player {
-  animation: throw-from-player-defence 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: throw-from-player-defence 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .durak-pair .pcard.durak-defence.enter-throw-bot,
 .durak-field .pcard.durak-defence.enter-throw-bot {
-  animation: throw-from-bot-defence 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: throw-from-bot-defence 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 
@@ -2825,34 +2843,41 @@ body.tg-webapp .app-main:not(.game-mode) {
   }
   .durak-pair {
     width: 96px;
-    height: 122px;
+    height: 124px;
   }
   .durak-pair .durak-card {
-    width: 58px !important;
-    height: 82px !important;
+    width: 54px !important;
+    height: 76px !important;
   }
   .durak-pair .durak-defence {
-    top: 30px;
-    left: 28px;
+    top: 26px;
+    left: 22px;
+    transform: rotate(16deg);
   }
   .durak-table-cards[data-count='1'] .durak-pair,
   .durak-table-cards[data-count='2'] .durak-pair {
-    width: 108px;
-    height: 136px;
+    width: 104px;
+    height: 132px;
   }
   .durak-table-cards[data-count='1'] .durak-pair .durak-card,
   .durak-table-cards[data-count='2'] .durak-pair .durak-card {
-    width: 66px !important;
-    height: 92px !important;
+    width: 60px !important;
+    height: 84px !important;
   }
   .durak-table-cards[data-count='1'] .durak-pair .durak-defence,
   .durak-table-cards[data-count='2'] .durak-pair .durak-defence {
-    top: 36px;
-    left: 34px;
+    top: 30px;
+    left: 26px;
   }
-  .durak-field {
-    padding-right: 80px;
-    padding-left: 64px;
+  .durak-table-cards[data-count='3'] .durak-pair,
+  .durak-table-cards[data-count='4'] .durak-pair {
+    width: 84px;
+    height: 110px;
+  }
+  .durak-table-cards[data-count='3'] .durak-pair .durak-card,
+  .durak-table-cards[data-count='4'] .durak-pair .durak-card {
+    width: 48px !important;
+    height: 68px !important;
   }
   .durak-bito {
     width: 54px;

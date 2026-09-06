@@ -143,7 +143,7 @@ function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-const THROW_MS = 900
+const THROW_MS = 520
 const BITO_MS = 780
 const DEAL_MS = 980
 
@@ -186,6 +186,11 @@ export function DurakGame({
   const dragRef = useRef<DragState | null>(null)
   const skipClickRef = useRef(false)
   const dealTimerRef = useRef<number | null>(null)
+  const busyRef = useRef(false)
+
+  useEffect(() => {
+    busyRef.current = busy
+  }, [busy])
 
   const ranksOnTable = useMemo(() => {
     const ranks = new Set<Rank>()
@@ -235,41 +240,49 @@ export function DurakGame({
     return () => window.removeEventListener('resize', update)
   }, [])
 
-  /** Keep attack/defence pairs inside the play field (no overflow into hand/status). */
+  /** Keep attack/defence pairs inside the play zone (away from бита/колода). */
   useEffect(() => {
     const field = fieldRef.current
     const cards = tableCardsRef.current
     if (!field || !cards) return
+    const zone = cards.parentElement
 
     const fit = () => {
+      if (busyRef.current) return
       cards.style.setProperty('--table-scale', '1')
       cards.style.margin = '0'
       if (table.length === 0) return
-      const zone = cards.parentElement
       const box = zone ?? field
-      const availW = Math.max(40, box.clientWidth - 4)
-      const availH = Math.max(40, box.clientHeight - 4)
-      const needW = Math.max(1, cards.scrollWidth)
-      const needH = Math.max(1, cards.scrollHeight)
+      /* Defence is rotated — scroll size misses the AABB overhang into колода */
+      const overhang = 18
+      const availW = Math.max(40, box.clientWidth - 8)
+      const availH = Math.max(40, box.clientHeight - 8)
+      const needW = Math.max(1, cards.scrollWidth + overhang)
+      const needH = Math.max(1, cards.scrollHeight + overhang)
       const scale = Math.min(1, availW / needW, availH / needH)
-      const s = Number.isFinite(scale) ? scale : 1
+      const s = Number.isFinite(scale) ? Math.max(0.55, scale) : 1
       cards.style.setProperty('--table-scale', String(s))
-      /* transform doesn't shrink layout — collapse the unused box with negative margins */
       if (s < 1) {
         cards.style.margin = `${((s - 1) * needH) / 2}px ${((s - 1) * needW) / 2}px`
       }
     }
 
     fit()
-    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(fit) : null
+    const ro =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => {
+            if (busyRef.current) return
+            fit()
+          })
+        : null
     ro?.observe(field)
-    ro?.observe(cards)
+    if (zone) ro?.observe(zone)
     window.addEventListener('resize', fit)
     return () => {
       ro?.disconnect()
       window.removeEventListener('resize', fit)
     }
-  }, [table])
+  }, [table, busy])
 
   useEffect(() => {
     const cards = initial.player
@@ -371,13 +384,6 @@ export function DurakGame({
     })
   }
 
-  const leaveHand = async (cardId: string) => {
-    if (prefersReducedMotion()) return
-    setThrowingId(cardId)
-    await sleep(180)
-    setThrowingId(null)
-  }
-
   const reset = useCallback(() => {
     const next = dealDurak()
     setDeck(next.deck)
@@ -428,7 +434,6 @@ export function DurakGame({
       setEnterMap((m) => ({ ...m, [card.id]: 'none' }))
       setTable(nextTable)
     } else {
-      await leaveHand(card.id)
       setPlayer(newPlayer)
       setEnterMap((m) => ({ ...m, [card.id]: 'throw-player' }))
       setTable(nextTable)
@@ -507,7 +512,6 @@ export function DurakGame({
       setEnterMap((m) => ({ ...m, [card.id]: 'none' }))
       setTable(newTable)
     } else {
-      await leaveHand(card.id)
       setPlayer(newPlayer)
       setEnterMap((m) => ({ ...m, [card.id]: 'throw-player' }))
       setTable(newTable)
