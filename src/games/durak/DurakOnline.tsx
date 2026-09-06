@@ -38,6 +38,7 @@ export function DurakOnline({
   const [busy, setBusy] = useState(false)
   const sessionRef = useRef(0)
   const roomRef = useRef<DurakRoom | null>(null)
+  const lastPlayRef = useRef(0)
 
   useEffect(() => {
     return () => {
@@ -227,16 +228,24 @@ export function DurakOnline({
                   : view.status}
           </p>
           {room.solo && (
-            <button
-              type="button"
-              className="durak-solo-switch"
-              onClick={() => {
-                room.switchSeat?.()
-                onHaptic?.('light')
-              }}
-            >
-              Сменить игрока ({room.controllingSeat === 'a' ? '1→2' : '2→1'})
-            </button>
+            <div className="durak-solo-toolbar">
+              <button
+                type="button"
+                className="durak-solo-switch"
+                onClick={() => {
+                  room.switchSeat?.()
+                  onHaptic?.('light')
+                }}
+              >
+                Сменить игрока ({room.controllingSeat === 'a' ? '1→2' : '2→1'})
+              </button>
+              <button type="button" className="durak-solo-switch" onClick={leave}>
+                Выйти из теста
+              </button>
+            </div>
+          )}
+          {view.yourTurn && view.legalCardIds.length > 0 && (
+            <p className="durak-tap-hint">Нажмите карту в руке, чтобы сходить</p>
           )}
         </header>
 
@@ -324,11 +333,6 @@ export function DurakOnline({
               Выйти
             </button>
           )}
-          {room.solo && view.youWon === null && (
-            <button type="button" className="durak-btn" onClick={leave}>
-              Выйти из теста
-            </button>
-          )}
         </div>
 
         <footer className="durak-bottom">
@@ -338,7 +342,7 @@ export function DurakOnline({
             style={{
               ['--hand-card-w' as string]: '92px',
               ['--hand-card-h' as string]: '128px',
-              ['--hand-step' as string]: `${Math.max(36, Math.min(62, Math.floor(320 / Math.max(view.you.length, 1))))}px`,
+              ['--hand-step' as string]: `${Math.max(34, Math.min(58, Math.floor(300 / Math.max(view.you.length, 1))))}px`,
             }}
           >
             <div className="durak-hand-row">
@@ -347,6 +351,14 @@ export function DurakOnline({
                 const n = view.you.length
                 const mid = (n - 1) / 2
                 const offset = i - mid
+                const play = () => {
+                  if (!legal) return
+                  const now = Date.now()
+                  if (now - lastPlayRef.current < 400) return
+                  lastPlayRef.current = now
+                  room.sendAction({ type: 'play', cardId: c.id })
+                  onHaptic?.('light')
+                }
                 return (
                   <PlayingCard
                     key={c.id}
@@ -359,12 +371,13 @@ export function DurakOnline({
                     style={{
                       ['--fan' as string]: offset,
                       ['--rot' as string]: `${offset * 2.2}deg`,
-                      zIndex: legal ? n + i : i + 1,
+                      zIndex: legal ? 40 + i : i + 1,
                     }}
-                    onClick={() => {
-                      if (!legal) return
-                      room.sendAction({ type: 'play', cardId: c.id })
-                      onHaptic?.('light')
+                    onClick={play}
+                    onPointerUp={(e) => {
+                      // Telegram iOS WebView often drops click when touch-action is none.
+                      if (e.pointerType === 'mouse') return
+                      play()
                     }}
                   />
                 )
