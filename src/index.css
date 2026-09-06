@@ -2115,36 +2115,36 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-pair {
   position: relative;
-  /* Table cards stay smaller than the hand */
-  width: 86px;
-  height: 110px;
+  /* Table cards smaller than hand, but readable */
+  width: 98px;
+  height: 124px;
   overflow: visible;
 }
 
 .durak-pair .durak-card {
-  width: 48px !important;
-  height: 68px !important;
-  font-size: 12px;
+  width: 56px !important;
+  height: 78px !important;
+  font-size: 13px;
 }
 
 .durak-pair .durak-card .pcard-rank {
-  font-size: 12px;
-  height: 14px;
+  font-size: 13px;
+  height: 15px;
 }
 
 .durak-pair .durak-card .pcard-suit {
-  font-size: 10px;
-  height: 12px;
+  font-size: 11px;
+  height: 13px;
 }
 
 .durak-pair .durak-card .suit-lg {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .durak-pair .durak-defence {
   position: absolute;
-  top: 22px;
-  left: 18px;
+  top: 26px;
+  left: 22px;
   transform: rotate(16deg);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
   z-index: 2;
@@ -2165,68 +2165,68 @@ body.tg-webapp .app-main:not(.game-mode) {
 /* 1–2 pairs: slightly larger, still below hand size */
 .durak-table-cards[data-count='1'] .durak-pair,
 .durak-table-cards[data-count='2'] .durak-pair {
-  width: 96px;
-  height: 122px;
+  width: 108px;
+  height: 136px;
 }
 
 .durak-table-cards[data-count='1'] .durak-pair .durak-card,
 .durak-table-cards[data-count='2'] .durak-pair .durak-card {
-  width: 54px !important;
-  height: 76px !important;
+  width: 62px !important;
+  height: 88px !important;
 }
 
 .durak-table-cards[data-count='1'] .durak-pair .durak-defence,
 .durak-table-cards[data-count='2'] .durak-pair .durak-defence {
-  top: 26px;
-  left: 22px;
+  top: 30px;
+  left: 26px;
 }
 
 /* 3–4 pairs: compact */
 .durak-table-cards[data-count='3'],
 .durak-table-cards[data-count='4'] {
-  gap: 5px 7px;
+  gap: 6px 8px;
 }
 
 .durak-table-cards[data-count='3'] .durak-pair,
 .durak-table-cards[data-count='4'] .durak-pair {
-  width: 78px;
-  height: 100px;
+  width: 90px;
+  height: 114px;
 }
 
 .durak-table-cards[data-count='3'] .durak-pair .durak-card,
 .durak-table-cards[data-count='4'] .durak-pair .durak-card {
-  width: 44px !important;
-  height: 62px !important;
+  width: 52px !important;
+  height: 72px !important;
 }
 
 .durak-table-cards[data-count='3'] .durak-pair .durak-defence,
 .durak-table-cards[data-count='4'] .durak-pair .durak-defence {
-  top: 20px;
-  left: 16px;
+  top: 24px;
+  left: 20px;
   transform: rotate(14deg);
 }
 
 .durak-table-cards[data-count='3'] .durak-pair .durak-card .suit-lg,
 .durak-table-cards[data-count='4'] .durak-pair .durak-card .suit-lg {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 
 .durak-table-cards[data-count='5'],
 .durak-table-cards[data-count='6'] {
-  gap: 4px 6px;
+  gap: 5px 7px;
 }
 
 .durak-table-cards[data-count='5'] .durak-pair,
 .durak-table-cards[data-count='6'] .durak-pair {
-  width: 72px;
-  height: 94px;
+  width: 82px;
+  height: 106px;
 }
 
 .durak-table-cards[data-count='5'] .durak-pair .durak-card,
 .durak-table-cards[data-count='6'] .durak-pair .durak-card {
-  width: 40px !important;
-  height: 56px !important;
+  width: 46px !important;
+  height: 64px !important;
 }
 
 .durak-table-cards[data-count='5'] .durak-pair .durak-defence,
@@ -2242,21 +2242,21 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 
-/* Edge piles — mostly off-screen like classic mobile Durak */
+/* Edge piles — stock peeks from the left with trump under it */
 .durak-deck {
   position: absolute;
-  left: -38px;
+  left: -12px;
   top: 50%;
-  width: 64px;
-  height: 108px;
-  transform: translateY(-54%) rotate(-10deg);
+  width: 66px;
+  height: 110px;
+  transform: translateY(-54%) rotate(-8deg);
   z-index: 3;
   pointer-events: none;
   overflow: visible;
 }
 
 .durak-deck.is-empty {
-  left: 6px;
+  left: 8px;
   width: 36px;
   height: 36px;
   transform: translateY(-50%);
@@ -2275,13 +2275,13 @@ body.tg-webapp .app-main:not(.game-mode) {
   z-index: 2;
 }
 
-/* Trump peek under the stock — mostly clipped by the left edge */
+/* Trump peeks out to the right from under the stock */
 .durak-trump-card {
   position: absolute !important;
-  left: -8px;
+  left: 28px;
   top: 18px;
-  width: 60px !important;
-  height: 86px !important;
+  width: 66px !important;
+  height: 92px !important;
   transform: rotate(-90deg);
   transform-origin: center center;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
@@ -2291,7 +2291,7 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-deck-count {
   position: absolute;
-  left: 58%;
+  left: 62%;
   top: -16px;
   transform: translateX(-50%);
   font-size: 12px;
@@ -2321,7 +2321,7 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-bito {
   position: absolute;
-  right: -44px;
+  right: -36px;
   top: 50%;
   width: 64px;
   height: 92px;
@@ -2823,37 +2823,37 @@ body.tg-webapp .app-main:not(.game-mode) {
     height: 156px;
   }
   .durak-pair {
-    width: 80px;
-    height: 104px;
+    width: 90px;
+    height: 116px;
   }
   .durak-pair .durak-card {
-    width: 46px !important;
-    height: 64px !important;
+    width: 52px !important;
+    height: 72px !important;
   }
   .durak-pair .durak-defence {
-    top: 20px;
-    left: 16px;
+    top: 24px;
+    left: 18px;
     transform: rotate(14deg);
   }
   .durak-table-cards[data-count='1'] .durak-pair,
   .durak-table-cards[data-count='2'] .durak-pair {
-    width: 104px;
-    height: 132px;
+    width: 100px;
+    height: 128px;
   }
   .durak-table-cards[data-count='1'] .durak-pair .durak-card,
   .durak-table-cards[data-count='2'] .durak-pair .durak-card {
-    width: 60px !important;
-    height: 84px !important;
+    width: 58px !important;
+    height: 82px !important;
   }
   .durak-table-cards[data-count='1'] .durak-pair .durak-defence,
   .durak-table-cards[data-count='2'] .durak-pair .durak-defence {
-    top: 30px;
-    left: 26px;
+    top: 28px;
+    left: 24px;
   }
   .durak-table-cards[data-count='3'] .durak-pair,
   .durak-table-cards[data-count='4'] .durak-pair {
     width: 84px;
-    height: 110px;
+    height: 108px;
   }
   .durak-table-cards[data-count='3'] .durak-pair .durak-card,
   .durak-table-cards[data-count='4'] .durak-pair .durak-card {
@@ -2863,7 +2863,7 @@ body.tg-webapp .app-main:not(.game-mode) {
   .durak-bito {
     width: 56px;
     height: 82px;
-    right: -40px;
+    right: -32px;
   }
   .durak-bito-card {
     width: 46px;
@@ -2879,18 +2879,18 @@ body.tg-webapp .app-main:not(.game-mode) {
     z-index: 1;
   }
   .durak-deck {
-    left: -34px;
-    width: 58px;
-    height: 100px;
+    left: -14px;
+    width: 60px;
+    height: 102px;
   }
   .durak-trump-card {
-    left: -6px;
-    width: 56px !important;
-    height: 80px !important;
+    left: 22px;
+    width: 58px !important;
+    height: 82px !important;
     z-index: 0;
   }
   .durak-deck.is-empty {
-    left: 4px;
+    left: 6px;
   }
 }
 
