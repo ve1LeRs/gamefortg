@@ -3002,6 +3002,15 @@ body.tg-webapp .app-main:not(.game-mode) {
   font-size: 15px;
 }
 
+.durak-online-build {
+  margin: -4px 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(120, 220, 180, 0.85);
+}
+
 .durak-online-error {
   margin: 0;
   padding: 10px 12px;

@@ -369,6 +369,3 @@ export function makeRoomCode(): string {
   return out
 }
 
-export function peerIdForRoom(code: string): string {
-  return `gft-durak-${code.toUpperCase()}`
-}

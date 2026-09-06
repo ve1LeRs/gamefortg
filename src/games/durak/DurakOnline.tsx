@@ -160,6 +160,21 @@ export function DurakOnline({
     setError(null)
   }
 
+  const forceRefreshApp = () => {
+    const next = new URL(location.href)
+    next.searchParams.set('v', typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : String(Date.now()))
+    next.searchParams.set('_', String(Date.now()))
+    location.replace(next.toString())
+  }
+
+  const friendlyError = (msg: string | null | undefined) => {
+    if (!msg) return null
+    if (/negotiation|peerjs|gft-durak|webrtc/i.test(msg)) {
+      return 'Старая версия приложения в кэше Telegram. Нажмите «Обновить» ниже или полностью закройте Telegram и откройте снова.'
+    }
+    return msg
+  }
+
   const view = room?.view
   if (room?.status === 'playing' && view) {
     return (
@@ -320,12 +335,16 @@ export function DurakOnline({
               ? 'Соединение…'
               : null
 
+  const shownError = friendlyError(error) || friendlyError(room?.status !== 'playing' ? room?.error : null)
+
   return (
     <div className="durak-online-lobby">
       <h2>Дурак онлайн</h2>
       <p className="durak-online-lead">Два игрока по ссылке или коду. Хост раздаёт карты.</p>
-      {error && <p className="durak-online-error">{error}</p>}
-      {room?.error && room.status !== 'playing' && <p className="durak-online-error">{room.error}</p>}
+      <p className="durak-online-build" title={typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : ''}>
+        онлайн · mqtt
+      </p>
+      {shownError && <p className="durak-online-error">{shownError}</p>}
 
       {mode === 'menu' && !busy && (
         <div className="durak-online-actions">
@@ -362,6 +381,9 @@ export function DurakOnline({
               Войти
             </button>
           </div>
+          <button type="button" className="durak-btn" onClick={forceRefreshApp}>
+            Обновить приложение
+          </button>
           {onBackToBot && (
             <button type="button" className="durak-btn" onClick={onBackToBot}>
               Играть с ботом
