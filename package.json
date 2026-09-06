@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@twa-dev/sdk": "^8.0.2",
+    "peerjs": "^1.5.5",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

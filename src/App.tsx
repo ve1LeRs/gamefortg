@@ -5,6 +5,7 @@ import { ProfilePage } from './components/ProfilePage'
 import { GameShell } from './components/GameShell'
 import { TabNav, type Tab } from './components/TabNav'
 import { useTelegram } from './hooks/useTelegram'
+import { getWebApp } from './lib/telegram'
 import type { GameId } from './data/games'
 import { getGame } from './data/games'
 
@@ -23,15 +24,31 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('store')
   const [activeGame, setActiveGame] = useState<GameId | null>(null)
   const [plays, setPlays] = useState<Record<string, number>>(loadPlays)
+  const [durakRoomCode, setDurakRoomCode] = useState<string | null>(null)
 
   useEffect(() => {
     localStorage.setItem(PLAYS_KEY, JSON.stringify(plays))
   }, [plays])
 
+  useEffect(() => {
+    const fromTg = getWebApp()?.initDataUnsafe?.start_param
+    const params = new URLSearchParams(window.location.search)
+    const fromQuery = params.get('durakRoom') || params.get('tgWebAppStartParam')
+    const raw = fromTg || fromQuery
+    if (!raw) return
+    const m = String(raw).match(/(?:^|[_\-])durak[_-]?([A-Za-z0-9]{4,8})$/i) || String(raw).match(/^([A-Za-z0-9]{4,8})$/)
+    const code = m?.[1]?.toUpperCase()
+    if (!code) return
+    setDurakRoomCode(code)
+    setActiveGame('durak')
+    enterFullscreen()
+  }, [enterFullscreen])
+
   const play = useCallback(
     (id: string) => {
       if (!getGame(id)) return
       enterFullscreen()
+      if (id !== 'durak') setDurakRoomCode(null)
       setActiveGame(id as GameId)
       setPlays((p) => ({ ...p, [id]: (p[id] ?? 0) + 1 }))
       haptic('medium')
@@ -41,6 +58,7 @@ export default function App() {
 
   const back = () => {
     setActiveGame(null)
+    setDurakRoomCode(null)
     haptic('light')
   }
 
@@ -48,7 +66,12 @@ export default function App() {
     return (
       <div className="app-shell">
         <main className="app-main game-mode">
-          <GameShell gameId={activeGame} onBack={back} onHaptic={haptic} />
+          <GameShell
+            gameId={activeGame}
+            onBack={back}
+            onHaptic={haptic}
+            durakRoomCode={activeGame === 'durak' ? durakRoomCode : null}
+          />
         </main>
       </div>
     )
