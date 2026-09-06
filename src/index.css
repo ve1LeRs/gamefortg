@@ -3040,8 +3040,16 @@ body.tg-webapp .app-main:not(.game-mode) {
   color: #fff;
 }
 
+.durak-solo-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .durak-solo-switch {
-  margin: 4px 0 0;
+  margin: 0;
   padding: 8px 14px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 999px;
@@ -3057,9 +3065,18 @@ body.tg-webapp .app-main:not(.game-mode) {
   background: rgba(0, 0, 0, 0.4);
 }
 
+.durak-tap-hint {
+  margin: 6px 0 0;
+  color: #d7ffe8;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .durak-online .durak-bottom {
   width: 100%;
   flex-shrink: 0;
+  z-index: 50;
 }
 
 .durak-online-hand {
@@ -3067,7 +3084,8 @@ body.tg-webapp .app-main:not(.game-mode) {
   justify-content: center;
   align-items: flex-end;
   overflow: visible;
-  height: 150px;
+  height: 158px;
+  pointer-events: auto;
 }
 
 .durak-online-hand .durak-hand-row {
@@ -3077,8 +3095,9 @@ body.tg-webapp .app-main:not(.game-mode) {
   align-items: flex-end;
   width: 100%;
   max-width: 100%;
-  height: calc(var(--hand-card-h, 128px) + 12px);
+  height: calc(var(--hand-card-h, 128px) + 18px);
   overflow: visible;
+  pointer-events: auto;
 }
 
 .durak-online-hand .durak-hand-card {
@@ -3090,6 +3109,12 @@ body.tg-webapp .app-main:not(.game-mode) {
   padding: 0;
   transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg));
   transform-origin: 50% 120%;
+  /* Bot mode sets touch-action:none for drag; that breaks taps in Telegram WebView. */
+  touch-action: manipulation !important;
+  pointer-events: auto !important;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .durak-online-hand .durak-hand-card:first-child {
@@ -3097,12 +3122,14 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .durak-online-hand .durak-hand-card.is-waiting {
-  opacity: 0.78;
-  filter: saturate(0.92);
+  opacity: 0.72;
+  filter: saturate(0.85);
 }
 
 .durak-online-hand .durak-hand-card.playable {
-  filter: brightness(1.08);
-  transform: translate3d(0, -10px, 0) rotate(var(--rot, 0deg));
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4);
+  filter: brightness(1.1);
+  transform: translate3d(0, -14px, 0) rotate(var(--rot, 0deg));
+  box-shadow:
+    0 0 0 2px rgba(120, 255, 180, 0.85),
+    0 16px 28px rgba(0, 0, 0, 0.42);
 }
