@@ -3040,18 +3040,52 @@ body.tg-webapp .app-main:not(.game-mode) {
   color: #fff;
 }
 
-.durak-online .durak-hand-card {
+.durak-online .durak-bottom {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.durak-online-hand {
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  overflow: visible;
+  height: 150px;
+}
+
+.durak-online-hand .durak-hand-row {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  width: 100%;
+  max-width: 100%;
+  height: calc(var(--hand-card-h, 128px) + 12px);
+  overflow: visible;
+}
+
+.durak-online-hand .durak-hand-card {
+  width: var(--hand-card-w, 92px) !important;
+  height: var(--hand-card-h, 128px) !important;
+  flex: 0 0 auto;
+  margin-left: calc(var(--hand-step, 48px) - var(--hand-card-w, 92px));
   border: none;
-  background: transparent;
   padding: 0;
-  margin: 0;
+  transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg));
+  transform-origin: 50% 120%;
 }
 
-.durak-online .durak-hand-card:disabled {
-  opacity: 0.72;
+.durak-online-hand .durak-hand-card:first-child {
+  margin-left: 0;
 }
 
-.durak-online .durak-hand-card.playable {
-  filter: brightness(1.06);
-  transform: translateY(-6px);
+.durak-online-hand .durak-hand-card.is-waiting {
+  opacity: 0.78;
+  filter: saturate(0.92);
+}
+
+.durak-online-hand .durak-hand-card.playable {
+  filter: brightness(1.08);
+  transform: translate3d(0, -10px, 0) rotate(var(--rot, 0deg));
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4);
 }

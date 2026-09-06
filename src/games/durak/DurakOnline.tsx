@@ -194,7 +194,13 @@ export function DurakOnline({
               ))}
             </div>
           </div>
-          <p className="durak-status">{view.status}</p>
+          <p className="durak-status">
+            {view.yourTurn
+              ? view.status
+              : view.table.length === 0
+                ? `Ход: ${room.opponent?.name ?? 'соперник'} — ждите первую карту`
+                : view.status}
+          </p>
         </header>
 
         <div className="durak-field">
@@ -283,27 +289,45 @@ export function DurakOnline({
           )}
         </div>
 
-        <footer className="durak-dock">
-          <div className="durak-hand" data-count={view.you.length}>
-            {view.you.map((c, i) => {
-              const legal = view.legalCardIds.includes(c.id)
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={`durak-hand-card${legal ? ' playable' : ''}`}
-                  style={{ ['--i' as string]: i, zIndex: i + 1 }}
-                  disabled={!legal}
-                  onClick={() => {
-                    if (!legal) return
-                    room.sendAction({ type: 'play', cardId: c.id })
-                    onHaptic?.('light')
-                  }}
-                >
-                  <PlayingCard card={c} rankStyle="ru" className="durak-card" enter="none" />
-                </button>
-              )
-            })}
+        <footer className="durak-bottom">
+          <div
+            className="durak-hand durak-online-hand"
+            data-count={view.you.length}
+            style={{
+              ['--hand-card-w' as string]: '92px',
+              ['--hand-card-h' as string]: '128px',
+              ['--hand-step' as string]: `${Math.max(36, Math.min(62, Math.floor(320 / Math.max(view.you.length, 1))))}px`,
+            }}
+          >
+            <div className="durak-hand-row">
+              {view.you.map((c, i) => {
+                const legal = view.legalCardIds.includes(c.id)
+                const n = view.you.length
+                const mid = (n - 1) / 2
+                const offset = i - mid
+                return (
+                  <PlayingCard
+                    key={c.id}
+                    card={c}
+                    index={i}
+                    rankStyle="ru"
+                    enter="none"
+                    playable={legal}
+                    className={`durak-card durak-hand-card${legal ? ' playable' : ' is-waiting'}`}
+                    style={{
+                      ['--fan' as string]: offset,
+                      ['--rot' as string]: `${offset * 2.2}deg`,
+                      zIndex: legal ? n + i : i + 1,
+                    }}
+                    onClick={() => {
+                      if (!legal) return
+                      room.sendAction({ type: 'play', cardId: c.id })
+                      onHaptic?.('light')
+                    }}
+                  />
+                )
+              })}
+            </div>
           </div>
           <div className={`durak-seat player${view.yourTurn ? ' is-active' : ''}`}>
             <div className="durak-avatar you-avatar" aria-hidden>
