@@ -2948,29 +2948,58 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-online-join {
   display: flex;
-  gap: 8px;
-  width: min(280px, 100%);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: min(320px, 100%);
+}
+
+.durak-online-join-label {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .durak-online-join input {
-  flex: 1;
-  min-width: 0;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.28);
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 56px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: rgba(0, 0, 0, 0.38);
   color: #fff;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-align: center;
   text-transform: uppercase;
+}
+
+.durak-online-join input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.48);
 }
 
 .durak-online-join input::placeholder {
   color: rgba(255, 255, 255, 0.35);
-  letter-spacing: 0;
+  letter-spacing: 0.02em;
   text-transform: none;
   font-weight: 500;
+  font-size: 16px;
+}
+
+.durak-online-join .durak-btn {
+  width: 100%;
+  min-height: 48px;
+}
+
+.durak-online-wait-status {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 15px;
 }
 
 .durak-online-error {
