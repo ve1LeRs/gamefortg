@@ -245,9 +245,10 @@ export function DurakGame({
       cards.style.setProperty('--table-scale', '1')
       cards.style.margin = '0'
       if (table.length === 0) return
-      const pad = 8
-      const availW = Math.max(40, field.clientWidth - pad)
-      const availH = Math.max(40, field.clientHeight - pad)
+      const zone = cards.parentElement
+      const box = zone ?? field
+      const availW = Math.max(40, box.clientWidth - 4)
+      const availH = Math.max(40, box.clientHeight - 4)
       const needW = Math.max(1, cards.scrollWidth)
       const needH = Math.max(1, cards.scrollHeight)
       const scale = Math.min(1, availW / needW, availH / needH)
@@ -798,6 +799,28 @@ export function DurakGame({
 
       <div ref={fieldRef} className="durak-field">
         <div
+          className={`durak-bito${discard.length ? ' has-cards' : ''}${bitoFlying ? ' is-catching' : ''}`}
+          aria-label={discard.length ? `Бита: ${discard.length}` : 'Бита пуста'}
+        >
+          {discard.length === 0 ? (
+            <span className="durak-bito-empty">Бита</span>
+          ) : (
+            <>
+              {discard.slice(-10).map((c, i) => (
+                <span
+                  key={`${c.id}-bito`}
+                  className="durak-bito-card"
+                  style={bitoMess(c.id, i)}
+                  aria-hidden
+                />
+              ))}
+              <span className="durak-bito-count">{discard.length}</span>
+            </>
+          )}
+        </div>
+
+        <div className="durak-table-zone">
+        <div
           ref={tableCardsRef}
           className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}${bitoFlying ? ' is-to-bito' : ''}`}
           data-count={table.length}
@@ -822,26 +845,6 @@ export function DurakGame({
             </div>
           ))}
         </div>
-
-        <div
-          className={`durak-bito${discard.length ? ' has-cards' : ''}${bitoFlying ? ' is-catching' : ''}`}
-          aria-label={discard.length ? `Бита: ${discard.length}` : 'Бита пуста'}
-        >
-          {discard.length === 0 ? (
-            <span className="durak-bito-empty">Бита</span>
-          ) : (
-            <>
-              {discard.slice(-10).map((c, i) => (
-                <span
-                  key={`${c.id}-bito`}
-                  className="durak-bito-card"
-                  style={bitoMess(c.id, i)}
-                  aria-hidden
-                />
-              ))}
-              <span className="durak-bito-count">{discard.length}</span>
-            </>
-          )}
         </div>
 
         <div className="durak-deck" aria-label={`Колода: ${deck.length}`}>
