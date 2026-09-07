@@ -77,5 +77,5 @@ for (const [method, body] of steps) {
   console.log(`✓ ${method}`)
 }
 
-console.log('\nDone. Open the bot and tap the menu button «Play».')
+console.log('\nDone. Open the bot and tap the menu button «Играть».')
 console.log('In BotFather also set Main Mini App if needed: /mybots → Bot Settings → Configure Mini App')
