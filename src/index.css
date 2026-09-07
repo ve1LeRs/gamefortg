@@ -3903,15 +3903,15 @@ body.poker-landscape-active .app-main.game-mode {
 
 .durak-bito {
   position: absolute;
-  /* Mostly off-screen — only a thin edge peeks into the field */
-  right: -58px;
+  /* Thin edge peeks from the right — same idea as the stock on the left */
+  right: -40px;
   top: 50%;
   width: 56px;
   height: 80px;
   transform: translateY(-48%) rotate(18deg);
   z-index: 2;
   pointer-events: none;
-  opacity: 0.72;
+  opacity: 0.88;
 }
 
 .durak-bito.is-empty {
@@ -3948,9 +3948,9 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 @keyframes durak-bito-catch {
-  0% { transform: translateY(-48%) rotate(18deg) scale(1); opacity: 0.72; }
-  50% { transform: translateY(-48%) rotate(14deg) scale(1.03); opacity: 0.88; }
-  100% { transform: translateY(-48%) rotate(18deg) scale(1); opacity: 0.72; }
+  0% { transform: translateY(-48%) rotate(18deg) scale(1); opacity: 0.88; }
+  50% { transform: translateY(-48%) rotate(14deg) scale(1.03); opacity: 1; }
+  100% { transform: translateY(-48%) rotate(18deg) scale(1); opacity: 0.88; }
 }
 
 /* Fly each pair to its measured bito target (--bito-dx / --bito-dy) */
@@ -4523,7 +4523,7 @@ body.poker-landscape-active .app-main.game-mode {
   .durak-bito {
     width: 50px;
     height: 72px;
-    right: -52px;
+    right: -36px;
   }
   .durak-bito-card {
     width: 40px;
