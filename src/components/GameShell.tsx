@@ -5,29 +5,39 @@ import { PokerGame } from '../games/PokerGame'
 import { DurakGame } from '../games/DurakGame'
 import { DurakOnline } from '../games/durak/DurakOnline'
 import { ChessGame } from '../games/ChessGame'
+import { ChessOnline } from '../games/chess/ChessOnline'
 import { CheckersGame } from '../games/CheckersGame'
+import { CheckersOnline } from '../games/checkers/CheckersOnline'
 import { SolitaireGame } from '../games/SolitaireGame'
 
-type DurakMode = 'pick' | 'bot' | 'online'
+type PlayMode = 'pick' | 'bot' | 'online'
 
 export function GameShell({
   gameId,
   onBack,
   onHaptic,
   durakRoomCode,
+  chessRoomCode,
+  checkersRoomCode,
 }: {
   gameId: GameId
   onBack: () => void
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
   durakRoomCode?: string | null
+  chessRoomCode?: string | null
+  checkersRoomCode?: string | null
 }) {
   const meta = getGame(gameId)
   const immersive = gameId === 'durak' || gameId === 'poker'
   const isBoardGame = gameId === 'chess' || gameId === 'checkers' || gameId === 'solitaire'
-  const [durakMode, setDurakMode] = useState<DurakMode>(durakRoomCode ? 'online' : 'pick')
+  const [durakMode, setDurakMode] = useState<PlayMode>(durakRoomCode ? 'online' : 'pick')
+  const [chessMode, setChessMode] = useState<PlayMode>(chessRoomCode ? 'online' : 'pick')
+  const [checkersMode, setCheckersMode] = useState<PlayMode>(checkersRoomCode ? 'online' : 'pick')
   const inTelegram = typeof document !== 'undefined' && document.body.classList.contains('tg-webapp')
   const onBackRef = useRef(onBack)
   const durakModeRef = useRef(durakMode)
+  const chessModeRef = useRef(chessMode)
+  const checkersModeRef = useRef(checkersMode)
   const gameIdRef = useRef(gameId)
 
   useEffect(() => {
@@ -37,15 +47,25 @@ export function GameShell({
     durakModeRef.current = durakMode
   }, [durakMode])
   useEffect(() => {
+    chessModeRef.current = chessMode
+  }, [chessMode])
+  useEffect(() => {
+    checkersModeRef.current = checkersMode
+  }, [checkersMode])
+  useEffect(() => {
     gameIdRef.current = gameId
   }, [gameId])
 
   useEffect(() => {
     if (durakRoomCode) setDurakMode('online')
   }, [durakRoomCode])
+  useEffect(() => {
+    if (chessRoomCode) setChessMode('online')
+  }, [chessRoomCode])
+  useEffect(() => {
+    if (checkersRoomCode) setCheckersMode('online')
+  }, [checkersRoomCode])
 
-  // Poker prefers landscape, but must NOT lock orientation — locking freezes
-  // the current (often portrait) orientation and the table never flips.
   useEffect(() => {
     if (gameId !== 'poker') return
     const wa = getWebApp()
@@ -70,7 +90,6 @@ export function GameShell({
     }
   }, [gameId])
 
-  // Native Telegram BackButton — «Назад» only while a game is open.
   useEffect(() => {
     const wa = getWebApp()
     const btn = wa?.BackButton
@@ -78,8 +97,17 @@ export function GameShell({
 
     let alive = true
     const handle = () => {
-      if (gameIdRef.current === 'durak' && durakModeRef.current !== 'pick') {
+      const id = gameIdRef.current
+      if (id === 'durak' && durakModeRef.current !== 'pick') {
         setDurakMode('pick')
+        return
+      }
+      if (id === 'chess' && chessModeRef.current !== 'pick') {
+        setChessMode('pick')
+        return
+      }
+      if (id === 'checkers' && checkersModeRef.current !== 'pick') {
+        setCheckersMode('pick')
         return
       }
       onBackRef.current()
@@ -96,7 +124,6 @@ export function GameShell({
 
     btn.onClick(handle)
     showBack()
-    // Fullscreen / viewport changes can restore «Закрыть» — re-assert Back in-game only.
     wa.onEvent('fullscreenChanged', showBack)
     wa.onEvent('viewportChanged', showBack)
     const timers = [0, 120, 400, 1000].map((ms) => window.setTimeout(showBack, ms))
@@ -115,14 +142,44 @@ export function GameShell({
     }
   }, [])
 
-  // Re-show when entering a game / changing Durak mode without tearing down the listener.
   useEffect(() => {
     try {
       getWebApp()?.BackButton?.show()
     } catch {
       /* noop */
     }
-  }, [gameId, durakMode])
+  }, [gameId, durakMode, chessMode, checkersMode])
+
+  const modePick = (
+    title: string,
+    onBot: () => void,
+    onOnline: () => void,
+  ) => (
+    <div className="durak-mode-pick">
+      <h2>{title}</h2>
+      <p>Выберите режим</p>
+      <button
+        type="button"
+        className="durak-btn durak-btn-primary"
+        onClick={() => {
+          onBot()
+          onHaptic?.('medium')
+        }}
+      >
+        Против бота
+      </button>
+      <button
+        type="button"
+        className="durak-btn durak-btn-bito"
+        onClick={() => {
+          onOnline()
+          onHaptic?.('medium')
+        }}
+      >
+        С другом онлайн
+      </button>
+    </div>
+  )
 
   return (
     <div
@@ -130,7 +187,6 @@ export function GameShell({
     >
       {!immersive && (
         <header className={`game-topbar${inTelegram ? ' game-topbar--tg-back' : ''}`}>
-          {/* Never show an in-app chevron inside Telegram — only native BackButton */}
           {!inTelegram && (
             <button type="button" className="back-btn" onClick={onBack} aria-label="Назад">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -145,32 +201,8 @@ export function GameShell({
         className={`game-body ${immersive ? 'game-body--felt' : ''}${gameId === 'poker' ? ' game-body--poker' : ''}${isBoardGame ? ' game-body--board' : ''}`}
       >
         {gameId === 'poker' && <PokerGame onHaptic={onHaptic} />}
-        {gameId === 'durak' && durakMode === 'pick' && (
-          <div className="durak-mode-pick">
-            <h2>Дурак</h2>
-            <p>Выберите режим</p>
-            <button
-              type="button"
-              className="durak-btn durak-btn-primary"
-              onClick={() => {
-                setDurakMode('bot')
-                onHaptic?.('medium')
-              }}
-            >
-              Против бота
-            </button>
-            <button
-              type="button"
-              className="durak-btn durak-btn-bito"
-              onClick={() => {
-                setDurakMode('online')
-                onHaptic?.('medium')
-              }}
-            >
-              С другом онлайн
-            </button>
-          </div>
-        )}
+
+        {gameId === 'durak' && durakMode === 'pick' && modePick('Дурак', () => setDurakMode('bot'), () => setDurakMode('online'))}
         {gameId === 'durak' && durakMode === 'bot' && <DurakGame onHaptic={onHaptic} />}
         {gameId === 'durak' && durakMode === 'online' && (
           <DurakOnline
@@ -179,8 +211,29 @@ export function GameShell({
             onBackToBot={() => setDurakMode('bot')}
           />
         )}
-        {gameId === 'chess' && <ChessGame onHaptic={onHaptic} />}
-        {gameId === 'checkers' && <CheckersGame onHaptic={onHaptic} />}
+
+        {gameId === 'chess' && chessMode === 'pick' && modePick('Шахматы', () => setChessMode('bot'), () => setChessMode('online'))}
+        {gameId === 'chess' && chessMode === 'bot' && <ChessGame onHaptic={onHaptic} />}
+        {gameId === 'chess' && chessMode === 'online' && (
+          <ChessOnline
+            initialCode={chessRoomCode}
+            onHaptic={onHaptic}
+            onBackToBot={() => setChessMode('bot')}
+          />
+        )}
+
+        {gameId === 'checkers' &&
+          checkersMode === 'pick' &&
+          modePick('Шашки', () => setCheckersMode('bot'), () => setCheckersMode('online'))}
+        {gameId === 'checkers' && checkersMode === 'bot' && <CheckersGame onHaptic={onHaptic} />}
+        {gameId === 'checkers' && checkersMode === 'online' && (
+          <CheckersOnline
+            initialCode={checkersRoomCode}
+            onHaptic={onHaptic}
+            onBackToBot={() => setCheckersMode('bot')}
+          />
+        )}
+
         {gameId === 'solitaire' && <SolitaireGame onHaptic={onHaptic} />}
       </div>
     </div>
