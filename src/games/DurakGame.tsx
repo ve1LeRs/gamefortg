@@ -205,11 +205,13 @@ export function DurakGame({
   const fieldRef = useRef<HTMLDivElement>(null)
   const handRef = useRef<HTMLDivElement>(null)
   const tableCardsRef = useRef<HTMLDivElement>(null)
+  const bitoPileRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
   const skipClickRef = useRef(false)
   const dealTimerRef = useRef<number | null>(null)
   const busyRef = useRef(false)
   const openingAttackerRef = useRef(attacker)
+  const [bitoAim, setBitoAim] = useState<Record<string, { dx: number; dy: number }> | null>(null)
 
   useEffect(() => {
     busyRef.current = busy
@@ -446,6 +448,7 @@ export function DurakGame({
     setTableFlying(false)
     setDiscard([])
     setBitoFlying(false)
+    setBitoAim(null)
     setKickoffBot(false)
     setEnterMap(Object.fromEntries(next.player.map((c) => [c.id, 'deal' as const])))
     markDealCards(next.player)
@@ -780,6 +783,27 @@ export function DurakGame({
     onHaptic?.('medium')
     setStatus('Бито — карты уходят в сброс')
     const cleared = table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack]))
+
+    // Aim each pair at the visible edge of the bito pile (not a fixed pixel drift)
+    const aim: Record<string, { dx: number; dy: number }> = {}
+    const pile = bitoPileRef.current
+    const board = tableCardsRef.current
+    if (pile && board) {
+      const br = pile.getBoundingClientRect()
+      // Pile hangs off the right — target the on-screen rim
+      const tx = br.left + Math.min(18, Math.max(8, br.width * 0.28))
+      const ty = br.top + br.height * 0.48
+      board.querySelectorAll<HTMLElement>('.durak-pair').forEach((el) => {
+        const id = el.dataset.pairId
+        if (!id) return
+        const r = el.getBoundingClientRect()
+        aim[id] = {
+          dx: Math.round(tx - (r.left + r.width / 2)),
+          dy: Math.round(ty - (r.top + r.height / 2)),
+        }
+      })
+    }
+    setBitoAim(Object.keys(aim).length ? aim : null)
     setBitoFlying(true)
     if (!prefersReducedMotion()) await sleep(BITO_MS)
     // Keep is-to-bito on until pairs unmount — dropping the class first snaps them back
@@ -787,6 +811,7 @@ export function DurakGame({
     setTable([])
     setEnterMap({})
     setBitoFlying(false)
+    setBitoAim(null)
     const first = attacker
     const nextAttacker = attacker === 'player' ? 'bot' : 'player'
     const drawn = drawUp(player, bot, deck, first)
@@ -927,8 +952,22 @@ export function DurakGame({
             data-count={table.length}
           >
             {table.length === 0 && <span className="durak-empty">Ход картой</span>}
-            {table.map((p) => (
-              <div className="durak-pair" key={p.attack.id}>
+            {table.map((p) => {
+              const aim = bitoAim?.[p.attack.id]
+              return (
+              <div
+                className="durak-pair"
+                key={p.attack.id}
+                data-pair-id={p.attack.id}
+                style={
+                  aim
+                    ? {
+                        ['--bito-dx' as string]: `${aim.dx}px`,
+                        ['--bito-dy' as string]: `${aim.dy}px`,
+                      }
+                    : undefined
+                }
+              >
                 <PlayingCard
                   card={p.attack}
                   rankStyle="ru"
@@ -944,12 +983,14 @@ export function DurakGame({
                   />
                 )}
               </div>
-            ))}
+              )
+            })}
           </div>
         </div>
 
         {/* Bita hangs off the right edge — barely visible, like classic mobile Durak */}
         <div
+          ref={bitoPileRef}
           className={`durak-bito${discard.length ? ' has-cards' : ' is-empty'}${bitoFlying ? ' is-catching' : ''}`}
           aria-label={discard.length ? `Бита: ${discard.length}` : 'Бита пуста'}
         >
