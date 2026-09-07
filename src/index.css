@@ -83,67 +83,9 @@ img {
     linear-gradient(180deg, #0a141f 0%, var(--bg) 40%, #050b11 100%);
 }
 
-body.tg-fullscreen .library-page,
-body.tg-webapp .library-page {
-  /* app-main already applies --safe-top */
-  padding: 12px 16px 24px;
-}
-
 body.tg-fullscreen .profile-page,
 body.tg-webapp .profile-page {
   padding-top: 12px;
-}
-
-.page-title {
-  margin: 0 0 4px;
-  font-family: var(--font-display);
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  animation: rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.page-sub {
-  margin: 0 0 18px;
-  color: var(--muted);
-  font-size: 13px;
-  animation: rise 0.75s 0.06s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.library-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.lib-card {
-  text-align: left;
-  animation: rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.lib-card .game-cover {
-  width: 100%;
-}
-
-.lib-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 2px 0;
-}
-
-.lib-meta p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.lib-meta span {
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .game-row.is-static {
@@ -765,46 +707,6 @@ body.tg-webapp .profile-page {
   color: var(--accent);
   font-size: 13px;
   font-weight: 700;
-}
-
-/* Library */
-.library-page {
-  padding: calc(20px + var(--safe-top)) 20px 24px;
-}
-
-.page-title {
-  margin: 0 0 6px;
-  font-family: var(--font-display);
-  font-size: 32px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  animation: rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.page-sub {
-  margin: 0 0 24px;
-  color: var(--muted);
-  font-size: 14px;
-  animation: rise 0.8s 0.08s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.library-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.lib-card {
-  text-align: left;
-  animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.lib-card .game-cover {
-  aspect-ratio: 1;
-}
-
-.lib-card .game-meta h3 {
-  font-size: 16px;
 }
 
 /* Profile */
@@ -2539,7 +2441,6 @@ body.tg-webapp .game-topbar .back-btn {
     padding-right: 24px;
   }
   .section,
-  .library-page,
   .profile-page,
   .brand-bar {
     max-width: 560px;

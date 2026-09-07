@@ -1,17 +1,10 @@
-type Tab = 'store' | 'library' | 'profile'
+type Tab = 'store' | 'profile'
 
 const ICONS: Record<Tab, React.ReactNode> = {
   store: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4 9h16l-1.2 10.2a2 2 0 0 1-2 1.8H7.2a2 2 0 0 1-2-1.8L4 9Z" />
       <path d="M8 9V7a4 4 0 0 1 8 0v2" />
-    </svg>
-  ),
-  library: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="4" width="6" height="16" rx="1" />
-      <rect x="11" y="4" width="4" height="16" rx="1" />
-      <rect x="17" y="4" width="4" height="16" rx="1" />
     </svg>
   ),
   profile: (
@@ -23,8 +16,7 @@ const ICONS: Record<Tab, React.ReactNode> = {
 }
 
 const LABELS: Record<Tab, string> = {
-  store: 'Магазин',
-  library: 'Библиотека',
+  store: 'Игры',
   profile: 'Профиль',
 }
 
@@ -37,7 +29,7 @@ export function TabNav({
 }) {
   return (
     <nav className="tab-nav" aria-label="Навигация">
-      {(['store', 'library', 'profile'] as Tab[]).map((tab) => (
+      {(['store', 'profile'] as Tab[]).map((tab) => (
         <button
           key={tab}
           type="button"

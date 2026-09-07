@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
 import { StorePage } from './components/StorePage'
-import { LibraryPage } from './components/LibraryPage'
 import { ProfilePage } from './components/ProfilePage'
 import { GameShell } from './components/GameShell'
 import { TabNav, type Tab } from './components/TabNav'
@@ -139,7 +138,6 @@ export default function App() {
     <div className="app-shell">
       <main className="app-main">
         {tab === 'store' && <StorePage user={user} onPlay={play} />}
-        {tab === 'library' && <LibraryPage onPlay={play} />}
         {tab === 'profile' && <ProfilePage user={user} plays={plays} />}
       </main>
       <TabNav
