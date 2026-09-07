@@ -1965,12 +1965,12 @@ body.tg-webapp .game-topbar .back-btn {
 
 .sol-col .pcard.sol-buried {
   padding-bottom: 0;
-  /* Hit target = visible strip only (matches face-up step of 22px). */
-  clip-path: inset(0 0 calc(100% - 22px) 0);
+  /* Hit target = visible strip; round keeps card corners (no flat-cut peeks). */
+  clip-path: inset(0 0 calc(100% - 22px) 0 round 8px);
 }
 
 .sol-col .pcard.face-down:not(:last-child) {
-  clip-path: inset(0 0 calc(100% - 12px) 0);
+  clip-path: inset(0 0 calc(100% - 14px) 0 round 8px);
 }
 
 .sol-col .pcard.sol-buried .pcard-corner {
