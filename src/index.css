@@ -2593,10 +2593,11 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 
-/* Edge piles — stock peeks from the left with trump under it */
+/* Edge piles — stock barely peeks from the left with trump under it */
 .durak-deck {
   position: absolute;
-  left: -12px;
+  /* ~10–12px of the stock stays on-screen */
+  left: -54px;
   top: 50%;
   width: 66px;
   height: 110px;
@@ -2629,7 +2630,7 @@ body.tg-webapp .game-topbar .back-btn {
 /* Trump peeks out to the right from under the stock */
 .durak-trump-card {
   position: absolute !important;
-  left: 28px;
+  left: 36px;
   top: 18px;
   width: 66px !important;
   height: 92px !important;
@@ -2642,9 +2643,11 @@ body.tg-webapp .game-topbar .back-btn {
 
 .durak-deck-count {
   position: absolute;
-  left: 62%;
+  /* Keep the count on the visible right edge of the tucked stock */
+  left: auto;
+  right: -2px;
   top: -16px;
-  transform: translateX(-50%);
+  transform: none;
   font-size: 12px;
   font-weight: 800;
   opacity: 0.9;
@@ -3289,12 +3292,12 @@ body.tg-webapp .game-topbar .back-btn {
     z-index: 1;
   }
   .durak-deck {
-    left: -14px;
+    left: -50px;
     width: 60px;
     height: 102px;
   }
   .durak-trump-card {
-    left: 22px;
+    left: 32px;
     width: 58px !important;
     height: 82px !important;
     z-index: 0;
