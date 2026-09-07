@@ -1,10 +1,17 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 /** 0 empty, 1 white man, 2 black man, 3 white king, 4 black king */
 type Cell = 0 | 1 | 2 | 3 | 4
 type Sq = { r: number; c: number }
 /** One jump step; multi-jumps are played as a chain of these. */
 type Move = { from: Sq; to: Sq; mid: Sq }
+
+type Flight = {
+  id: number
+  piece: Cell
+  from: Sq
+  to: Sq
+}
 
 function startBoard(): Cell[][] {
   const b = Array.from({ length: 8 }, () => Array(8).fill(0) as Cell[])
@@ -32,7 +39,8 @@ const DIAG = [
   [1, 1],
 ] as const
 
-/** Quiet steps only (no captures). Men forward; kings fly any distance. */
+const FLIGHT_MS = 300
+
 function stepMoves(board: Cell[][], from: Sq): { from: Sq; to: Sq }[] {
   const piece = board[from.r][from.c]
   if (!piece) return []
@@ -62,10 +70,6 @@ function stepMoves(board: Cell[][], from: Sq): { from: Sq; to: Sq }[] {
   return out
 }
 
-/**
- * Single capture jumps from a square.
- * Russian draughts: men capture in all 4 diagonals; kings fly and may land any empty square beyond.
- */
 function captureMoves(board: Cell[][], from: Sq): Move[] {
   const piece = board[from.r][from.c]
   if (!piece) return []
@@ -93,7 +97,6 @@ function captureMoves(board: Cell[][], from: Sq): Move[] {
     return out
   }
 
-  // Men: short jump, all 4 directions (can capture backward)
   for (const [dr, dc] of DIAG) {
     const midR = from.r + dr
     const midC = from.c + dc
@@ -112,7 +115,6 @@ function applyMove(board: Cell[][], move: { from: Sq; to: Sq; mid?: Sq }): Cell[
   let piece = next[move.from.r][move.from.c]
   next[move.from.r][move.from.c] = 0
   if (move.mid) next[move.mid.r][move.mid.c] = 0
-  // Promote on landing (also mid-combo → continues as king)
   if (piece === 1 && move.to.r === 0) piece = 3
   if (piece === 2 && move.to.r === 7) piece = 4
   next[move.to.r][move.to.c] = piece
@@ -136,7 +138,6 @@ function allSideMoves(board: Cell[][], white: boolean): ({ from: Sq; to: Sq; mid
   return steps
 }
 
-/** Prefer longer capturing sequences for the bot. */
 function pickBotSequence(board: Cell[][]): { from: Sq; to: Sq; mid?: Sq }[] {
   const roots = allSideMoves(board, false).filter((m): m is Move => !!m.mid)
   if (!roots.length) {
@@ -174,6 +175,28 @@ function pickBotSequence(board: Cell[][]): { from: Sq; to: Sq; mid?: Sq }[] {
   return choice.moves
 }
 
+function CheckerDisc({ cell, flying }: { cell: Cell; flying?: boolean }) {
+  return (
+    <span
+      className={`checker ${isW(cell) ? 'checker-w' : 'checker-b'}${isK(cell) ? ' is-king' : ''}${flying ? ' is-flying' : ''}`}
+      aria-hidden={flying || undefined}
+      aria-label={
+        flying
+          ? undefined
+          : isK(cell)
+            ? isW(cell)
+              ? 'белая дамка'
+              : 'чёрная дамка'
+            : isW(cell)
+              ? 'белая шашка'
+              : 'чёрная шашка'
+      }
+    >
+      {isK(cell) && <span className="checker-crown">♛</span>}
+    </span>
+  )
+}
+
 export function CheckersGame({
   onHaptic,
 }: {
@@ -182,17 +205,27 @@ export function CheckersGame({
   const [board, setBoard] = useState(() => startBoard())
   const [turn, setTurn] = useState<'w' | 'b'>('w')
   const [selected, setSelected] = useState<Sq | null>(null)
-  /** When set, this piece must continue capturing. */
   const [chainFrom, setChainFrom] = useState<Sq | null>(null)
   const [status, setStatus] = useState('Вы — белые. Ваш ход')
   const [over, setOver] = useState(false)
+  const [flight, setFlight] = useState<Flight | null>(null)
+  const [fadeCapture, setFadeCapture] = useState<Sq | null>(null)
+  const flightId = useRef(0)
+  const timers = useRef<number[]>([])
+
+  const clearTimers = () => {
+    for (const t of timers.current) window.clearTimeout(t)
+    timers.current = []
+  }
+
+  useEffect(() => () => clearTimers(), [])
 
   const legal = useMemo(() => {
-    if (over) return [] as { from: Sq; to: Sq; mid?: Sq }[]
+    if (over || flight) return [] as { from: Sq; to: Sq; mid?: Sq }[]
     if (turn !== 'w') return []
     if (chainFrom) return captureMoves(board, chainFrom)
     return allSideMoves(board, true)
-  }, [board, turn, chainFrom, over])
+  }, [board, turn, chainFrom, over, flight])
 
   const hints = useMemo(
     () => (selected ? legal.filter((m) => same(m.from, selected)) : []),
@@ -202,12 +235,15 @@ export function CheckersGame({
   const mustCapture = legal.some((m) => m.mid)
 
   const reset = useCallback(() => {
+    clearTimers()
     setBoard(startBoard())
     setTurn('w')
     setSelected(null)
     setChainFrom(null)
     setStatus('Вы — белые. Ваш ход')
     setOver(false)
+    setFlight(null)
+    setFadeCapture(null)
     onHaptic?.('medium')
   }, [onHaptic])
 
@@ -224,6 +260,56 @@ export function CheckersGame({
     setStatus(you.some((m) => m.mid) ? 'Ваш ход · нужно бить' : 'Вы — белые. Ваш ход')
   }
 
+  const playAnimated = (
+    startBoardState: Cell[][],
+    moves: { from: Sq; to: Sq; mid?: Sq }[],
+    onDone: (finalBoard: Cell[][]) => void,
+  ) => {
+    clearTimers()
+    let i = 0
+    let cur = startBoardState
+
+    const runStep = () => {
+      if (i >= moves.length) {
+        setFlight(null)
+        setFadeCapture(null)
+        setBoard(cur)
+        onDone(cur)
+        return
+      }
+      const move = moves[i]!
+      const piece = cur[move.from.r][move.from.c]
+      if (!piece) {
+        i += 1
+        runStep()
+        return
+      }
+
+      const lifted = clone(cur)
+      lifted[move.from.r][move.from.c] = 0
+      setBoard(lifted)
+      setFadeCapture(move.mid ?? null)
+
+      const id = ++flightId.current
+      setFlight({ id, piece, from: move.from, to: move.to })
+      onHaptic?.('light')
+
+      const t = window.setTimeout(() => {
+        cur = applyMove(cur, move)
+        setBoard(clone(cur))
+        setFlight(null)
+        setFadeCapture(null)
+        i += 1
+        const gap = window.setTimeout(runStep, moves.length > 1 ? 80 : 30)
+        timers.current.push(gap)
+      }, FLIGHT_MS)
+      timers.current.push(t)
+    }
+
+    const start = window.setTimeout(runStep, 30)
+    timers.current.push(start)
+  }
+
   const botPlay = (next: Cell[][]) => {
     const seq = pickBotSequence(next)
     if (!seq.length) {
@@ -236,52 +322,33 @@ export function CheckersGame({
     setStatus('Ход бота…')
     setChainFrom(null)
     setSelected(null)
-
-    // Animate multi-jump step by step
-    let i = 0
-    let cur = next
-    const step = () => {
-      if (i >= seq.length) {
-        setBoard(cur)
-        finishBotTurn(cur)
-        return
-      }
-      cur = applyMove(cur, seq[i])
-      i += 1
-      setBoard(clone(cur))
-      onHaptic?.('light')
-      window.setTimeout(step, seq.length > 1 ? 280 : 320)
-    }
-    window.setTimeout(step, 280)
+    playAnimated(next, seq, finishBotTurn)
   }
 
   const onCell = (r: number, c: number) => {
-    if (over || turn !== 'w') return
+    if (over || turn !== 'w' || flight) return
 
     if (selected) {
       const move = hints.find((m) => m.to.r === r && m.to.c === c)
       if (move) {
-        const next = applyMove(board, move)
-        setBoard(next)
-        onHaptic?.('light')
-
-        if (move.mid) {
-          const more = captureMoves(next, move.to)
-          if (more.length) {
-            setChainFrom(move.to)
-            setSelected(move.to)
-            setStatus('Продолжайте бить этой шашкой')
-            return
-          }
-        }
-
         setSelected(null)
-        setChainFrom(null)
-        botPlay(next)
+        playAnimated(board, [move], (after) => {
+          if (move.mid) {
+            const more = captureMoves(after, move.to)
+            if (more.length) {
+              setChainFrom(move.to)
+              setSelected(move.to)
+              setTurn('w')
+              setStatus('Продолжайте бить этой шашкой')
+              return
+            }
+          }
+          setChainFrom(null)
+          botPlay(after)
+        })
         return
       }
 
-      // Mid-combo: can only move the chaining piece
       if (chainFrom) return
     }
 
@@ -319,24 +386,37 @@ export function CheckersGame({
               const isSel = selected?.r === r && selected?.c === c
               const isHint = hints.some((h) => h.to.r === r && h.to.c === c)
               const isCap = isHint && hints.some((h) => h.to.r === r && h.to.c === c && h.mid)
+              const fading = !!(fadeCapture && fadeCapture.r === r && fadeCapture.c === c && cell !== 0)
               return (
                 <button
                   key={`${r}-${c}`}
                   type="button"
                   className={`cell ${dark ? 'dark' : 'light'} ${isSel ? 'selected' : ''} ${isHint && !isCap ? 'move-hint' : ''} ${isCap ? 'capture-hint' : ''}`}
                   onClick={() => onCell(r, c)}
+                  disabled={!!flight}
                 >
                   {cell !== 0 && (
-                    <span
-                      className={`checker ${isW(cell) ? 'checker-w' : 'checker-b'}${isK(cell) ? ' is-king' : ''}`}
-                      aria-label={isK(cell) ? (isW(cell) ? 'белая дамка' : 'чёрная дамка') : isW(cell) ? 'белая шашка' : 'чёрная шашка'}
-                    >
-                      {isK(cell) && <span className="checker-crown">♛</span>}
+                    <span className={fading ? 'checker-capture-fade' : undefined}>
+                      <CheckerDisc cell={cell} />
                     </span>
                   )}
                 </button>
               )
             }),
+          )}
+          {flight && (
+            <span
+              key={flight.id}
+              className="checker-flight"
+              style={{
+                ['--from-r' as string]: flight.from.r,
+                ['--from-c' as string]: flight.from.c,
+                ['--to-r' as string]: flight.to.r,
+                ['--to-c' as string]: flight.to.c,
+              }}
+            >
+              <CheckerDisc cell={flight.piece} flying />
+            </span>
           )}
         </div>
       </div>
