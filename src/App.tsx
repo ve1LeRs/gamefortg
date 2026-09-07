@@ -56,11 +56,11 @@ export default function App() {
     [haptic, enterFullscreen],
   )
 
-  const back = () => {
+  const back = useCallback(() => {
     setActiveGame(null)
     setDurakRoomCode(null)
     haptic('light')
-  }
+  }, [haptic])
 
   if (activeGame) {
     return (
