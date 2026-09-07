@@ -38,9 +38,9 @@ export const GAMES: GameMeta[] = [
   {
     id: 'chess',
     title: 'Шахматы',
-    tagline: 'Полная доска 8×8. Ходи фигурами, думай на ход вперёд.',
+    tagline: 'Полная доска 8×8. С ботом или с другом онлайн.',
     genre: 'Стратегия',
-    players: '1 vs бот',
+    players: '1 vs бот · 2 онлайн',
     accent: '#5BA4FF',
     glow: 'rgba(91, 164, 255, 0.3)',
     cover: 'chess',
@@ -49,9 +49,9 @@ export const GAMES: GameMeta[] = [
   {
     id: 'checkers',
     title: 'Шашки',
-    tagline: 'Русские шашки. Бить обязательно, дамки ходят далеко.',
+    tagline: 'Русские шашки. С ботом или с другом онлайн.',
     genre: 'Стратегия',
-    players: '1 vs бот',
+    players: '1 vs бот · 2 онлайн',
     accent: '#FF6B4A',
     glow: 'rgba(255, 107, 74, 0.3)',
     cover: 'checkers',

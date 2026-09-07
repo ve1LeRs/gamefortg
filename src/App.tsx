@@ -25,6 +25,8 @@ export default function App() {
   const [activeGame, setActiveGame] = useState<GameId | null>(null)
   const [plays, setPlays] = useState<Record<string, number>>(loadPlays)
   const [durakRoomCode, setDurakRoomCode] = useState<string | null>(null)
+  const [chessRoomCode, setChessRoomCode] = useState<string | null>(null)
+  const [checkersRoomCode, setCheckersRoomCode] = useState<string | null>(null)
 
   useEffect(() => {
     localStorage.setItem(PLAYS_KEY, JSON.stringify(plays))
@@ -33,10 +35,30 @@ export default function App() {
   useEffect(() => {
     const fromTg = getWebApp()?.initDataUnsafe?.start_param
     const params = new URLSearchParams(window.location.search)
-    const fromQuery = params.get('durakRoom') || params.get('tgWebAppStartParam')
+    const fromQuery =
+      params.get('durakRoom') ||
+      params.get('chessRoom') ||
+      params.get('checkersRoom') ||
+      params.get('tgWebAppStartParam')
     const raw = fromTg || fromQuery
     if (!raw) return
-    const m = String(raw).match(/(?:^|[_\-])durak[_-]?([A-Za-z0-9]{4,8})$/i) || String(raw).match(/^([A-Za-z0-9]{4,8})$/)
+    const s = String(raw)
+    const chess = s.match(/(?:^|[_\-])chess[_-]?([A-Za-z0-9]{4,8})$/i)
+    const checkers = s.match(/(?:^|[_\-])checkers[_-]?([A-Za-z0-9]{4,8})$/i)
+    const durak = s.match(/(?:^|[_\-])durak[_-]?([A-Za-z0-9]{4,8})$/i)
+    if (chess?.[1]) {
+      setChessRoomCode(chess[1].toUpperCase())
+      setActiveGame('chess')
+      enterFullscreen()
+      return
+    }
+    if (checkers?.[1]) {
+      setCheckersRoomCode(checkers[1].toUpperCase())
+      setActiveGame('checkers')
+      enterFullscreen()
+      return
+    }
+    const m = durak || s.match(/^([A-Za-z0-9]{4,8})$/)
     const code = m?.[1]?.toUpperCase()
     if (!code) return
     setDurakRoomCode(code)
@@ -49,6 +71,8 @@ export default function App() {
       if (!getGame(id)) return
       enterFullscreen()
       if (id !== 'durak') setDurakRoomCode(null)
+      if (id !== 'chess') setChessRoomCode(null)
+      if (id !== 'checkers') setCheckersRoomCode(null)
       setActiveGame(id as GameId)
       setPlays((p) => ({ ...p, [id]: (p[id] ?? 0) + 1 }))
       haptic('medium')
@@ -59,6 +83,8 @@ export default function App() {
   const back = useCallback(() => {
     setActiveGame(null)
     setDurakRoomCode(null)
+    setChessRoomCode(null)
+    setCheckersRoomCode(null)
     haptic('light')
   }, [haptic])
 
@@ -101,6 +127,8 @@ export default function App() {
             onBack={back}
             onHaptic={haptic}
             durakRoomCode={activeGame === 'durak' ? durakRoomCode : null}
+            chessRoomCode={activeGame === 'chess' ? chessRoomCode : null}
+            checkersRoomCode={activeGame === 'checkers' ? checkersRoomCode : null}
           />
         </main>
       </div>
