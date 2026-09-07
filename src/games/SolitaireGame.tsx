@@ -290,7 +290,7 @@ function findHint(
     }
   }
 
-  // 5) Other legal tableau builds (still skip pointless king reshuffles when all open)
+  // 5) Other legal tableau builds — no pointless king parking on empty
   for (let from = 0; from < 7; from += 1) {
     const col = tableau[from]
     for (let index = 0; index < col.length; index += 1) {
@@ -308,10 +308,15 @@ function findHint(
         if (to === from) continue
         const dest = tableau[to]
         if (dest.length === 0) {
-          if (moving.rank !== 'K' || faceUpAll) continue
+          // Only move a king onto empty if it frees a face-up card that can be played.
+          // Whole-column reshuffles (index === 0) and “flip buried” moves are handled in step 3.
+          if (moving.rank !== 'K' || index === 0) continue
+          const under = col[index - 1]
+          if (!faceUp.has(under.id)) continue
+          if (!cardPlayableOnBoard(under, foundations, tableau, false)) continue
           return {
             select: { where: 'tableau', col: from, index },
-            message: `Король ${moving.suit} → пустая колонка`,
+            message: `Король ${moving.suit} → пустая (освободит ${under.rank}${under.suit})`,
           }
         }
         if (canStack(moving, dest[dest.length - 1])) {
