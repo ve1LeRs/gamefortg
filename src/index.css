@@ -229,6 +229,18 @@ body.tg-webapp .app-main:not(.game-mode) {
   padding: 4px 0 16px;
 }
 
+.store-refresh {
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px 4px;
+}
+
+.store-refresh .btn {
+  min-height: 40px;
+  padding: 0 18px;
+  font-size: 13px;
+}
+
 .hero {
   position: relative;
   min-height: 0;
@@ -597,7 +609,15 @@ body.tg-webapp .app-main:not(.game-mode) {
 .cover-chess .piece {
   position: absolute;
   font-size: 34px;
+  line-height: 0;
+  display: grid;
+  place-items: center;
   filter: drop-shadow(0 4px 6px rgba(0,0,0,0.45));
+}
+.cover-chess .piece .piece-svg {
+  width: 1em;
+  height: 1em;
+  filter: none;
 }
 .cover-chess .king { left: 42%; top: 28%; }
 .cover-chess .pawn {
@@ -605,14 +625,6 @@ body.tg-webapp .app-main:not(.game-mode) {
   top: 48%;
   font-size: 28px;
   color: #f4efe6;
-  display: grid;
-  place-items: center;
-  line-height: 0;
-}
-
-.cover-chess .pawn svg {
-  display: block;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
 }
 .game-cover.is-square.cover-chess .mini-board { width: 84px; height: 84px; }
 .game-cover.is-square.cover-chess .piece { font-size: 26px; }
@@ -981,6 +993,18 @@ body.tg-webapp .app-main:not(.game-mode) {
   color: rgba(255, 255, 255, 0.22);
 }
 
+.profile-actions {
+  display: flex;
+  justify-content: center;
+  padding: 12px 12px 0;
+}
+
+.profile-actions .btn {
+  min-height: 40px;
+  padding: 0 18px;
+  font-size: 13px;
+}
+
 .hint {
   color: var(--muted);
   font-size: 13px;
@@ -1143,7 +1167,7 @@ body.tg-webapp .app-main:not(.game-mode) {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 5px;
+  gap: 2px;
   line-height: 1;
   font-size: 13px;
   z-index: 1;
@@ -1159,13 +1183,14 @@ body.tg-webapp .app-main:not(.game-mode) {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  height: 15px;
+  height: auto;
+  min-height: 12px;
   padding: 0;
   font-family: Georgia, 'Times New Roman', serif;
   font-weight: 700;
   font-size: 13px;
   line-height: 1;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .pcard-suit {
@@ -1173,12 +1198,13 @@ body.tg-webapp .app-main:not(.game-mode) {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  height: 12px;
+  height: auto;
+  min-height: 11px;
   margin-top: 0;
   padding: 0;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .pcard.red {
@@ -1352,17 +1378,20 @@ body.tg-webapp .app-main:not(.game-mode) {
 .piece-svg-wrap {
   display: grid;
   place-items: center;
-  width: 1em;
-  height: 1em;
+  width: 1.05em;
+  height: 1.05em;
   line-height: 0;
+  filter: none !important;
+  text-shadow: none !important;
+  color: transparent;
 }
 
 .piece-svg {
-  width: 0.92em;
-  height: 0.92em;
+  width: 100%;
+  height: 100%;
   display: block;
   overflow: visible;
-  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
 }
 
 .board-wrap {

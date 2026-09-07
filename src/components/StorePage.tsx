@@ -1,4 +1,5 @@
 import { GAMES } from '../data/games'
+import { hardReloadApp } from '../lib/reloadApp'
 import { GameCover } from './GameCover'
 import type { TgUser } from '../hooks/useTelegram'
 
@@ -60,6 +61,12 @@ export function StorePage({
           ))}
         </div>
       </section>
+
+      <div className="store-refresh">
+        <button type="button" className="btn btn-soft" onClick={hardReloadApp}>
+          Обновить приложение
+        </button>
+      </div>
     </div>
   )
 }
