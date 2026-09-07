@@ -2208,6 +2208,11 @@ body.tg-webapp .app-main:not(.game-mode) {
   overflow: hidden;
 }
 
+.game-body--felt:has(.durak-table.is-bito-flight),
+.game-body--felt:has(.durak-table.is-take-flight) {
+  overflow: visible;
+}
+
 .durak-table {
   --felt: #5a6d82;
   --felt-deep: #3e4f63;
@@ -2222,6 +2227,11 @@ body.tg-webapp .app-main:not(.game-mode) {
     radial-gradient(ellipse 90% 55% at 50% 42%, rgba(255, 255, 255, 0.07), transparent 60%),
     linear-gradient(180deg, #667890 0%, var(--felt) 38%, var(--felt-deep) 100%);
   color: #fff;
+}
+
+.durak-table.is-bito-flight,
+.durak-table.is-take-flight {
+  overflow: visible;
 }
 
 .durak-top {
