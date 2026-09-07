@@ -1032,6 +1032,11 @@ body.tg-webapp .app-main:not(.game-mode) {
   z-index: 20;
 }
 
+.game-topbar--tg-back {
+  /* Native Telegram Back sits in chrome — no in-app chevron */
+  padding-left: 16px;
+}
+
 .back-btn {
   width: 40px;
   height: 40px;
