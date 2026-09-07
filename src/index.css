@@ -1446,11 +1446,11 @@ body.tg-webapp .game-topbar .back-btn {
 
 .board.checkers .checker {
   /* Explicit size — % width can collapse to a speck inside Telegram WebView buttons */
-  width: clamp(30px, 9.5vw, 46px);
-  height: clamp(30px, 9.5vw, 46px);
+  width: clamp(24px, 7.6vw, 36px);
+  height: clamp(24px, 7.6vw, 36px);
   aspect-ratio: 1 / 1;
-  max-width: 86%;
-  max-height: 86%;
+  max-width: 72%;
+  max-height: 72%;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -1482,7 +1482,7 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .board.checkers .checker-crown {
-  font-size: clamp(12px, 3.2vw, 18px);
+  font-size: clamp(10px, 2.6vw, 15px);
   line-height: 1;
   color: #f0c45a;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
@@ -1499,6 +1499,11 @@ body.tg-webapp .game-topbar .back-btn {
 
 .board.checkers {
   position: relative;
+  contain: layout style;
+}
+
+.board.checkers.is-flying {
+  pointer-events: none;
 }
 
 .board.checkers .cell {
@@ -1523,14 +1528,15 @@ body.tg-webapp .game-topbar .back-btn {
   --dy: calc((var(--to-r) - var(--from-r)) * 100%);
   transform: translate(calc(var(--from-c) * 100%), calc(var(--from-r) * 100%));
   animation: checker-fly 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform;
 }
 
 .board.checkers .checker-flight .checker {
-  width: clamp(30px, 9.5vw, 46px);
-  height: clamp(30px, 9.5vw, 46px);
+  width: clamp(24px, 7.6vw, 36px);
+  height: clamp(24px, 7.6vw, 36px);
   aspect-ratio: 1 / 1;
-  max-width: 86%;
-  max-height: 86%;
+  max-width: 72%;
+  max-height: 72%;
   box-shadow:
     0 10px 18px rgba(0, 0, 0, 0.45),
     inset 0 2px 3px rgba(255, 255, 255, 0.25),
@@ -1542,6 +1548,11 @@ body.tg-webapp .game-topbar .back-btn {
   place-items: center;
   width: 100%;
   height: 100%;
+}
+
+.board.checkers .checker-source-hide {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .board.checkers .checker-capture-fade {

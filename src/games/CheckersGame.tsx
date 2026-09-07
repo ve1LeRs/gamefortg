@@ -221,11 +221,12 @@ export function CheckersGame({
   useEffect(() => () => clearTimers(), [])
 
   const legal = useMemo(() => {
-    if (over || flight) return [] as { from: Sq; to: Sq; mid?: Sq }[]
+    // Keep legal moves stable during flight so hint classes don't thrash/blink.
+    if (over) return [] as { from: Sq; to: Sq; mid?: Sq }[]
     if (turn !== 'w') return []
     if (chainFrom) return captureMoves(board, chainFrom)
     return allSideMoves(board, true)
-  }, [board, turn, chainFrom, over, flight])
+  }, [board, turn, chainFrom, over])
 
   const hints = useMemo(
     () => (selected ? legal.filter((m) => same(m.from, selected)) : []),
@@ -285,28 +286,31 @@ export function CheckersGame({
         return
       }
 
-      const lifted = clone(cur)
-      lifted[move.from.r][move.from.c] = 0
-      setBoard(lifted)
+      // Keep the board intact during flight — hide the source disc via CSS so
+      // Telegram WebView doesn't flash a full board repaint on every lift.
       setFadeCapture(move.mid ?? null)
-
       const id = ++flightId.current
       setFlight({ id, piece, from: move.from, to: move.to })
       onHaptic?.('light')
 
       const t = window.setTimeout(() => {
         cur = applyMove(cur, move)
+        // Land first, then drop the overlay on the next tick so the destination
+        // disc is already painted underneath (avoids a one-frame gap/blink).
         setBoard(clone(cur))
-        setFlight(null)
         setFadeCapture(null)
-        i += 1
-        const gap = window.setTimeout(runStep, moves.length > 1 ? 80 : 30)
-        timers.current.push(gap)
+        const land = window.setTimeout(() => {
+          setFlight(null)
+          i += 1
+          const gap = window.setTimeout(runStep, moves.length > 1 ? 80 : 30)
+          timers.current.push(gap)
+        }, 0)
+        timers.current.push(land)
       }, FLIGHT_MS)
       timers.current.push(t)
     }
 
-    const start = window.setTimeout(runStep, 30)
+    const start = window.setTimeout(runStep, 16)
     timers.current.push(start)
   }
 
@@ -379,13 +383,14 @@ export function CheckersGame({
         <span className="checkers-side checkers-side-you">Вы · белые</span>
       </p>
       <div className="board-wrap">
-        <div className="board checkers">
+        <div className={`board checkers${flight ? ' is-flying' : ''}`}>
           {board.map((row, r) =>
             row.map((cell, c) => {
               const dark = (r + c) % 2 === 1
-              const isSel = selected?.r === r && selected?.c === c
-              const isHint = hints.some((h) => h.to.r === r && h.to.c === c)
+              const isSel = !flight && selected?.r === r && selected?.c === c
+              const isHint = !flight && hints.some((h) => h.to.r === r && h.to.c === c)
               const isCap = isHint && hints.some((h) => h.to.r === r && h.to.c === c && h.mid)
+              const isSource = !!(flight && flight.from.r === r && flight.from.c === c)
               const fading = !!(fadeCapture && fadeCapture.r === r && fadeCapture.c === c && cell !== 0)
               return (
                 <button
@@ -393,10 +398,11 @@ export function CheckersGame({
                   type="button"
                   className={`cell ${dark ? 'dark' : 'light'} ${isSel ? 'selected' : ''} ${isHint && !isCap ? 'move-hint' : ''} ${isCap ? 'capture-hint' : ''}`}
                   onClick={() => onCell(r, c)}
-                  disabled={!!flight}
                 >
                   {cell !== 0 && (
-                    <span className={`checker-slot${fading ? ' checker-capture-fade' : ''}`}>
+                    <span
+                      className={`checker-slot${fading ? ' checker-capture-fade' : ''}${isSource ? ' checker-source-hide' : ''}`}
+                    >
                       <CheckerDisc cell={cell} />
                     </span>
                   )}
