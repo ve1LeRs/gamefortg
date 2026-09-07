@@ -80,33 +80,36 @@ function maxAttackSlots(defenderHandSize: number, table: TablePair[]): number {
   return Math.min(6, defenderHandSize + defended)
 }
 
-/** Natural hand fan in one row — never split into two columns.
- *  Heavy overlap is fine; only the rank/suit corner must peek.
+/** One-row hand fan like cards held in a fist.
+ *  Prefer a tight index peek (rank+suit strip only) — never spread to fill the screen.
  *  `viewportW` is the hand content-box width (padding already excluded). */
 function handFanLayout(n: number, viewportW = 390) {
-  const slack = 16
+  const slack = 14
   const avail = Math.max(180, Math.min(viewportW, 440) - slack)
   const rows = 1
   const perRow = Math.max(1, n)
-  let cardW =
-    n <= 3 ? 100 : n <= 5 ? 92 : n <= 7 ? 84 : n <= 9 ? 76 : n <= 12 ? 68 : 60
+  // Keep cards fairly large; overlap does the space-saving
+  let cardW = n <= 3 ? 102 : n <= 5 ? 96 : n <= 7 ? 90 : 84
   let cardH = Math.round(cardW * (138 / 98))
+  // Visible strip ≈ left index only (like a real hold / the reference Durak UI)
+  let peek = n <= 3 ? 30 : n <= 5 ? 24 : n <= 8 ? 20 : 18
   let step = cardW
   if (perRow > 1) {
-    // Rank corner only — keep the fan in a single line even with 10–16 cards
-    const minPeek = n >= 14 ? 20 : n >= 11 ? 22 : n >= 8 ? 26 : 30
-    const maxStep = (avail - cardW) / (perRow - 1)
-    const need = cardW + (perRow - 1) * minPeek
+    const need = cardW + (perRow - 1) * peek
     if (need > avail) {
-      cardW = Math.max(46, Math.floor(avail - (perRow - 1) * minPeek))
+      cardW = Math.max(52, Math.floor(avail - (perRow - 1) * peek))
       cardH = Math.round(cardW * (138 / 98))
-      step = minPeek
+      step = peek
+      if (cardW + (perRow - 1) * peek > avail) {
+        peek = Math.max(15, Math.floor((avail - cardW) / (perRow - 1)))
+        step = peek
+      }
     } else {
-      const cozy = Math.min(cardW - 12, minPeek + (n <= 6 ? 10 : 4))
-      step = Math.max(minPeek, Math.min(cozy, maxStep))
+      // Do NOT widen step to fill width — keep the tight held-card look
+      step = peek
     }
   }
-  const rotStep = n <= 3 ? 7.5 : n <= 5 ? 5.2 : n <= 7 ? 3.6 : n <= 10 ? 2.4 : n <= 12 ? 1.6 : 1.1
+  const rotStep = n <= 3 ? 8 : n <= 5 ? 5.5 : n <= 7 ? 4 : n <= 10 ? 2.8 : n <= 13 ? 2 : 1.4
   const rowWidth = perRow <= 1 ? cardW : cardW + (perRow - 1) * step
   return {
     cardW: Math.round(cardW),
