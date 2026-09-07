@@ -2584,11 +2584,6 @@ body.tg-webapp .game-topbar .back-btn {
   transform: rotate(14deg);
 }
 
-.durak-table-cards[data-count='5'] .durak-pair .durak-card .suit-lg,
-.durak-table-cards[data-count='6'] .durak-pair .durak-card .suit-lg {
-  font-size: 16px;
-}
-
 
 /* Edge piles — stock barely peeks from the left with trump under it */
 .durak-deck {
