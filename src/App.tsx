@@ -62,6 +62,36 @@ export default function App() {
     haptic('light')
   }, [haptic])
 
+  // Lobby: Telegram must show «Закрыть», not «Назад».
+  useEffect(() => {
+    if (activeGame) return
+    const wa = getWebApp()
+    const btn = wa?.BackButton
+    if (!btn) return
+
+    let alive = true
+    const hideBack = () => {
+      if (!alive) return
+      try {
+        btn.hide()
+      } catch {
+        /* noop */
+      }
+    }
+
+    hideBack()
+    const timers = [0, 80, 250, 600, 1200].map((ms) => window.setTimeout(hideBack, ms))
+    wa.onEvent('fullscreenChanged', hideBack)
+    wa.onEvent('viewportChanged', hideBack)
+
+    return () => {
+      alive = false
+      timers.forEach((id) => window.clearTimeout(id))
+      wa.offEvent?.('fullscreenChanged', hideBack)
+      wa.offEvent?.('viewportChanged', hideBack)
+    }
+  }, [activeGame])
+
   if (activeGame) {
     return (
       <div className="app-shell">

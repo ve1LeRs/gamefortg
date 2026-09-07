@@ -43,12 +43,13 @@ export function GameShell({
     if (durakRoomCode) setDurakMode('online')
   }, [durakRoomCode])
 
-  // Native Telegram BackButton — keeps «Назад» instead of «Закрыть» while a game is open.
+  // Native Telegram BackButton — «Назад» only while a game is open.
   useEffect(() => {
     const wa = getWebApp()
     const btn = wa?.BackButton
     if (!btn) return
 
+    let alive = true
     const handle = () => {
       if (gameIdRef.current === 'durak' && durakModeRef.current !== 'pick') {
         setDurakMode('pick')
@@ -58,6 +59,7 @@ export function GameShell({
     }
 
     const showBack = () => {
+      if (!alive) return
       try {
         btn.show()
       } catch {
@@ -67,12 +69,13 @@ export function GameShell({
 
     btn.onClick(handle)
     showBack()
-    // Fullscreen / viewport changes can restore «Закрыть» — re-assert Back.
+    // Fullscreen / viewport changes can restore «Закрыть» — re-assert Back in-game only.
     wa.onEvent('fullscreenChanged', showBack)
     wa.onEvent('viewportChanged', showBack)
     const timers = [0, 120, 400, 1000].map((ms) => window.setTimeout(showBack, ms))
 
     return () => {
+      alive = false
       timers.forEach((id) => window.clearTimeout(id))
       wa.offEvent?.('fullscreenChanged', showBack)
       wa.offEvent?.('viewportChanged', showBack)
