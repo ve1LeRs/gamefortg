@@ -8,6 +8,7 @@ import {
   shuffle,
   rankValue,
 } from '../lib/cards'
+import { loadSettings } from '../lib/settings'
 
 type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'over'
 
@@ -818,6 +819,7 @@ export function PokerGame({
 
   const fold = () => {
     if (phase === 'over' || matchOver || allInSpectating) return
+    if (loadSettings().confirmFold && !window.confirm('Сбросить карты и отдать банк боту?')) return
     setPhase('over')
     setToCall(0)
     settlePot('bot', pot)

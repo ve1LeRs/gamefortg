@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { applyTelegramChrome, getWebApp, requestAppFullscreen } from '../lib/telegram'
+import { loadSettings } from '../lib/settings'
 
 export type TgUser = {
   id: number
@@ -40,6 +41,7 @@ export function useTelegram() {
 
   const haptic = (type: 'light' | 'medium' | 'success' | 'error' = 'light') => {
     try {
+      if (!loadSettings().haptics) return
       const hf = getWebApp()?.HapticFeedback
       if (!hf) return
       if (type === 'success' || type === 'error') {

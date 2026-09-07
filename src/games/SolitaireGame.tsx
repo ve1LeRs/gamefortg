@@ -10,6 +10,7 @@ import {
   isRed,
   rankValue,
 } from '../lib/cards'
+import { loadSettings } from '../lib/settings'
 
 type Pile = Card[]
 type Selection = { where: 'waste' | 'tableau' | 'foundation'; col: number; index: number }
@@ -397,6 +398,14 @@ export function SolitaireGame({
   useEffect(() => {
     if (offerAutoClear && !won) {
       setStatus('Все карты открыты — можно собрать косынку')
+      if (loadSettings().autoClearSolitaire) {
+        // Defer so status paints, then kick auto-clear once.
+        const t = window.setTimeout(() => {
+          const btn = document.querySelector('.sol-clear-btn') as HTMLButtonElement | null
+          btn?.click()
+        }, 450)
+        return () => window.clearTimeout(t)
+      }
     }
   }, [offerAutoClear, won])
 

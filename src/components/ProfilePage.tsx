@@ -1,4 +1,5 @@
 import { GAMES } from '../data/games'
+import { getDisplayName, loadSettings } from '../lib/settings'
 import { GameCover } from './GameCover'
 import type { TgUser } from '../hooks/useTelegram'
 
@@ -15,10 +16,12 @@ export function ProfilePage({
     .sort((a, b) => b.count - a.count)
     .slice(0, 3)
   const topCount = favorites[0]?.count ?? 0
-  const displayName = user
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
-    : 'Playfort Guest'
-  const initial = (user?.firstName?.[0] ?? 'G').toUpperCase()
+  const settings = loadSettings()
+  const displayName = getDisplayName(
+    user ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}` : undefined,
+    settings,
+  )
+  const initial = (displayName[0] ?? 'G').toUpperCase()
 
   return (
     <div className="profile-page">
