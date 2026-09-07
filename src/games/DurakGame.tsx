@@ -148,8 +148,8 @@ function prefersReducedMotion() {
 }
 
 const THROW_MS = 520
-/** Match CSS: fly duration 0.9s + last stagger 0.18s + settle */
-const BITO_MS = 1120
+/** Match CSS: fly 1.18s + last stagger 0.34s + settle */
+const BITO_MS = 1580
 const DEAL_MS = 980
 
 export function DurakGame({
