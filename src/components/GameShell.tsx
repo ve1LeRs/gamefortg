@@ -30,10 +30,12 @@ export function GameShell({
   const meta = getGame(gameId)
   const immersive = gameId === 'durak' || gameId === 'poker'
   const isBoardGame = gameId === 'chess' || gameId === 'checkers' || gameId === 'solitaire'
+  const hideShellTitle = gameId === 'chess' || gameId === 'checkers'
+  const inTelegram = typeof document !== 'undefined' && document.body.classList.contains('tg-webapp')
+  const showTopbar = !immersive && (!inTelegram || !hideShellTitle)
   const [durakMode, setDurakMode] = useState<PlayMode>(durakRoomCode ? 'online' : 'pick')
   const [chessMode, setChessMode] = useState<PlayMode>(chessRoomCode ? 'online' : 'pick')
   const [checkersMode, setCheckersMode] = useState<PlayMode>(checkersRoomCode ? 'online' : 'pick')
-  const inTelegram = typeof document !== 'undefined' && document.body.classList.contains('tg-webapp')
   const onBackRef = useRef(onBack)
   const durakModeRef = useRef(durakMode)
   const chessModeRef = useRef(chessMode)
@@ -196,7 +198,7 @@ export function GameShell({
     <div
       className={`game-shell${gameId === 'durak' ? ' game-shell--durak' : ''}${gameId === 'poker' ? ' game-shell--poker' : ''}${isBoardGame ? ' game-shell--board' : ''}${immersive ? ' game-shell--immersive' : ''}`}
     >
-      {!immersive && (
+      {showTopbar && (
         <header className={`game-topbar${inTelegram ? ' game-topbar--tg-back' : ''}`}>
           {!inTelegram && (
             <button type="button" className="back-btn" onClick={onBack} aria-label="Назад">
@@ -205,7 +207,7 @@ export function GameShell({
               </svg>
             </button>
           )}
-          <h1>{meta?.title ?? 'Игра'}</h1>
+          {!hideShellTitle && <h1>{meta?.title ?? 'Игра'}</h1>}
         </header>
       )}
       <div

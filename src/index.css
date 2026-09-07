@@ -4360,6 +4360,7 @@ body.tg-webapp .game-topbar .back-btn {
   padding: 22px 18px 18px;
   border-radius: 20px;
   border: 1px solid var(--line);
+  text-align: center;
   background:
     radial-gradient(ellipse 80% 70% at 85% 0%, rgba(232, 168, 56, 0.18), transparent 55%),
     radial-gradient(ellipse 60% 50% at 0% 100%, rgba(61, 220, 151, 0.1), transparent 50%),
@@ -4396,7 +4397,7 @@ body.tg-webapp .game-topbar .back-btn {
 .mode-pick-lead,
 .durak-mode-pick p,
 .durak-online-lead {
-  margin: 6px 0 0;
+  margin: 6px auto 0;
   max-width: 280px;
   color: var(--muted);
   font-size: 14px;
@@ -4414,13 +4415,13 @@ body.tg-webapp .game-topbar .back-btn {
 .mode-pick-option {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 4px;
   width: 100%;
   padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid var(--line);
-  text-align: left;
+  text-align: center;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
