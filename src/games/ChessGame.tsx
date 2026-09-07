@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {
-  BOT_DIFFICULTIES,
-  BOT_DIFFICULTY_HINT,
-  BOT_DIFFICULTY_LABEL,
-  type BotDifficulty,
-} from './botDifficulty'
+import { BOT_DIFFICULTIES, BOT_DIFFICULTY_HINT, BOT_DIFFICULTY_LABEL, type BotDifficulty } from './botDifficulty'
+import { loadSettings } from '../lib/settings'
 import {
   type Color,
   type Piece,
@@ -26,8 +22,9 @@ import {
 } from './chess/engine'
 
 export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void }) {
+  const defaultDiff = loadSettings().botDifficulty
   const [phase, setPhase] = useState<'setup' | 'play'>('setup')
-  const [pick, setPick] = useState<BotDifficulty>('medium')
+  const [pick, setPick] = useState<BotDifficulty>(defaultDiff)
   const [human, setHuman] = useState<Color>('w')
   const [board, setBoard] = useState(() => clone(START))
   const [castle, setCastle] = useState<Castle>(() => ({ ...START_CASTLE }))
@@ -35,7 +32,7 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
   const [selected, setSelected] = useState<Sq | null>(null)
   const [status, setStatus] = useState('Выберите сложность')
   const [over, setOver] = useState(false)
-  const [difficulty, setDifficulty] = useState<BotDifficulty>('medium')
+  const [difficulty, setDifficulty] = useState<BotDifficulty>(defaultDiff)
   const flipped = human === 'b'
   const bot = human === 'w' ? 'b' : 'w'
   const difficultyRef = useRef(difficulty)

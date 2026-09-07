@@ -1,5 +1,6 @@
 import { GAMES } from '../data/games'
 import { hardReloadApp } from '../lib/reloadApp'
+import { getDisplayName, loadSettings } from '../lib/settings'
 import { GameCover } from './GameCover'
 import type { TgUser } from '../hooks/useTelegram'
 
@@ -10,6 +11,10 @@ export function StorePage({
   user: TgUser | null
   onPlay: (id: string) => void
 }) {
+  const settings = loadSettings()
+  const name = getDisplayName(user?.firstName, settings)
+  const initial = (name[0] ?? 'G').toUpperCase()
+
   return (
     <div className="store-page">
       <section className="hero">
@@ -19,15 +24,15 @@ export function StorePage({
           <h1 className="hero-brand">
             Play<em>fort</em>
           </h1>
-          <div className="user-chip" aria-label={user?.firstName ?? 'Гость'}>
+          <div className="user-chip" aria-label={name}>
             <div className="user-avatar">
               {user?.photoUrl ? (
                 <img src={user.photoUrl} alt="" />
               ) : (
-                (user?.firstName?.[0] ?? 'G').toUpperCase()
+                initial
               )}
             </div>
-            <span>{user?.firstName ?? 'Гость'}</span>
+            <span>{name}</span>
           </div>
         </div>
 

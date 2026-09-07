@@ -5,6 +5,7 @@ import {
   BOT_DIFFICULTY_LABEL,
   type BotDifficulty,
 } from './botDifficulty'
+import { loadSettings } from '../lib/settings'
 import {
   type Cell,
   type Sq,
@@ -27,9 +28,10 @@ export function CheckersGame({
 }: {
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
 }) {
+  const defaultDiff = loadSettings().botDifficulty
   const [phase, setPhase] = useState<'setup' | 'play'>('setup')
-  const [difficulty, setDifficulty] = useState<BotDifficulty>('medium')
-  const [pick, setPick] = useState<BotDifficulty>('medium')
+  const [difficulty, setDifficulty] = useState<BotDifficulty>(defaultDiff)
+  const [pick, setPick] = useState<BotDifficulty>(defaultDiff)
   const [board, setBoard] = useState(() => startBoard())
   const [turn, setTurn] = useState<'w' | 'b'>('w')
   const [selected, setSelected] = useState<Sq | null>(null)

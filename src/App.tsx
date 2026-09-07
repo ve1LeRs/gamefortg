@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { StorePage } from './components/StorePage'
 import { ProfilePage } from './components/ProfilePage'
+import { SettingsPage } from './components/SettingsPage'
 import { GameShell } from './components/GameShell'
 import { TabNav, type Tab } from './components/TabNav'
 import { useTelegram } from './hooks/useTelegram'
 import { getWebApp } from './lib/telegram'
 import type { GameId } from './data/games'
 import { getGame } from './data/games'
+import { applySettingsToDom, loadSettings, syncWakeLock } from './lib/settings'
 
 const PLAYS_KEY = 'gamefortg-plays'
 
@@ -28,8 +30,19 @@ export default function App() {
   const [checkersRoomCode, setCheckersRoomCode] = useState<string | null>(null)
 
   useEffect(() => {
+    applySettingsToDom(loadSettings())
+  }, [])
+
+  useEffect(() => {
     localStorage.setItem(PLAYS_KEY, JSON.stringify(plays))
   }, [plays])
+
+  useEffect(() => {
+    void syncWakeLock(!!activeGame)
+    return () => {
+      void syncWakeLock(false)
+    }
+  }, [activeGame])
 
   useEffect(() => {
     const fromTg = getWebApp()?.initDataUnsafe?.start_param
@@ -138,6 +151,7 @@ export default function App() {
     <div className="app-shell">
       <main className="app-main">
         {tab === 'store' && <StorePage user={user} onPlay={play} />}
+        {tab === 'settings' && <SettingsPage onHaptic={haptic} />}
         {tab === 'profile' && <ProfilePage user={user} plays={plays} />}
       </main>
       <TabNav
