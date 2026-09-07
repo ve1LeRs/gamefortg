@@ -379,6 +379,7 @@ export function DurakOnline({
                 const legal = view.legalCardIds.includes(c.id)
                 const mid = (n - 1) / 2
                 const offset = i - mid
+                const fanY = Math.abs(offset) * (n <= 5 ? 3.2 : 2.2)
                 const play = () => {
                   if (!legal) return
                   const now = Date.now()
@@ -398,7 +399,8 @@ export function DurakOnline({
                     className={`durak-card durak-hand-card${legal ? ' playable' : ' is-waiting'}`}
                     style={{
                       ['--fan' as string]: offset,
-                      ['--rot' as string]: `${offset * hand.rotStep}deg`,
+                      ['--rot' as string]: `${(offset * hand.rotStep).toFixed(2)}deg`,
+                      ['--fan-y' as string]: `${fanY.toFixed(1)}px`,
                       zIndex: legal ? 40 + i : i + 1,
                     }}
                     onClick={play}
