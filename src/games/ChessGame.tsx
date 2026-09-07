@@ -391,8 +391,6 @@ function orderedMoves(board: Piece[][], white: boolean, castle: Castle): { from:
   return moves
 }
 
-const BOT_DEPTH = 3
-
 type BotDifficulty = 'easy' | 'medium' | 'hard'
 
 const DIFFICULTY_DEPTH: Record<BotDifficulty, number> = {
