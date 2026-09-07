@@ -48,10 +48,12 @@ export function DurakOnline({
   initialCode,
   onHaptic,
   onBackToBot,
+  onLeave,
 }: {
   initialCode?: string | null
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
   onBackToBot?: () => void
+  onLeave?: () => void
 }) {
   const you = useMemo(() => playerFromTelegram(), [])
   const [mode, setMode] = useState<Mode>(initialCode ? 'join' : 'menu')
@@ -202,9 +204,13 @@ export function DurakOnline({
     roomRef.current?.destroy()
     roomRef.current = null
     setRoom(null)
-    setMode('menu')
     setBusy(false)
     setError(null)
+    if (onLeave) {
+      onLeave()
+      return
+    }
+    setMode('menu')
   }
 
   const forceRefreshApp = () => {
@@ -498,6 +504,11 @@ export function DurakOnline({
           {onBackToBot && (
             <button type="button" className="durak-btn" onClick={onBackToBot}>
               Играть с ботом
+            </button>
+          )}
+          {onLeave && (
+            <button type="button" className="durak-btn" onClick={onLeave}>
+              К режимам
             </button>
           )}
         </div>
