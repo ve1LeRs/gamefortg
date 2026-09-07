@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  BOT_DIFFICULTIES,
+  BOT_DIFFICULTY_HINT,
+  BOT_DIFFICULTY_LABEL,
+  type BotDifficulty,
+} from './botDifficulty'
 
 /** 0 empty, 1 white man, 2 black man, 3 white king, 4 black king */
 type Cell = 0 | 1 | 2 | 3 | 4
 type Sq = { r: number; c: number }
 /** One jump step; multi-jumps are played as a chain of these. */
 type Move = { from: Sq; to: Sq; mid: Sq }
+type Step = { from: Sq; to: Sq; mid?: Sq }
+type Sequence = { moves: Step[]; board: Cell[][] }
 
 type Flight = {
   id: number
@@ -121,7 +129,7 @@ function applyMove(board: Cell[][], move: { from: Sq; to: Sq; mid?: Sq }): Cell[
   return next
 }
 
-function allSideMoves(board: Cell[][], white: boolean): ({ from: Sq; to: Sq; mid?: Sq })[] {
+function allSideMoves(board: Cell[][], white: boolean): Step[] {
   const caps: Move[] = []
   const steps: { from: Sq; to: Sq }[] = []
   for (let r = 0; r < 8; r += 1) {
@@ -138,27 +146,21 @@ function allSideMoves(board: Cell[][], white: boolean): ({ from: Sq; to: Sq; mid
   return steps
 }
 
-function pickBotSequence(board: Cell[][]): { from: Sq; to: Sq; mid?: Sq }[] {
-  const roots = allSideMoves(board, false).filter((m): m is Move => !!m.mid)
-  if (!roots.length) {
-    const quiet = allSideMoves(board, false)
-    if (!quiet.length) return []
-    return [quiet[Math.floor(Math.random() * quiet.length)]]
+/** All legal full turns for a side (quiet step or completed multi-jump). */
+function allSequences(board: Cell[][], white: boolean): Sequence[] {
+  const roots = allSideMoves(board, white)
+  if (!roots.length) return []
+
+  const first = roots[0]
+  if (!first.mid) {
+    return roots.map((m) => ({ moves: [m], board: applyMove(board, m) }))
   }
 
-  type Seq = { moves: Move[]; board: Cell[][] }
-  let best: Seq[] = []
-  let bestLen = 0
-
+  const out: Sequence[] = []
   const dfs = (b: Cell[][], from: Sq, path: Move[]) => {
     const nextCaps = captureMoves(b, from)
     if (!nextCaps.length) {
-      if (path.length > bestLen) {
-        bestLen = path.length
-        best = [{ moves: path, board: b }]
-      } else if (path.length === bestLen && path.length > 0) {
-        best.push({ moves: path, board: b })
-      }
+      if (path.length) out.push({ moves: path, board: b })
       return
     }
     for (const m of nextCaps) {
@@ -167,12 +169,116 @@ function pickBotSequence(board: Cell[][]): { from: Sq; to: Sq; mid?: Sq }[] {
   }
 
   for (const m of roots) {
-    dfs(applyMove(board, m), m.to, [m])
+    if (!m.mid) continue
+    dfs(applyMove(board, m), m.to, [m as Move])
+  }
+  return out
+}
+
+/** Score from black's perspective (bot). Higher = better for bot. */
+function evaluateBoard(board: Cell[][]): number {
+  let score = 0
+  let whiteMen = 0
+  let blackMen = 0
+  let whiteKings = 0
+  let blackKings = 0
+
+  for (let r = 0; r < 8; r += 1) {
+    for (let c = 0; c < 8; c += 1) {
+      const p = board[r][c]
+      if (!p) continue
+      const center = 3.5 - Math.abs(c - 3.5)
+      if (p === 1) {
+        whiteMen += 1
+        score -= 100 + (7 - r) * 4 + center
+      } else if (p === 2) {
+        blackMen += 1
+        score += 100 + r * 4 + center
+      } else if (p === 3) {
+        whiteKings += 1
+        score -= 175 + center * 2
+      } else if (p === 4) {
+        blackKings += 1
+        score += 175 + center * 2
+      }
+    }
   }
 
-  if (!best.length) return [roots[0]]
-  const choice = best[Math.floor(Math.random() * best.length)]
-  return choice.moves
+  if (whiteMen + whiteKings === 0) return 100000
+  if (blackMen + blackKings === 0) return -100000
+  return score
+}
+
+function minimaxCheckers(
+  board: Cell[][],
+  depth: number,
+  maximizingBlack: boolean,
+  alpha: number,
+  beta: number,
+): number {
+  const seqs = allSequences(board, !maximizingBlack)
+  if (!seqs.length) {
+    // Side to move has no moves — previous side wins.
+    return maximizingBlack ? -100000 - depth : 100000 + depth
+  }
+  if (depth === 0) return evaluateBoard(board)
+
+  if (maximizingBlack) {
+    let best = -Infinity
+    for (const seq of seqs) {
+      const sc = minimaxCheckers(seq.board, depth - 1, false, alpha, beta)
+      if (sc > best) best = sc
+      if (sc > alpha) alpha = sc
+      if (beta <= alpha) break
+    }
+    return best
+  }
+
+  let best = Infinity
+  for (const seq of seqs) {
+    const sc = minimaxCheckers(seq.board, depth - 1, true, alpha, beta)
+    if (sc < best) best = sc
+    if (sc < beta) beta = sc
+    if (beta <= alpha) break
+  }
+  return best
+}
+
+const CHECKERS_DEPTH: Record<BotDifficulty, number> = {
+  easy: 0,
+  medium: 2,
+  hard: 3,
+}
+
+function pickBotSequence(board: Cell[][], difficulty: BotDifficulty): Step[] {
+  const seqs = allSequences(board, false)
+  if (!seqs.length) return []
+
+  // Easy: mostly random among legal turns (captures already forced by rules).
+  if (difficulty === 'easy') {
+    if (Math.random() < 0.7) {
+      return seqs[Math.floor(Math.random() * seqs.length)]!.moves
+    }
+  }
+
+  const depth = CHECKERS_DEPTH[difficulty]
+  const scored = seqs.map((seq) => {
+    const sc =
+      depth <= 0
+        ? evaluateBoard(seq.board)
+        : minimaxCheckers(seq.board, depth - 1, false, -Infinity, Infinity)
+    return { seq, sc }
+  })
+  scored.sort((a, b) => b.sc - a.sc)
+
+  let pickIndex = 0
+  if (difficulty === 'easy') {
+    pickIndex = Math.min(scored.length - 1, Math.floor(Math.random() * Math.min(4, scored.length)))
+  } else if (difficulty === 'medium' && scored.length > 1 && Math.random() < 0.22) {
+    pickIndex = 1 + Math.floor(Math.random() * Math.min(2, scored.length - 1))
+  }
+
+  return scored[pickIndex]!.seq.moves
 }
 
 function CheckerDisc({ cell, flying }: { cell: Cell; flying?: boolean }) {
@@ -202,6 +308,9 @@ export function CheckersGame({
 }: {
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
 }) {
+  const [phase, setPhase] = useState<'setup' | 'play'>('setup')
+  const [difficulty, setDifficulty] = useState<BotDifficulty>('medium')
+  const [pick, setPick] = useState<BotDifficulty>('medium')
   const [board, setBoard] = useState(() => startBoard())
   const [turn, setTurn] = useState<'w' | 'b'>('w')
   const [selected, setSelected] = useState<Sq | null>(null)
@@ -212,6 +321,8 @@ export function CheckersGame({
   const [fadeCapture, setFadeCapture] = useState<Sq | null>(null)
   const flightId = useRef(0)
   const timers = useRef<number[]>([])
+  const difficultyRef = useRef(difficulty)
+  difficultyRef.current = difficulty
 
   const clearTimers = () => {
     for (const t of timers.current) window.clearTimeout(t)
@@ -222,11 +333,11 @@ export function CheckersGame({
 
   const legal = useMemo(() => {
     // Keep legal moves stable during flight so hint classes don't thrash/blink.
-    if (over) return [] as { from: Sq; to: Sq; mid?: Sq }[]
+    if (phase !== 'play' || over) return [] as Step[]
     if (turn !== 'w') return []
     if (chainFrom) return captureMoves(board, chainFrom)
     return allSideMoves(board, true)
-  }, [board, turn, chainFrom, over])
+  }, [board, turn, chainFrom, over, phase])
 
   const hints = useMemo(
     () => (selected ? legal.filter((m) => same(m.from, selected)) : []),
@@ -235,8 +346,10 @@ export function CheckersGame({
 
   const mustCapture = legal.some((m) => m.mid)
 
-  const reset = useCallback(() => {
+  const goSetup = useCallback(() => {
     clearTimers()
+    setPhase('setup')
+    setPick(difficulty)
     setBoard(startBoard())
     setTurn('w')
     setSelected(null)
@@ -246,7 +359,26 @@ export function CheckersGame({
     setFlight(null)
     setFadeCapture(null)
     onHaptic?.('medium')
-  }, [onHaptic])
+  }, [difficulty, onHaptic])
+
+  const startGame = useCallback(
+    (level: BotDifficulty) => {
+      clearTimers()
+      setDifficulty(level)
+      setPick(level)
+      setBoard(startBoard())
+      setTurn('w')
+      setSelected(null)
+      setChainFrom(null)
+      setStatus('Вы — белые. Ваш ход')
+      setOver(false)
+      setFlight(null)
+      setFadeCapture(null)
+      setPhase('play')
+      onHaptic?.('medium')
+    },
+    [onHaptic],
+  )
 
   const finishBotTurn = (after: Cell[][]) => {
     const you = allSideMoves(after, true)
@@ -263,7 +395,7 @@ export function CheckersGame({
 
   const playAnimated = (
     startBoardState: Cell[][],
-    moves: { from: Sq; to: Sq; mid?: Sq }[],
+    moves: Step[],
     onDone: (finalBoard: Cell[][]) => void,
   ) => {
     clearTimers()
@@ -315,7 +447,7 @@ export function CheckersGame({
   }
 
   const botPlay = (next: Cell[][]) => {
-    const seq = pickBotSequence(next)
+    const seq = pickBotSequence(next, difficultyRef.current)
     if (!seq.length) {
       setOver(true)
       setStatus('Победа!')
@@ -330,7 +462,7 @@ export function CheckersGame({
   }
 
   const onCell = (r: number, c: number) => {
-    if (over || turn !== 'w' || flight) return
+    if (phase !== 'play' || over || turn !== 'w' || flight) return
 
     if (selected) {
       const move = hints.find((m) => m.to.r === r && m.to.c === c)
@@ -372,6 +504,34 @@ export function CheckersGame({
     }
   }
 
+  if (phase === 'setup') {
+    return (
+      <div className="table-area bot-setup">
+        <h2 className="bot-setup-title">Шашки</h2>
+        <p className="bot-setup-lead">Выберите сложность бота</p>
+        <div className="bot-difficulty" role="group" aria-label="Сложность бота">
+          {BOT_DIFFICULTIES.map((level) => (
+            <button
+              key={level}
+              type="button"
+              className={`bot-diff-btn ${pick === level ? 'is-active' : ''}`}
+              onClick={() => {
+                setPick(level)
+                onHaptic?.('light')
+              }}
+            >
+              <span className="bot-diff-name">{BOT_DIFFICULTY_LABEL[level]}</span>
+              <span className="bot-diff-hint">{BOT_DIFFICULTY_HINT[level]}</span>
+            </button>
+          ))}
+        </div>
+        <button type="button" className="btn btn-primary bot-setup-start" onClick={() => startGame(pick)}>
+          Начать партию
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="table-area">
       <p className={`game-status ${over && status === 'Победа!' ? 'win' : over ? 'lose' : ''}`}>
@@ -379,7 +539,9 @@ export function CheckersGame({
         {mustCapture && turn === 'w' && !over && !status.includes('бить') ? ' · нужно бить' : ''}
       </p>
       <p className="checkers-sides" aria-hidden>
-        <span className="checkers-side checkers-side-bot">Бот · чёрные</span>
+        <span className="checkers-side checkers-side-bot">
+          Бот · чёрные · {BOT_DIFFICULTY_LABEL[difficulty]}
+        </span>
         <span className="checkers-side checkers-side-you">Вы · белые</span>
       </p>
       <div className="board-wrap">
@@ -427,7 +589,7 @@ export function CheckersGame({
         </div>
       </div>
       <div className="action-bar">
-        <button type="button" className="btn btn-soft" onClick={reset}>
+        <button type="button" className="btn btn-soft" onClick={goSetup}>
           Новая партия
         </button>
       </div>
