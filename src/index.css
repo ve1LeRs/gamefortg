@@ -2747,41 +2747,31 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .durak-bito.is-catching {
-  animation: durak-bito-catch 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.72s;
+  animation: durak-bito-catch 0.55s cubic-bezier(0.33, 0, 0.2, 1) both;
+  animation-delay: 0.55s;
 }
 
 @keyframes durak-bito-catch {
   0% { transform: translateY(-48%) rotate(14deg) scale(1); }
-  40% { transform: translateY(-48%) rotate(8deg) scale(1.08); }
+  50% { transform: translateY(-48%) rotate(11deg) scale(1.04); }
   100% { transform: translateY(-48%) rotate(14deg) scale(1); }
 }
 
+/* GPU-only transform/opacity — no filter (filter causes Telegram WebView jank) */
 @keyframes durak-fly-to-bito {
   0% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
-    filter: brightness(1);
+    animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
   }
-  16% {
+  42% {
     opacity: 1;
-    transform: translate3d(10px, -12px, 0) scale(1.03) rotate(3deg);
-    filter: brightness(1.06);
-  }
-  48% {
-    opacity: 0.96;
-    transform: translate3d(58px, -2px, 0) scale(0.84) rotate(10deg);
-    filter: brightness(1.04);
-  }
-  78% {
-    opacity: 0.62;
-    transform: translate3d(102px, 14px, 0) scale(0.56) rotate(18deg);
-    filter: brightness(1.01);
+    transform: translate3d(52px, -10px, 0) scale(0.88) rotate(9deg);
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
   100% {
     opacity: 0;
-    transform: translate3d(126px, 26px, 0) scale(0.36) rotate(26deg);
-    filter: brightness(0.96);
+    transform: translate3d(128px, 18px, 0) scale(0.4) rotate(22deg);
   }
 }
 
@@ -2790,22 +2780,27 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .durak-table-cards.is-to-bito .durak-pair {
-  animation: durak-fly-to-bito 1.18s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
-  will-change: transform, opacity, filter;
+  animation: durak-fly-to-bito 0.88s forwards;
+  transform: translateZ(0);
+  will-change: transform, opacity;
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .durak-table-cards.is-to-bito .durak-pair:nth-child(1) { animation-delay: 0s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(2) { animation-delay: 0.07s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(3) { animation-delay: 0.14s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(4) { animation-delay: 0.21s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(5) { animation-delay: 0.28s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(6) { animation-delay: 0.34s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(2) { animation-delay: 0.035s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(3) { animation-delay: 0.07s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(4) { animation-delay: 0.105s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(5) { animation-delay: 0.14s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(6) { animation-delay: 0.175s; }
 
 .durak-table-cards.is-to-bito .durak-pair .durak-card {
   /* Freeze enter/throw animations so they don't fight the pair flight */
   animation: none !important;
   transition: none !important;
+  will-change: auto;
+  filter: none !important;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.28);
 }
 
 .durak-take-banner {

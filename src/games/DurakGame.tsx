@@ -148,8 +148,8 @@ function prefersReducedMotion() {
 }
 
 const THROW_MS = 520
-/** Match CSS: fly 1.18s + last stagger 0.34s + settle */
-const BITO_MS = 1580
+/** Match CSS: fly 0.88s + last stagger 0.175s + settle */
+const BITO_MS = 1120
 const DEAL_MS = 980
 
 function pickFirstAttacker(): 'player' | 'bot' {
