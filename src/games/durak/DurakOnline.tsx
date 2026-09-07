@@ -476,7 +476,7 @@ function OnlineTable({
           aria-label={view.discardCount ? `Бита: ${view.discardCount}` : 'Бита пуста'}
         >
           {view.discardCount > 0 &&
-            Array.from({ length: Math.min(view.discardCount, 10) }).map((_, i) => (
+            Array.from({ length: Math.min(view.discardCount, 5) }).map((_, i) => (
               <span key={`bito-${i}`} className="durak-bito-card" style={bitoMess(`bito-${i}`, i)} aria-hidden />
             ))}
         </div>
