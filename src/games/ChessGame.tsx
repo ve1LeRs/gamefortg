@@ -393,6 +393,20 @@ function orderedMoves(board: Piece[][], white: boolean, castle: Castle): { from:
 
 const BOT_DEPTH = 3
 
+type BotDifficulty = 'easy' | 'medium' | 'hard'
+
+const DIFFICULTY_DEPTH: Record<BotDifficulty, number> = {
+  easy: 1,
+  medium: 2,
+  hard: 3,
+}
+
+const DIFFICULTY_LABEL: Record<BotDifficulty, string> = {
+  easy: 'Лёгкий',
+  medium: 'Средний',
+  hard: 'Сложный',
+}
+
 function minimax(
   board: Piece[][],
   castle: Castle,
@@ -433,30 +447,49 @@ function minimax(
   return best
 }
 
-function botMove(board: Piece[][], castle: Castle, botWhite: boolean): { board: Piece[][]; castle: Castle } {
+function botMove(
+  board: Piece[][],
+  castle: Castle,
+  botWhite: boolean,
+  difficulty: BotDifficulty,
+): { board: Piece[][]; castle: Castle } {
   const moves = orderedMoves(board, botWhite, castle)
   if (moves.length === 0) return { board, castle }
 
-  let best = moves[0]
-  let bestScore = botWhite ? -Infinity : Infinity
+  const depth = DIFFICULTY_DEPTH[difficulty]
+
+  // Easy: often play a random legal move so the bot blunders.
+  if (difficulty === 'easy' && Math.random() < 0.45) {
+    const pick = moves[Math.floor(Math.random() * moves.length)]
+    return playMove(board, pick.from, pick.to, castle)
+  }
+
+  const scored: { m: { from: Sq; to: Sq }; sc: number }[] = []
   let alpha = -Infinity
   let beta = Infinity
 
   for (const m of moves) {
     const next = playMove(board, m.from, m.to, castle)
-    const sc = minimax(next.board, next.castle, BOT_DEPTH - 1, alpha, beta, !botWhite)
+    const sc = depth <= 1 ? scoreBoard(next.board) : minimax(next.board, next.castle, depth - 1, alpha, beta, !botWhite)
+    scored.push({ m, sc })
     if (botWhite) {
-      if (sc > bestScore) {
-        bestScore = sc
-        best = m
-        alpha = Math.max(alpha, sc)
-      }
-    } else if (sc < bestScore) {
-      bestScore = sc
-      best = m
-      beta = Math.min(beta, sc)
+      if (sc > alpha) alpha = sc
+    } else if (sc < beta) {
+      beta = sc
     }
   }
+
+  scored.sort((a, b) => (botWhite ? b.sc - a.sc : a.sc - b.sc))
+
+  // Medium: occasionally pick 2nd/3rd best; hard always takes the top.
+  let pickIndex = 0
+  if (difficulty === 'easy') {
+    pickIndex = Math.min(scored.length - 1, Math.floor(Math.random() * Math.min(4, scored.length)))
+  } else if (difficulty === 'medium' && scored.length > 1 && Math.random() < 0.28) {
+    pickIndex = 1 + Math.floor(Math.random() * Math.min(2, scored.length - 1))
+  }
+
+  const best = scored[pickIndex].m
   return playMove(board, best.from, best.to, castle)
 }
 
@@ -481,9 +514,12 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
   const [selected, setSelected] = useState<Sq | null>(null)
   const [status, setStatus] = useState('Загрузка партии…')
   const [over, setOver] = useState(false)
+  const [difficulty, setDifficulty] = useState<BotDifficulty>('medium')
   const flipped = human === 'b'
   const bot = human === 'w' ? 'b' : 'w'
   const bootRef = useRef(false)
+  const difficultyRef = useRef(difficulty)
+  difficultyRef.current = difficulty
 
   const hints = useMemo(() => {
     if (!selected) return [] as Sq[]
@@ -535,7 +571,7 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
       setStatus('Ход бота…')
       setTurn(botColor)
       window.setTimeout(() => {
-        const next = botMove(played.board, played.castle, botColor === 'w')
+        const next = botMove(played.board, played.castle, botColor === 'w', difficultyRef.current)
         setBoard(next.board)
         setCastle(next.castle)
         const youMoves = allMoves(next.board, humanColor === 'w', next.castle)
@@ -673,7 +709,22 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
           })}
         </div>
       </div>
-      <div className="action-bar">
+      <div className="action-bar chess-actions">
+        <div className="chess-difficulty" role="group" aria-label="Сложность бота">
+          {(['easy', 'medium', 'hard'] as BotDifficulty[]).map((level) => (
+            <button
+              key={level}
+              type="button"
+              className={`chess-diff-btn ${difficulty === level ? 'is-active' : ''}`}
+              onClick={() => {
+                setDifficulty(level)
+                onHaptic?.('light')
+              }}
+            >
+              {DIFFICULTY_LABEL[level]}
+            </button>
+          ))}
+        </div>
         <button type="button" className="btn btn-soft" onClick={reset}>
           Новая партия
         </button>
