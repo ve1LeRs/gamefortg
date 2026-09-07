@@ -1590,13 +1590,41 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 /* Solitaire */
-.solitaire {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
-  min-height: 0;
-  height: 100%;
+.solitaire .action-bar.sol-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.solitaire .action-bar.sol-actions .btn {
+  width: 100%;
+}
+
+.solitaire .action-bar.sol-actions .sol-clear-btn {
+  grid-column: 1 / -1;
+  background: rgba(232, 168, 56, 0.2);
+  color: #f0c45a;
+  border-color: rgba(232, 168, 56, 0.45);
+}
+
+.solitaire.is-clearing .sol-top,
+.solitaire.is-clearing .sol-tableau {
+  pointer-events: none;
+}
+
+.solitaire.is-clearing .sol-foundations .pcard {
+  animation: sol-home-land 0.18s ease;
+}
+
+@keyframes sol-home-land {
+  from {
+    transform: translateY(10px) scale(0.92);
+    opacity: 0.55;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
 
 .sol-top {

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PlayingCard } from '../components/PlayingCard'
 import {
   type Card,
@@ -51,6 +51,40 @@ function cardOffset(col: Pile, index: number, faceUp: Set<string>) {
 function colHeight(col: Pile, faceUp: Set<string>) {
   if (!col.length) return 72
   return cardOffset(col, col.length - 1, faceUp) + 72
+}
+
+/** Stock empty and every tableau card face-up → offer auto-collect. */
+function canAutoClear(stock: Card[], tableau: Pile[], faceUp: Set<string>, waste: Card[]): boolean {
+  if (stock.length > 0) return false
+  for (const col of tableau) {
+    for (const card of col) {
+      if (!faceUp.has(card.id)) return false
+    }
+  }
+  const remaining = waste.length + tableau.reduce((n, col) => n + col.length, 0)
+  return remaining > 0
+}
+
+function nextFoundationMove(
+  waste: Card[],
+  foundations: Pile[],
+  tableau: Pile[],
+): { where: 'waste' | 'tableau'; col: number; fi: number } | null {
+  if (waste.length) {
+    const card = waste[waste.length - 1]
+    for (let fi = 0; fi < 4; fi += 1) {
+      if (canFoundation(card, foundations[fi])) return { where: 'waste', col: 0, fi }
+    }
+  }
+  for (let ti = 0; ti < 7; ti += 1) {
+    const col = tableau[ti]
+    if (!col.length) continue
+    const card = col[col.length - 1]
+    for (let fi = 0; fi < 4; fi += 1) {
+      if (canFoundation(card, foundations[fi])) return { where: 'tableau', col: ti, fi }
+    }
+  }
+  return null
 }
 
 type Hint = { select: Selection; message: string }
@@ -211,8 +245,26 @@ export function SolitaireGame({
   const [status, setStatus] = useState('Разложите карты по мастям')
   const [won, setWon] = useState(false)
   const [hintPulse, setHintPulse] = useState<string | null>(null)
+  const [clearing, setClearing] = useState(false)
+  const clearTimer = useRef<number | null>(null)
+
+  const stopClearing = useCallback(() => {
+    if (clearTimer.current != null) {
+      window.clearTimeout(clearTimer.current)
+      clearTimer.current = null
+    }
+    setClearing(false)
+  }, [])
+
+  useEffect(() => () => stopClearing(), [stopClearing])
+
+  const offerAutoClear = useMemo(
+    () => !won && !clearing && canAutoClear(stock, tableau, faceUp, waste),
+    [won, clearing, stock, tableau, faceUp, waste],
+  )
 
   const reset = useCallback(() => {
+    stopClearing()
     const next = dealSolitaire()
     setStock(next.stock)
     setWaste(next.waste)
@@ -224,7 +276,7 @@ export function SolitaireGame({
     setWon(false)
     setHintPulse(null)
     onHaptic?.('medium')
-  }, [onHaptic])
+  }, [onHaptic, stopClearing])
 
   const checkWin = (f: Pile[]) => {
     if (f.every((p) => p.length === 13)) {
@@ -243,7 +295,7 @@ export function SolitaireGame({
   }
 
   const drawStock = () => {
-    if (won) return
+    if (won || clearing) return
     onHaptic?.('light')
     if (stock.length === 0) {
       setStock([...waste].reverse())
@@ -381,7 +433,7 @@ export function SolitaireGame({
   }
 
   const showHint = () => {
-    if (won) return
+    if (won || clearing) return
     const hint = findHint(stock, waste, foundations, tableau, faceUp)
     if (!hint) {
       setStatus('Ходов не видно — новая раздача')
@@ -407,8 +459,85 @@ export function SolitaireGame({
     window.setTimeout(() => setHintPulse(null), 1200)
   }
 
+  const autoClearOnce = useCallback(
+    (
+      curWaste: Card[],
+      curFoundations: Pile[],
+      curTableau: Pile[],
+    ): { waste: Card[]; foundations: Pile[]; tableau: Pile[]; moved: boolean } => {
+      const move = nextFoundationMove(curWaste, curFoundations, curTableau)
+      if (!move) {
+        return { waste: curWaste, foundations: curFoundations, tableau: curTableau, moved: false }
+      }
+      const foundationsNext = curFoundations.map((p) => [...p])
+      let wasteNext = curWaste
+      let tableauNext = curTableau.map((p) => [...p])
+
+      if (move.where === 'waste') {
+        const card = wasteNext[wasteNext.length - 1]
+        wasteNext = wasteNext.slice(0, -1)
+        foundationsNext[move.fi] = [...foundationsNext[move.fi], card]
+      } else {
+        const col = tableauNext[move.col]
+        const card = col[col.length - 1]
+        tableauNext[move.col] = col.slice(0, -1)
+        foundationsNext[move.fi] = [...foundationsNext[move.fi], card]
+      }
+      return { waste: wasteNext, foundations: foundationsNext, tableau: tableauNext, moved: true }
+    },
+    [],
+  )
+
+  const startAutoClear = () => {
+    if (won || clearing || !offerAutoClear) return
+    setSelected(null)
+    setClearing(true)
+    setStatus('Собираем косынку…')
+    onHaptic?.('medium')
+
+    let curWaste = waste
+    let curFoundations = foundations
+    let curTableau = tableau
+
+    const tick = () => {
+      const step = autoClearOnce(curWaste, curFoundations, curTableau)
+      if (!step.moved) {
+        setClearing(false)
+        clearTimer.current = null
+        if (step.foundations.every((p) => p.length === 13)) {
+          setWon(true)
+          setStatus('Победа! Косынка собрана.')
+          onHaptic?.('success')
+        } else {
+          setStatus('Автосбор остановился — доложите вручную')
+          onHaptic?.('error')
+        }
+        return
+      }
+      curWaste = step.waste
+      curFoundations = step.foundations
+      curTableau = step.tableau
+      setWaste(curWaste)
+      setFoundations(curFoundations)
+      setTableau(curTableau)
+      onHaptic?.('light')
+
+      if (curFoundations.every((p) => p.length === 13)) {
+        setClearing(false)
+        clearTimer.current = null
+        setWon(true)
+        setStatus('Победа! Косынка собрана.')
+        onHaptic?.('success')
+        return
+      }
+      clearTimer.current = window.setTimeout(tick, 110)
+    }
+
+    clearTimer.current = window.setTimeout(tick, 80)
+  }
+
   return (
-    <div className="solitaire">
+    <div className={`solitaire ${clearing ? 'is-clearing' : ''}`}>
       <p className={`game-status ${won ? 'win' : ''}`}>{status}</p>
       <div className="sol-top">
         <div className="sol-stock">
@@ -494,14 +623,19 @@ export function SolitaireGame({
           </div>
         ))}
       </div>
-      <div className="action-bar">
-        <button type="button" className="btn btn-soft" onClick={reset}>
-          Новая раздача
-        </button>
-        <button type="button" className="btn btn-accent" onClick={showHint} disabled={won}>
+      <div className="action-bar sol-actions">
+        <button type="button" className="btn btn-accent" onClick={showHint} disabled={won || clearing}>
           Подсказка
         </button>
-        {selected && selected.col >= 0 && (
+        {offerAutoClear && (
+          <button type="button" className="btn btn-accent sol-clear-btn" onClick={startAutoClear} disabled={clearing}>
+            {clearing ? 'Собираем…' : 'Собрать косынку'}
+          </button>
+        )}
+        <button type="button" className="btn btn-soft" onClick={reset} disabled={clearing}>
+          Новая раздача
+        </button>
+        {selected && selected.col >= 0 && !clearing && (
           <button
             type="button"
             className="btn btn-soft"
