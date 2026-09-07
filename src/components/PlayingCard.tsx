@@ -58,7 +58,12 @@ export function PlayingCard({
       <button
         type="button"
         className={`pcard face-down ${throwing ? 'throwing' : ''} ${enterClass} ${className}`}
-        onClick={onClick}
+        onClick={(e) => {
+          if (onClick) {
+            e.stopPropagation()
+            onClick()
+          }
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -76,7 +81,12 @@ export function PlayingCard({
     <button
       type="button"
       className={`pcard ${red ? 'red' : ''} ${selected ? 'selected' : ''} ${playable ? 'playable' : ''} ${throwing ? 'throwing' : ''} ${enterClass} ${className}`}
-      onClick={onClick}
+      onClick={(e) => {
+        if (onClick) {
+          e.stopPropagation()
+          onClick()
+        }
+      }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
