@@ -679,20 +679,6 @@ export function SolitaireGame({
         <button type="button" className="btn btn-soft" onClick={reset} disabled={clearing}>
           Новая раздача
         </button>
-        {selected && selected.col >= 0 && !clearing && (
-          <button
-            type="button"
-            className="btn btn-soft"
-            onClick={() => {
-              for (let f = 0; f < 4; f += 1) {
-                if (tryMoveToFoundation(f)) return
-              }
-              setStatus('На фундамент не ложится')
-            }}
-          >
-            В дом
-          </button>
-        )}
       </div>
     </div>
   )
