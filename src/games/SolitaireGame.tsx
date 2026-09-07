@@ -149,6 +149,46 @@ function allTableauFaceUp(tableau: Pile[], faceUp: Set<string>): boolean {
   return true
 }
 
+function cardPlayableOnBoard(
+  card: Card,
+  foundations: Pile[],
+  tableau: Pile[],
+  allowKingToEmpty: boolean,
+): boolean {
+  for (let f = 0; f < 4; f += 1) {
+    if (canFoundation(card, foundations[f])) return true
+  }
+  for (let to = 0; to < 7; to += 1) {
+    const dest = tableau[to]
+    if (dest.length === 0) {
+      if (card.rank === 'K' && allowKingToEmpty) return true
+      continue
+    }
+    if (canStack(card, dest[dest.length - 1])) return true
+  }
+  return false
+}
+
+/** True if drawing through stock (and one recycle of waste) can yield a playable card. */
+function drawCycleHasPlay(
+  stock: Card[],
+  waste: Card[],
+  foundations: Pile[],
+  tableau: Pile[],
+  faceUpAll: boolean,
+): boolean {
+  const allowKing = !faceUpAll
+  // Next draws come from the end of stock (pop).
+  for (let i = stock.length - 1; i >= 0; i -= 1) {
+    if (cardPlayableOnBoard(stock[i], foundations, tableau, allowKing)) return true
+  }
+  // After recycle, waste is reversed onto stock — any buried waste card may surface.
+  for (let i = 0; i < waste.length; i += 1) {
+    if (cardPlayableOnBoard(waste[i], foundations, tableau, allowKing)) return true
+  }
+  return false
+}
+
 function findHint(
   stock: Card[],
   waste: Card[],
@@ -250,7 +290,44 @@ function findHint(
     }
   }
 
-  // 5) Draw / recycle stock — prefer this over pointless reshuffles
+  // 5) Other legal tableau builds (still skip pointless king reshuffles when all open)
+  for (let from = 0; from < 7; from += 1) {
+    const col = tableau[from]
+    for (let index = 0; index < col.length; index += 1) {
+      if (!faceUp.has(col[index].id)) continue
+      let runOk = true
+      for (let i = index; i < col.length - 1; i += 1) {
+        if (!faceUp.has(col[i].id) || !canStack(col[i + 1], col[i])) {
+          runOk = false
+          break
+        }
+      }
+      if (!runOk) continue
+      const moving = col[index]
+      for (let to = 0; to < 7; to += 1) {
+        if (to === from) continue
+        const dest = tableau[to]
+        if (dest.length === 0) {
+          if (moving.rank !== 'K' || faceUpAll) continue
+          return {
+            select: { where: 'tableau', col: from, index },
+            message: `Король ${moving.suit} → пустая колонка`,
+          }
+        }
+        if (canStack(moving, dest[dest.length - 1])) {
+          return {
+            select: { where: 'tableau', col: from, index },
+            message: `${moving.rank}${moving.suit} → колонка ${to + 1}`,
+          }
+        }
+      }
+    }
+  }
+
+  // 6) Draw / recycle — only if some card in the cycle can actually be played
+  if (!drawCycleHasPlay(stock, waste, foundations, tableau, faceUpAll)) {
+    return null
+  }
   if (stock.length > 0) {
     return { select: { where: 'waste', col: -1, index: -1 }, message: 'Возьмите карту из колоды', pulse: 'stock' }
   }
@@ -277,6 +354,7 @@ export function SolitaireGame({
   const [won, setWon] = useState(false)
   const [hintPulse, setHintPulse] = useState<string | null>(null)
   const [clearing, setClearing] = useState(false)
+  const lastHintKey = useRef<string | null>(null)
   const [flight, setFlight] = useState<{
     card: Card
     fi: number
@@ -604,10 +682,22 @@ export function SolitaireGame({
     if (won || clearing) return
     const hint = findHint(stock, waste, foundations, tableau, faceUp, offerAutoClear)
     if (!hint) {
+      lastHintKey.current = null
+      setSelected(null)
+      setHintPulse(null)
       setStatus('Ходов не видно — новая раздача')
       onHaptic?.('error')
       return
     }
+    const key = `${hint.pulse ?? hint.select.where}:${hint.select.col}:${hint.select.index}:${hint.message}:${stock.length}:${waste.length}`
+    // Same stock/recycle tip again — don't spam the status line; just re-pulse.
+    if (hint.pulse === 'stock' && lastHintKey.current === key) {
+      setHintPulse('stock')
+      window.setTimeout(() => setHintPulse(null), 1400)
+      onHaptic?.('light')
+      return
+    }
+    lastHintKey.current = key
     setStatus(hint.message)
     onHaptic?.('medium')
     if (hint.select.col < 0) {
