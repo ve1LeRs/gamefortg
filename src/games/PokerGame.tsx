@@ -926,8 +926,8 @@ export function PokerGame({
               </div>
             ) : null}
 
-            <div className="poker-seat-slot poker-seat-bot">
-              <div className="poker-bot-cards" key={`bot-${dealTick}`}>
+            <div className={`poker-seat-slot poker-seat-bot${showBot ? ' is-revealed' : ''}`}>
+              <div className={`poker-bot-cards${showBot ? ' is-revealed' : ''}`} key={`bot-${dealTick}`}>
                 {bot.map((c, i) => (
                   <PlayingCard
                     key={c.id}
