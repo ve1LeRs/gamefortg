@@ -2017,21 +2017,27 @@ body.tg-webapp .game-topbar .back-btn {
 
 .sol-col .pcard {
   position: absolute;
-  left: 1px;
-  right: 1px;
-  width: auto;
+  left: 0;
+  right: 0;
+  /* Definite width — auto+aspect-ratio can shrink buried peeks and make the
+     card on top look enlarged (Telegram WebView). */
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: auto;
+  max-height: none;
   aspect-ratio: 5 / 7;
+  box-sizing: border-box;
   font-size: clamp(12px, 3.2vw, 15px);
   padding: 4px 3px 3px;
   animation: none;
+  transform: none;
   /* Tighter shadow so the grab field matches the card edge */
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.55) inset,
     0 2px 5px rgba(0, 0, 0, 0.22);
   transition:
     top 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 0.45s ease,
     outline-color 0.35s ease;
 }
@@ -2048,7 +2054,7 @@ body.tg-webapp .game-topbar .back-btn {
   outline: none;
 }
 
-/* Keep selection inside the card — inset ring, no outer glow field. */
+/* Keep selection inside the card — inset ring, no outer glow / scale. */
 .solitaire .pcard.selected,
 .sol-col .pcard.selected {
   transform: none;
@@ -2057,6 +2063,10 @@ body.tg-webapp .game-topbar .back-btn {
     inset 0 0 0 1.5px rgba(232, 168, 56, 0.95),
     0 2px 6px rgba(0, 0, 0, 0.22);
   z-index: 24;
+}
+
+.sol-col .pcard.playable:active {
+  transform: none;
 }
 
 /* Rest of a movable run: slight lift only, no second outline box. */
@@ -2081,9 +2091,12 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .sol-col .pcard.sol-buried {
+  /* Drop ratio so height:22px cannot transfer into a narrow width. */
+  aspect-ratio: unset;
+  width: 100%;
+  max-width: 100%;
   height: 22px;
   max-height: 22px;
-  aspect-ratio: auto;
   overflow: hidden;
   padding: 3px 3px 0;
   border-radius: 8px 8px 3px 3px;
@@ -2096,10 +2109,13 @@ body.tg-webapp .game-topbar .back-btn {
  * Face-down peeks: keep FULL card size under the next card.
  * Shrinking height (or clip-path) flattens/cuts the top corners in Telegram WebView.
  * The next card covers the body; only the natural rounded top edge shows.
+ * Width stays 100% so peeks never go narrow under a full-size top card.
  */
 .sol-col .pcard.face-down:not(:last-child) {
   overflow: visible;
   border-radius: 8px;
+  width: 100%;
+  max-width: 100%;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.22) inset,
     0 1px 2px rgba(0, 0, 0, 0.2);
