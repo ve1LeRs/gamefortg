@@ -15,14 +15,14 @@ const START: Piece[][] = [
   ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'],
 ]
 
-/** Filled glyphs for both sides — color comes from CSS (.piece-w / .piece-b). */
+/** Outline glyphs for white (iOS ignores CSS color on filled ♟ etc.). */
 const GLYPH: Record<string, string> = {
-  K: '♚',
-  Q: '♛',
-  R: '♜',
-  B: '♝',
-  N: '♞',
-  P: '♟',
+  K: '♔',
+  Q: '♕',
+  R: '♖',
+  B: '♗',
+  N: '♘',
+  P: '♙',
   k: '♚',
   q: '♛',
   r: '♜',
