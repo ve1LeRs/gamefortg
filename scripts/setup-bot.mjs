@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Configure @steamtg_bot (or any bot) for GameForTg Mini App.
+ * Configure the Telegram bot for the Playfort Mini App.
  *
  * Usage:
  *   BOT_TOKEN=123:ABC node scripts/setup-bot.mjs
@@ -32,18 +32,18 @@ const api = async (method, body) => {
 }
 
 const steps = [
-  ['setMyName', { name: 'GameForTg' }],
+  ['setMyName', { name: 'Playfort' }],
   [
     'setMyDescription',
     {
       description:
-        'GameForTg — мобильный игровой хаб в Telegram.\n\nПокер, дурак, шахматы, шашки и косынка. Без установок — просто откройте и играйте.',
+        'Playfort — classic games in Telegram.\n\nPoker, Durak, chess, checkers, and Klondike solitaire. No installs — open and play.',
     },
   ],
   [
     'setMyShortDescription',
     {
-      short_description: 'Игры в Telegram: покер, дурак, шахматы, шашки, косынка',
+      short_description: 'Playfort: poker, Durak, chess, checkers, solitaire in Telegram',
     },
   ],
   [
@@ -60,9 +60,9 @@ const steps = [
     'setMyCommands',
     {
       commands: [
-        { command: 'start', description: 'Открыть GameForTg' },
-        { command: 'play', description: 'Запустить игры' },
-        { command: 'help', description: 'Как играть' },
+        { command: 'start', description: 'Open Playfort' },
+        { command: 'play', description: 'Launch games' },
+        { command: 'help', description: 'How to play' },
       ],
     },
   ],
@@ -77,5 +77,5 @@ for (const [method, body] of steps) {
   console.log(`✓ ${method}`)
 }
 
-console.log('\nDone. Open the bot and tap the menu button «Играть».')
+console.log('\nDone. Open the bot and tap the menu button «Play».')
 console.log('In BotFather also set Main Mini App if needed: /mybots → Bot Settings → Configure Mini App')
