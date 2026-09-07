@@ -13,5 +13,5 @@
   <circle cx="256" cy="256" r="168" stroke="url(#mark)" stroke-width="28" opacity="0.9"/>
   <path d="M168 300 L256 140 L344 300 Z" stroke="#F0B84A" stroke-width="26" stroke-linejoin="round" fill="none"/>
   <circle cx="256" cy="286" r="34" fill="#3DDC97"/>
-  <text x="256" y="392" text-anchor="middle" font-family="Arial Black, Helvetica, sans-serif" font-size="42" font-weight="800" fill="#F2F6FB">GameForTg</text>
+  <text x="256" y="392" text-anchor="middle" font-family="Arial Black, Helvetica, sans-serif" font-size="48" font-weight="800" fill="#F2F6FB">Playfort</text>
 </svg>
