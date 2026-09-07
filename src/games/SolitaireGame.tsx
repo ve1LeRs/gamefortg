@@ -4,6 +4,7 @@ import {
   type Card,
   type Rank,
   SOLITAIRE_RANKS,
+  SUITS,
   makeDeck,
   shuffle,
   isRed,
@@ -65,26 +66,76 @@ function canAutoClear(stock: Card[], tableau: Pile[], faceUp: Set<string>, waste
   return remaining > 0
 }
 
-function nextFoundationMove(
+type HomeMove = {
+  where: 'waste' | 'tableau'
+  col: number
+  index: number
+  fi: number
+  card: Card
+}
+
+/** Endgame collect: pull the next foundation card from anywhere (not only pile tops). */
+function nextForcedHomeMove(waste: Card[], foundations: Pile[], tableau: Pile[]): HomeMove | null {
+  const findCard = (want: Card): Omit<HomeMove, 'fi' | 'card'> & { card: Card } | null => {
+    if (waste.length) {
+      const idx = waste.findIndex((c) => c.suit === want.suit && c.rank === want.rank)
+      if (idx >= 0) return { where: 'waste', col: 0, index: idx, card: waste[idx] }
+    }
+    for (let ti = 0; ti < 7; ti += 1) {
+      const col = tableau[ti]
+      const idx = col.findIndex((c) => c.suit === want.suit && c.rank === want.rank)
+      if (idx >= 0) return { where: 'tableau', col: ti, index: idx, card: col[idx] }
+    }
+    return null
+  }
+
+  const options: HomeMove[] = []
+
+  for (let fi = 0; fi < 4; fi += 1) {
+    const pile = foundations[fi]
+    if (pile.length === 0) {
+      const claimed = new Set(
+        foundations.filter((p) => p.length > 0).map((p) => p[0].suit),
+      )
+      for (const suit of SUITS) {
+        if (claimed.has(suit)) continue
+        const hit = findCard({ suit, rank: 'A', id: '' })
+        if (hit) {
+          options.push({ ...hit, fi })
+          break
+        }
+      }
+      continue
+    }
+    const top = pile[pile.length - 1]
+    const nextIdx = rankValue(top.rank, SOLITAIRE_RANKS) + 1
+    if (nextIdx >= SOLITAIRE_RANKS.length) continue
+    const hit = findCard({ suit: top.suit, rank: SOLITAIRE_RANKS[nextIdx], id: '' })
+    if (hit) options.push({ ...hit, fi })
+  }
+
+  if (!options.length) return null
+  options.sort((a, b) => rankValue(a.card.rank, SOLITAIRE_RANKS) - rankValue(b.card.rank, SOLITAIRE_RANKS))
+  return options[0]
+}
+
+function applyHomeMove(
+  move: HomeMove,
   waste: Card[],
   foundations: Pile[],
   tableau: Pile[],
-): { where: 'waste' | 'tableau'; col: number; fi: number } | null {
-  if (waste.length) {
-    const card = waste[waste.length - 1]
-    for (let fi = 0; fi < 4; fi += 1) {
-      if (canFoundation(card, foundations[fi])) return { where: 'waste', col: 0, fi }
-    }
+): { waste: Card[]; foundations: Pile[]; tableau: Pile[] } {
+  const foundationsNext = foundations.map((p) => [...p])
+  let wasteNext = [...waste]
+  const tableauNext = tableau.map((p) => [...p])
+
+  if (move.where === 'waste') {
+    wasteNext.splice(move.index, 1)
+  } else {
+    tableauNext[move.col] = tableauNext[move.col].filter((_, i) => i !== move.index)
   }
-  for (let ti = 0; ti < 7; ti += 1) {
-    const col = tableau[ti]
-    if (!col.length) continue
-    const card = col[col.length - 1]
-    for (let fi = 0; fi < 4; fi += 1) {
-      if (canFoundation(card, foundations[fi])) return { where: 'tableau', col: ti, fi }
-    }
-  }
-  return null
+  foundationsNext[move.fi] = [...foundationsNext[move.fi], move.card]
+  return { waste: wasteNext, foundations: foundationsNext, tableau: tableauNext }
 }
 
 type Hint = { select: Selection; message: string }
@@ -246,7 +297,9 @@ export function SolitaireGame({
   const [won, setWon] = useState(false)
   const [hintPulse, setHintPulse] = useState<string | null>(null)
   const [clearing, setClearing] = useState(false)
+  const [flight, setFlight] = useState<{ card: Card; fi: number; id: number } | null>(null)
   const clearTimer = useRef<number | null>(null)
+  const flightId = useRef(0)
 
   const stopClearing = useCallback(() => {
     if (clearTimer.current != null) {
@@ -254,6 +307,7 @@ export function SolitaireGame({
       clearTimer.current = null
     }
     setClearing(false)
+    setFlight(null)
   }, [])
 
   useEffect(() => () => stopClearing(), [stopClearing])
@@ -262,6 +316,12 @@ export function SolitaireGame({
     () => !won && !clearing && canAutoClear(stock, tableau, faceUp, waste),
     [won, clearing, stock, tableau, faceUp, waste],
   )
+
+  useEffect(() => {
+    if (offerAutoClear && !won) {
+      setStatus('Все карты открыты — можно собрать косынку')
+    }
+  }, [offerAutoClear, won])
 
   const reset = useCallback(() => {
     stopClearing()
@@ -464,26 +524,13 @@ export function SolitaireGame({
       curWaste: Card[],
       curFoundations: Pile[],
       curTableau: Pile[],
-    ): { waste: Card[]; foundations: Pile[]; tableau: Pile[]; moved: boolean } => {
-      const move = nextFoundationMove(curWaste, curFoundations, curTableau)
+    ): { waste: Card[]; foundations: Pile[]; tableau: Pile[]; moved: HomeMove | null } => {
+      const move = nextForcedHomeMove(curWaste, curFoundations, curTableau)
       if (!move) {
-        return { waste: curWaste, foundations: curFoundations, tableau: curTableau, moved: false }
+        return { waste: curWaste, foundations: curFoundations, tableau: curTableau, moved: null }
       }
-      const foundationsNext = curFoundations.map((p) => [...p])
-      let wasteNext = curWaste
-      let tableauNext = curTableau.map((p) => [...p])
-
-      if (move.where === 'waste') {
-        const card = wasteNext[wasteNext.length - 1]
-        wasteNext = wasteNext.slice(0, -1)
-        foundationsNext[move.fi] = [...foundationsNext[move.fi], card]
-      } else {
-        const col = tableauNext[move.col]
-        const card = col[col.length - 1]
-        tableauNext[move.col] = col.slice(0, -1)
-        foundationsNext[move.fi] = [...foundationsNext[move.fi], card]
-      }
-      return { waste: wasteNext, foundations: foundationsNext, tableau: tableauNext, moved: true }
+      const next = applyHomeMove(move, curWaste, curFoundations, curTableau)
+      return { ...next, moved: move }
     },
     [],
   )
@@ -503,6 +550,7 @@ export function SolitaireGame({
       const step = autoClearOnce(curWaste, curFoundations, curTableau)
       if (!step.moved) {
         setClearing(false)
+        setFlight(null)
         clearTimer.current = null
         if (step.foundations.every((p) => p.length === 13)) {
           setWon(true)
@@ -517,23 +565,28 @@ export function SolitaireGame({
       curWaste = step.waste
       curFoundations = step.foundations
       curTableau = step.tableau
+      flightId.current += 1
+      setFlight({ card: step.moved.card, fi: step.moved.fi, id: flightId.current })
       setWaste(curWaste)
       setFoundations(curFoundations)
       setTableau(curTableau)
       onHaptic?.('light')
 
       if (curFoundations.every((p) => p.length === 13)) {
-        setClearing(false)
-        clearTimer.current = null
-        setWon(true)
-        setStatus('Победа! Косынка собрана.')
-        onHaptic?.('success')
+        clearTimer.current = window.setTimeout(() => {
+          setClearing(false)
+          setFlight(null)
+          clearTimer.current = null
+          setWon(true)
+          setStatus('Победа! Косынка собрана.')
+          onHaptic?.('success')
+        }, 180)
         return
       }
-      clearTimer.current = window.setTimeout(tick, 110)
+      clearTimer.current = window.setTimeout(tick, 140)
     }
 
-    clearTimer.current = window.setTimeout(tick, 80)
+    clearTimer.current = window.setTimeout(tick, 60)
   }
 
   return (
@@ -571,7 +624,7 @@ export function SolitaireGame({
           {foundations.map((pile, fi) => (
             <div
               key={fi}
-              className={`sol-slot ${hintPulse === `f-${fi}` ? 'sol-hint' : ''}`}
+              className={`sol-slot ${hintPulse === `f-${fi}` ? 'sol-hint' : ''} ${flight?.fi === fi ? 'sol-home-target' : ''}`}
               onClick={() => onFoundationClick(fi)}
               onKeyDown={(e) => e.key === 'Enter' && onFoundationClick(fi)}
               role="button"
@@ -582,12 +635,18 @@ export function SolitaireGame({
                 <PlayingCard
                   card={pile[pile.length - 1]}
                   selected={selected?.where === 'foundation' && selected.col === fi}
+                  className={flight?.fi === fi && flight.card.id === pile[pile.length - 1].id ? 'sol-fly-in' : ''}
                 />
               )}
             </div>
           ))}
         </div>
       </div>
+      {flight && (
+        <div className="sol-flight" key={flight.id} aria-hidden>
+          <PlayingCard card={flight.card} enter="none" className="sol-flight-card" />
+        </div>
+      )}
       <div className="sol-tableau">
         {tableau.map((col, ti) => (
           <div
