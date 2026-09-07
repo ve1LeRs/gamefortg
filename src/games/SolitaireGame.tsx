@@ -808,6 +808,7 @@ export function SolitaireGame({
                   faceDown={!up}
                   selected={!!isSel}
                   playable={up}
+                  enter="none"
                   index={index}
                   onClick={() => onTableauClick(ti, index)}
                   className={`${buried ? 'sol-buried' : ''}${inRun && !isSel ? ' sol-in-run' : ''}${pulse ? ' sol-hint-card' : ''}`.trim()}
