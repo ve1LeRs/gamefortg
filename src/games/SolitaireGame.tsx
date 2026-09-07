@@ -280,6 +280,7 @@ export function SolitaireGame({
   const [flight, setFlight] = useState<{ card: Card; fi: number; id: number } | null>(null)
   const clearTimer = useRef<number | null>(null)
   const flightId = useRef(0)
+  const lastTapRef = useRef<{ key: string; at: number } | null>(null)
 
   const stopClearing = useCallback(() => {
     if (clearTimer.current != null) {
@@ -364,6 +365,59 @@ export function SolitaireGame({
     return col.slice(selected.index)
   }
 
+  /** Double-tap / second tap: send one card home if any foundation accepts it. */
+  const sendHome = (source: Selection): boolean => {
+    let card: Card | undefined
+    if (source.where === 'waste') {
+      card = waste[waste.length - 1]
+    } else if (source.where === 'tableau') {
+      const col = tableau[source.col]
+      // Only the exposed top card can go to a foundation
+      if (source.index !== col.length - 1) return false
+      card = col[source.index]
+      if (!card || !faceUp.has(card.id)) return false
+    } else {
+      return false
+    }
+    if (!card) return false
+
+    let fi = -1
+    for (let f = 0; f < 4; f += 1) {
+      if (canFoundation(card, foundations[f])) {
+        fi = f
+        break
+      }
+    }
+    if (fi < 0) return false
+
+    const newFoundations = foundations.map((p) => [...p])
+    newFoundations[fi] = [...newFoundations[fi], card]
+
+    if (source.where === 'waste') {
+      setWaste((w) => w.slice(0, -1))
+    } else {
+      const newTab = tableau.map((p) => [...p])
+      newTab[source.col] = newTab[source.col].slice(0, -1)
+      setTableau(newTab)
+      setFaceUp((u) => revealTop(newTab, u))
+    }
+
+    setFoundations(newFoundations)
+    setSelected(null)
+    lastTapRef.current = null
+    onHaptic?.('light')
+    checkWin(newFoundations)
+    return true
+  }
+
+  const registerTap = (key: string) => {
+    const now = Date.now()
+    const last = lastTapRef.current
+    const isDouble = !!(last && last.key === key && now - last.at < 420)
+    lastTapRef.current = { key, at: now }
+    return isDouble
+  }
+
   const tryMoveToFoundation = (fi: number) => {
     const cards = getSelectedCards()
     if (!cards || cards.length !== 1) return false
@@ -424,15 +478,21 @@ export function SolitaireGame({
   }
 
   const onWasteClick = () => {
-    if (!waste.length) return
-    if (selected?.where === 'waste') {
-      setSelected(null)
-      return
+    if (!waste.length || clearing || won) return
+    const source: Selection = { where: 'waste', col: 0, index: 0 }
+    if (registerTap('waste') || selected?.where === 'waste') {
+      if (sendHome(source)) return
+      if (selected?.where === 'waste') {
+        setSelected(null)
+        return
+      }
     }
-    setSelected({ where: 'waste', col: 0, index: 0 })
+    setSelected(source)
+    onHaptic?.('light')
   }
 
   const onFoundationClick = (fi: number) => {
+    if (clearing || won) return
     if (selected) {
       if (tryMoveToFoundation(fi)) return
     }
@@ -442,18 +502,8 @@ export function SolitaireGame({
   }
 
   const onTableauClick = (ti: number, index: number) => {
+    if (clearing || won) return
     const col = tableau[ti]
-    if (selected) {
-      if (tryMoveToTableau(ti)) return
-      // double-click style: try auto foundation
-      if (selected.where === 'tableau' && selected.col === ti && selected.index === index) {
-        for (let f = 0; f < 4; f += 1) {
-          if (tryMoveToFoundation(f)) return
-        }
-        setSelected(null)
-        return
-      }
-    }
     if (!col.length) {
       if (selected) tryMoveToTableau(ti)
       return
@@ -464,6 +514,24 @@ export function SolitaireGame({
     for (let i = index; i < col.length - 1; i += 1) {
       if (!faceUp.has(col[i].id) || !canStack(col[i + 1], col[i])) return
     }
+
+    const key = `t-${ti}-${index}`
+    const sameSelected =
+      selected?.where === 'tableau' && selected.col === ti && selected.index === index
+
+    // Double-tap (or second tap on the same card) → try foundation
+    if (registerTap(key) || sameSelected) {
+      if (sendHome({ where: 'tableau', col: ti, index })) return
+      if (sameSelected) {
+        setSelected(null)
+        return
+      }
+    }
+
+    if (selected) {
+      if (tryMoveToTableau(ti)) return
+    }
+
     setSelected({ where: 'tableau', col: ti, index })
     onHaptic?.('light')
   }
