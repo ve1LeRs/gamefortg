@@ -405,6 +405,9 @@ export function SolitaireGame({
     setFoundations(newFoundations)
     setSelected(null)
     lastTapRef.current = null
+    flightId.current += 1
+    setFlight({ card, fi, id: flightId.current })
+    window.setTimeout(() => setFlight(null), 160)
     onHaptic?.('light')
     checkWin(newFoundations)
     return true
@@ -664,6 +667,8 @@ export function SolitaireGame({
               <PlayingCard
                 card={waste[waste.length - 1]}
                 selected={selected?.where === 'waste'}
+                playable
+                onClick={onWasteClick}
               />
             )}
           </div>
@@ -709,8 +714,9 @@ export function SolitaireGame({
             {col.map((card, index) => {
               const up = faceUp.has(card.id)
               const isTop = index === col.length - 1
-              const isSel =
+              const inRun =
                 selected?.where === 'tableau' && selected.col === ti && index >= selected.index
+              const isSel = inRun && selected!.index === index
               const buried = up && !isTop
               const pulse = hintPulse === `t-${ti}-${index}`
               return (
@@ -722,7 +728,7 @@ export function SolitaireGame({
                   playable={up}
                   index={index}
                   onClick={() => onTableauClick(ti, index)}
-                  className={`${buried ? 'sol-buried' : ''}${pulse ? ' sol-hint-card' : ''}`.trim()}
+                  className={`${buried ? 'sol-buried' : ''}${inRun && !isSel ? ' sol-in-run' : ''}${pulse ? ' sol-hint-card' : ''}`.trim()}
                   style={{ top: cardOffset(col, index, faceUp), zIndex: index + 1 }}
                 />
               )
