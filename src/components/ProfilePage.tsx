@@ -18,7 +18,7 @@ export function ProfilePage({
   const topCount = favorites[0]?.count ?? 0
   const displayName = user
     ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
-    : 'Гость Козыря'
+    : 'Playfort Guest'
   const initial = (user?.firstName?.[0] ?? 'G').toUpperCase()
 
   return (
