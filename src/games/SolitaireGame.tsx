@@ -40,18 +40,18 @@ function canFoundation(card: Card, pile: Pile) {
   return top.suit === card.suit && rankValue(card.rank, SOLITAIRE_RANKS) === rankValue(top.rank, SOLITAIRE_RANKS) + 1
 }
 
-/** Vertical offset so face-up peek strips keep rank+suit readable. */
+/** Vertical offset so face-up peek strips keep the rank readable. */
 function cardOffset(col: Pile, index: number, faceUp: Set<string>) {
   let y = 0
   for (let i = 0; i < index; i += 1) {
-    y += faceUp.has(col[i].id) ? 26 : 10
+    y += faceUp.has(col[i].id) ? 22 : 11
   }
   return y
 }
 
 function colHeight(col: Pile, faceUp: Set<string>) {
-  if (!col.length) return 72
-  return cardOffset(col, col.length - 1, faceUp) + 72
+  if (!col.length) return 84
+  return cardOffset(col, col.length - 1, faceUp) + 84
 }
 
 /** Stock empty and every tableau card face-up → offer auto-collect. */
