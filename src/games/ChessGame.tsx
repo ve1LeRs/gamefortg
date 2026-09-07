@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChessPieceSvg } from '../components/ChessPieceSvg'
+import {
+  BOT_DIFFICULTIES,
+  BOT_DIFFICULTY_HINT,
+  BOT_DIFFICULTY_LABEL,
+  type BotDifficulty,
+} from './botDifficulty'
 
 type Color = 'w' | 'b'
 type Piece = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'k' | 'q' | 'r' | 'b' | 'n' | 'p' | null
@@ -391,18 +397,10 @@ function orderedMoves(board: Piece[][], white: boolean, castle: Castle): { from:
   return moves
 }
 
-type BotDifficulty = 'easy' | 'medium' | 'hard'
-
 const DIFFICULTY_DEPTH: Record<BotDifficulty, number> = {
   easy: 1,
   medium: 2,
   hard: 3,
-}
-
-const DIFFICULTY_LABEL: Record<BotDifficulty, string> = {
-  easy: 'Лёгкий',
-  medium: 'Средний',
-  hard: 'Сложный',
 }
 
 function minimax(
@@ -505,19 +503,21 @@ function newHumanColor(): Color {
 }
 
 export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void }) {
-  const [human, setHuman] = useState<Color>(() => newHumanColor())
+  const [phase, setPhase] = useState<'setup' | 'play'>('setup')
+  const [pick, setPick] = useState<BotDifficulty>('medium')
+  const [human, setHuman] = useState<Color>('w')
   const [board, setBoard] = useState(() => clone(START))
   const [castle, setCastle] = useState<Castle>(() => ({ ...START_CASTLE }))
   const [turn, setTurn] = useState<Color>('w')
   const [selected, setSelected] = useState<Sq | null>(null)
-  const [status, setStatus] = useState('Загрузка партии…')
+  const [status, setStatus] = useState('Выберите сложность')
   const [over, setOver] = useState(false)
   const [difficulty, setDifficulty] = useState<BotDifficulty>('medium')
   const flipped = human === 'b'
   const bot = human === 'w' ? 'b' : 'w'
-  const bootRef = useRef(false)
   const difficultyRef = useRef(difficulty)
   difficultyRef.current = difficulty
+  const botTimer = useRef<number | null>(null)
 
   const hints = useMemo(() => {
     if (!selected) return [] as Sq[]
@@ -555,6 +555,15 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     return null
   }
 
+  const clearBotTimer = () => {
+    if (botTimer.current != null) {
+      window.clearTimeout(botTimer.current)
+      botTimer.current = null
+    }
+  }
+
+  useEffect(() => () => clearBotTimer(), [])
+
   const runBotTurn = useCallback(
     (played: { board: Piece[][]; castle: Castle }, humanColor: Color) => {
       const botColor = humanColor === 'w' ? 'b' : 'w'
@@ -568,7 +577,9 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
 
       setStatus('Ход бота…')
       setTurn(botColor)
-      window.setTimeout(() => {
+      clearBotTimer()
+      botTimer.current = window.setTimeout(() => {
+        botTimer.current = null
         const next = botMove(played.board, played.castle, botColor === 'w', difficultyRef.current)
         setBoard(next.board)
         setCastle(next.castle)
@@ -587,43 +598,50 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     [onHaptic],
   )
 
-  const reset = useCallback(() => {
-    const nextHuman = newHumanColor()
-    setHuman(nextHuman)
+  const goSetup = useCallback(() => {
+    clearBotTimer()
+    setPhase('setup')
+    setPick(difficulty)
+    setHuman('w')
     setBoard(clone(START))
     setCastle({ ...START_CASTLE })
+    setTurn('w')
     setSelected(null)
     setOver(false)
+    setStatus('Выберите сложность')
     onHaptic?.('medium')
-    if (nextHuman === 'w') {
-      setTurn('w')
-      setStatus('Вы — белые. Ваш ход')
-    } else {
-      setTurn('b')
-      setStatus('Вы — чёрные. Ход бота…')
-      window.setTimeout(() => {
-        runBotTurn({ board: clone(START), castle: { ...START_CASTLE } }, 'b')
-      }, 350)
-    }
-  }, [onHaptic, runBotTurn])
+  }, [difficulty, onHaptic])
 
-  useEffect(() => {
-    if (bootRef.current) return
-    bootRef.current = true
-    if (human === 'b') {
-      setStatus('Вы — чёрные. Ход бота…')
-      setTurn('b')
-      window.setTimeout(() => {
-        runBotTurn({ board: clone(START), castle: { ...START_CASTLE } }, 'b')
-      }, 350)
-    } else {
-      setTurn('w')
-      setStatus('Вы — белые. Ваш ход')
-    }
-  }, [human, runBotTurn])
+  const startGame = useCallback(
+    (level: BotDifficulty) => {
+      clearBotTimer()
+      const nextHuman = newHumanColor()
+      setDifficulty(level)
+      setPick(level)
+      setHuman(nextHuman)
+      setBoard(clone(START))
+      setCastle({ ...START_CASTLE })
+      setSelected(null)
+      setOver(false)
+      setPhase('play')
+      onHaptic?.('medium')
+      if (nextHuman === 'w') {
+        setTurn('w')
+        setStatus('Вы — белые. Ваш ход')
+      } else {
+        setTurn('b')
+        setStatus('Вы — чёрные. Ход бота…')
+        botTimer.current = window.setTimeout(() => {
+          botTimer.current = null
+          runBotTurn({ board: clone(START), castle: { ...START_CASTLE } }, 'b')
+        }, 350)
+      }
+    },
+    [onHaptic, runBotTurn],
+  )
 
   const onCellDisplay = (dr: number, dc: number) => {
-    if (over || turn !== human) return
+    if (phase !== 'play' || over || turn !== human) return
     const { r, c } = flipped ? flipSq({ r: dr, c: dc }) : { r: dr, c: dc }
     const p = board[r][c]
 
@@ -670,6 +688,34 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     }
   }
 
+  if (phase === 'setup') {
+    return (
+      <div className="table-area bot-setup">
+        <h2 className="bot-setup-title">Шахматы</h2>
+        <p className="bot-setup-lead">Выберите сложность бота</p>
+        <div className="bot-difficulty" role="group" aria-label="Сложность бота">
+          {BOT_DIFFICULTIES.map((level) => (
+            <button
+              key={level}
+              type="button"
+              className={`bot-diff-btn ${pick === level ? 'is-active' : ''}`}
+              onClick={() => {
+                setPick(level)
+                onHaptic?.('light')
+              }}
+            >
+              <span className="bot-diff-name">{BOT_DIFFICULTY_LABEL[level]}</span>
+              <span className="bot-diff-hint">{BOT_DIFFICULTY_HINT[level]}</span>
+            </button>
+          ))}
+        </div>
+        <button type="button" className="btn btn-primary bot-setup-start" onClick={() => startGame(pick)}>
+          Начать партию
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="table-area">
       <p className={`game-status ${over && status.includes('Победа') ? 'win' : over && status.includes('Поражение') ? 'lose' : ''}`}>
@@ -677,7 +723,7 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
       </p>
       <p className="chess-sides" aria-hidden>
         <span className={`chess-side ${bot === 'b' ? 'chess-side-bot' : 'chess-side-you'}`}>
-          Бот · {bot === 'b' ? 'чёрные' : 'белые'}
+          Бот · {bot === 'b' ? 'чёрные' : 'белые'} · {BOT_DIFFICULTY_LABEL[difficulty]}
         </span>
         <span className={`chess-side ${human === 'w' ? 'chess-side-you' : 'chess-side-bot'}`}>
           Вы · {human === 'w' ? 'белые' : 'чёрные'}
@@ -707,23 +753,8 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
           })}
         </div>
       </div>
-      <div className="action-bar chess-actions">
-        <div className="chess-difficulty" role="group" aria-label="Сложность бота">
-          {(['easy', 'medium', 'hard'] as BotDifficulty[]).map((level) => (
-            <button
-              key={level}
-              type="button"
-              className={`chess-diff-btn ${difficulty === level ? 'is-active' : ''}`}
-              onClick={() => {
-                setDifficulty(level)
-                onHaptic?.('light')
-              }}
-            >
-              {DIFFICULTY_LABEL[level]}
-            </button>
-          ))}
-        </div>
-        <button type="button" className="btn btn-soft" onClick={reset}>
+      <div className="action-bar">
+        <button type="button" className="btn btn-soft" onClick={goSetup}>
           Новая партия
         </button>
       </div>
