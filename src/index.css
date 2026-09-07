@@ -2931,11 +2931,11 @@ body.tg-webapp .game-topbar .back-btn {
   /* Extra top room for fanned tops; side inset for angled edges */
   min-height: calc(var(--hand-card-h, 158px) + 28px);
   padding: 14px 12px 0;
-  /* Tuck so the card midpoint sits under the player dock */
-  margin-bottom: calc(var(--hand-card-h, 158px) * -0.5 + 8px);
+  /* Pull the dock up over the hand so card midpoints sit under the panel */
+  margin-bottom: calc(var(--hand-card-h, 158px) * -0.55);
   box-sizing: border-box;
   overflow: visible;
-  z-index: 2;
+  z-index: 1;
   pointer-events: none;
 }
 
@@ -3142,19 +3142,20 @@ body.tg-webapp .game-topbar .back-btn {
 
 .durak-dock {
   width: min(100%, 420px);
-  margin: 4px 12px 0;
+  margin: 0 12px;
   padding: 12px 16px 14px;
   border-radius: 18px 18px 0 0;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(28, 36, 48, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-bottom: none;
   display: flex;
   justify-content: center;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
   position: relative;
-  z-index: 1;
+  /* Must paint above the hand — cards go under the panel */
+  z-index: 5;
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -3495,7 +3496,7 @@ body.tg-webapp .game-topbar .back-btn {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  margin-bottom: calc(var(--hand-card-h, 158px) * -0.5 + 8px);
+  margin-bottom: calc(var(--hand-card-h, 158px) * -0.55);
 }
 
 .durak-online-hand .durak-hand-row {
