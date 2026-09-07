@@ -25,7 +25,7 @@ function inviteLink(code: string): string {
 function onlineHandLayout(n: number, viewportW = 390) {
   const avail = Math.max(180, Math.min(viewportW, 440) - 14)
   let cardW = n <= 3 ? 118 : n <= 5 ? 112 : n <= 7 ? 104 : 96
-  let peek = n <= 3 ? 32 : n <= 5 ? 26 : n <= 8 ? 22 : 18
+  let peek = n <= 3 ? 36 : n <= 5 ? 30 : n <= 8 ? 26 : 22
   let step = cardW
   if (n > 1) {
     const need = cardW + (n - 1) * peek
@@ -33,7 +33,7 @@ function onlineHandLayout(n: number, viewportW = 390) {
       cardW = Math.max(52, Math.floor(avail - (n - 1) * peek))
       step = peek
       if (cardW + (n - 1) * peek > avail) {
-        peek = Math.max(15, Math.floor((avail - cardW) / (n - 1)))
+        peek = Math.max(16, Math.floor((avail - cardW) / (n - 1)))
         step = peek
       }
     } else {
@@ -44,7 +44,7 @@ function onlineHandLayout(n: number, viewportW = 390) {
     cardW,
     cardH: Math.round(cardW * (138 / 98)),
     step: Math.round(step * 10) / 10,
-    rotStep: n <= 3 ? 7.5 : n <= 5 ? 5.2 : n <= 7 ? 3.8 : n <= 10 ? 2.6 : 1.8,
+    rotStep: n <= 3 ? 9 : n <= 5 ? 6.2 : n <= 7 ? 4.8 : n <= 10 ? 3.2 : 2.1,
     fanWidth: Math.round(n <= 1 ? cardW : Math.min(avail, cardW + (n - 1) * step)),
   }
 }
