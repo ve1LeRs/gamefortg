@@ -1642,7 +1642,47 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .solitaire.is-clearing .sol-foundations .pcard {
+  animation: none;
+}
+
+.solitaire .sol-slot.sol-home-target {
+  outline: 2px solid rgba(232, 168, 56, 0.75);
+  box-shadow: 0 0 0 3px rgba(232, 168, 56, 0.22);
+}
+
+.solitaire .pcard.sol-fly-in {
   animation: sol-home-land 0.18s ease;
+}
+
+.sol-flight {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  width: 52px;
+  height: 74px;
+  z-index: 40;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: sol-fly-to-home 0.14s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.sol-flight .sol-flight-card,
+.sol-flight .pcard {
+  width: 100%;
+  height: 100%;
+  animation: none !important;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.45);
+}
+
+@keyframes sol-fly-to-home {
+  from {
+    transform: translate(-50%, 18%) scale(1.06);
+    opacity: 0.75;
+  }
+  to {
+    transform: translate(-50%, -120%) scale(0.92);
+    opacity: 0;
+  }
 }
 
 @keyframes sol-home-land {
