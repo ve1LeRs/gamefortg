@@ -88,11 +88,11 @@ function handFanLayout(n: number, viewportW = 390) {
   const avail = Math.max(180, Math.min(viewportW, 440) - slack)
   const rows = 1
   const perRow = Math.max(1, n)
-  // Keep cards fairly large; overlap does the space-saving
-  let cardW = n <= 3 ? 102 : n <= 5 ? 96 : n <= 7 ? 90 : 84
+  // Larger held cards; overlap does the space-saving
+  let cardW = n <= 3 ? 118 : n <= 5 ? 112 : n <= 7 ? 104 : 96
   let cardH = Math.round(cardW * (138 / 98))
   // Visible strip ≈ left index only (like a real hold / the reference Durak UI)
-  let peek = n <= 3 ? 30 : n <= 5 ? 24 : n <= 8 ? 20 : 18
+  let peek = n <= 3 ? 32 : n <= 5 ? 26 : n <= 8 ? 22 : 18
   let step = cardW
   if (perRow > 1) {
     const need = cardW + (perRow - 1) * peek

@@ -24,13 +24,13 @@ function inviteLink(code: string): string {
 /** Tight held-card fan — only the left index strip peeks; don't spread to fill width. */
 function onlineHandLayout(n: number, viewportW = 390) {
   const avail = Math.max(180, Math.min(viewportW, 440) - 14)
-  let cardW = n <= 3 ? 98 : n <= 5 ? 92 : n <= 7 ? 86 : 80
-  let peek = n <= 3 ? 28 : n <= 5 ? 22 : n <= 8 ? 19 : 17
+  let cardW = n <= 3 ? 118 : n <= 5 ? 112 : n <= 7 ? 104 : 96
+  let peek = n <= 3 ? 32 : n <= 5 ? 26 : n <= 8 ? 22 : 18
   let step = cardW
   if (n > 1) {
     const need = cardW + (n - 1) * peek
     if (need > avail) {
-      cardW = Math.max(50, Math.floor(avail - (n - 1) * peek))
+      cardW = Math.max(52, Math.floor(avail - (n - 1) * peek))
       step = peek
       if (cardW + (n - 1) * peek > avail) {
         peek = Math.max(15, Math.floor((avail - cardW) / (n - 1)))
@@ -42,7 +42,7 @@ function onlineHandLayout(n: number, viewportW = 390) {
   }
   return {
     cardW,
-    cardH: Math.round(cardW * (128 / 92)),
+    cardH: Math.round(cardW * (138 / 98)),
     step: Math.round(step * 10) / 10,
     rotStep: n <= 3 ? 7.5 : n <= 5 ? 5.2 : n <= 7 ? 3.8 : n <= 10 ? 2.6 : 1.8,
     fanWidth: Math.round(n <= 1 ? cardW : Math.min(avail, cardW + (n - 1) * step)),
@@ -417,13 +417,15 @@ export function DurakOnline({
               })}
             </div>
           </div>
-          <div className={`durak-seat player${view.yourTurn ? ' is-active' : ''}`}>
-            <div className="durak-avatar you-avatar" aria-hidden>
-              🧑
-            </div>
-            <div className="durak-seat-meta">
-              <span className="durak-name">{room.solo ? room.you.name : 'Вы'}</span>
-              <span className="durak-pill">{view.you.length}</span>
+          <div className="durak-dock">
+            <div className={`durak-seat player${view.yourTurn ? ' is-active' : ''}`}>
+              <div className="durak-avatar you-avatar" aria-hidden>
+                🧑
+              </div>
+              <div className="durak-seat-meta">
+                <span className="durak-name">{room.solo ? room.you.name : 'Вы'}</span>
+                <span className="durak-pill">{view.you.length}</span>
+              </div>
             </div>
           </div>
         </footer>
