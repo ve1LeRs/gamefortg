@@ -80,31 +80,37 @@ function maxAttackSlots(defenderHandSize: number, table: TablePair[]): number {
   return Math.min(6, defenderHandSize + defended)
 }
 
-/** Fit the whole hand on screen — no horizontal scroll. Large hands use 2 rows.
+/** Natural hand fan: heavy overlap is fine — only rank/suit corner must peek.
  *  `viewportW` is the hand content-box width (padding already excluded). */
 function handFanLayout(n: number, viewportW = 390) {
-  // Extra slack inside the content box for rotate/select lift overhang
-  const slack = 12
+  // Slack for fan rotation (tops swing out from bottom origin)
+  const slack = 20
   const avail = Math.max(180, Math.min(viewportW, 440) - slack)
-  const rows = n >= 9 ? 2 : 1
+  const rows = n >= 10 ? 2 : 1
   const perRow = rows === 1 ? Math.max(1, n) : Math.ceil(n / 2)
-  let cardW = n <= 4 ? 92 : n <= 6 ? 78 : n <= 8 ? 70 : 62
+  // Keep cards large; tighten step so they tuck like a real hold
+  let cardW = n <= 3 ? 100 : n <= 5 ? 92 : n <= 7 ? 86 : n <= 9 ? 78 : 68
   let cardH = Math.round(cardW * (138 / 98))
   let step = cardW
   if (perRow > 1) {
-    const minPeek = n >= 12 ? 26 : n >= 9 ? 30 : 34
+    // Rank + suit corner only (~26–34px visible strip)
+    const minPeek = n >= 12 ? 24 : n >= 9 ? 28 : 32
     const maxStep = (avail - cardW) / (perRow - 1)
-    step = Math.max(minPeek, Math.min(cardW - 8, maxStep))
+    step = Math.max(minPeek, Math.min(cardW - 10, maxStep))
     const need = cardW + (perRow - 1) * minPeek
     if (need > avail) {
-      cardW = Math.max(48, Math.floor(avail - (perRow - 1) * minPeek))
+      cardW = Math.max(52, Math.floor(avail - (perRow - 1) * minPeek))
       cardH = Math.round(cardW * (138 / 98))
       step = minPeek
     } else {
-      step = Math.max(minPeek, Math.min(cardW - 6, (avail - cardW) / (perRow - 1)))
+      // Prefer tighter fan when there's spare width — feel held, not spread flat
+      const cozy = Math.min(cardW - 12, minPeek + (n <= 6 ? 10 : 6))
+      step = Math.max(minPeek, Math.min(cozy, maxStep))
     }
   }
-  const rotStep = rows === 2 ? 0.2 : n <= 4 ? 0.9 : n <= 7 ? 0.45 : 0.25
+  // Angle like holding cards in a fist (stronger for fewer cards)
+  const rotStep =
+    rows === 2 ? 1.2 : n <= 3 ? 7.5 : n <= 5 ? 5.2 : n <= 7 ? 3.8 : n <= 9 ? 2.6 : 1.8
   const rowWidth = perRow <= 1 ? cardW : cardW + (perRow - 1) * step
   return {
     cardW: Math.round(cardW),
@@ -945,6 +951,8 @@ export function DurakGame({
                   const n = rowCards.length
                   const mid = (n - 1) / 2
                   const offset = i - mid
+                  // Arc: edge cards sit lower — like a natural grip
+                  const fanY = Math.abs(offset) * (n <= 5 ? 3.2 : 2.2)
                   const isDrag = drag?.card.id === c.id && drag.active
                   const dealing = enterFor(c.id, 'none') === 'deal'
                   const dealI = dealOrder[c.id] ?? 0
@@ -961,7 +969,8 @@ export function DurakGame({
                       className={`durak-card durak-hand-card${isDrag ? ' is-drag-source' : ''}`}
                       style={{
                         ['--fan' as string]: offset,
-                        ['--rot' as string]: `${offset * handLayout.rotStep}deg`,
+                        ['--rot' as string]: `${(offset * handLayout.rotStep).toFixed(2)}deg`,
+                        ['--fan-y' as string]: `${fanY.toFixed(1)}px`,
                         ['--deal-i' as string]: dealI,
                         zIndex: isDrag ? 50 : dealing ? 60 + dealI : throwingId === c.id ? 30 : i + 1,
                         touchAction: 'none',
