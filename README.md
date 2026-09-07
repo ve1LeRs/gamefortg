@@ -1,6 +1,6 @@
-# GameForTg
+# Козырь
 
-Мобильный игровой хаб внутри Telegram Mini App.
+Мобильный игровой хаб внутри Telegram Mini App (репозиторий `gamefortg`).
 
 ## Игры
 
@@ -44,7 +44,7 @@ npm run build
 
 ## Telegram-бот
 
-1. В [@BotFather](https://t.me/BotFather) задайте имя бота: **GameForTg**
+1. В [@BotFather](https://t.me/BotFather) задайте имя бота: **Козырь**
 2. Main Mini App / Menu Button URL (новый путь — сбрасывает кэш Telegram):
 
 ```text
