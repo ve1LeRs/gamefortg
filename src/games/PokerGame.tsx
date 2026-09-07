@@ -326,15 +326,21 @@ export function PokerGame({
   /** Board cards that should play the deal animation (ids). */
   const [freshBoardIds, setFreshBoardIds] = useState<string[]>([])
   const boardLenRef = useRef(0)
+  /** True while a timed action → advance/showdown is pending (avoids double-deal on all-in). */
+  const streetBusyRef = useRef(false)
 
   const stackRef = useRef(stack)
   const botStackRef = useRef(botStack)
+  const handRef = useRef({ deck, board, pot, player, bot })
   stackRef.current = stack
   botStackRef.current = botStack
+  handRef.current = { deck, board, pot, player, bot }
 
   const maxWager = Math.min(stack, botStack)
   const minWager = Math.min(betSize(phase === 'over' ? 'preflop' : phase), Math.max(0, maxWager))
   const facingBot = toCall > 0
+  /** No more betting possible — at least one side is all-in and the street is matched. */
+  const allInSpectating = phase !== 'over' && !matchOver && Math.min(stack, botStack) <= 0 && toCall <= 0
 
   useEffect(() => {
     if (phase === 'over' || matchOver) return
@@ -461,8 +467,10 @@ export function PokerGame({
       potAmount: number,
       playerHole: Card[],
       botHole: Card[],
+      opts?: { runout?: boolean },
     ) => {
       const copy = [...currentDeck]
+      const runout = opts?.runout
       setToCall(0)
       if (from === 'preflop') {
         copy.pop()
@@ -472,7 +480,7 @@ export function PokerGame({
         setBoard(flop)
         setDeck(copy)
         setPhase('flop')
-        setStatus('Флоп открыт. Чек, ставка или фолд.')
+        setStatus(runout ? 'All-in. Флоп…' : 'Флоп открыт. Чек, ставка или фолд.')
       } else if (from === 'flop') {
         copy.pop()
         const card = copy.pop()!
@@ -481,7 +489,7 @@ export function PokerGame({
         setBoard([...currentBoard, card])
         setDeck(copy)
         setPhase('turn')
-        setStatus('Тёрн. Чек, ставка или фолд.')
+        setStatus(runout ? 'All-in. Тёрн…' : 'Тёрн. Чек, ставка или фолд.')
       } else if (from === 'turn') {
         copy.pop()
         const card = copy.pop()!
@@ -490,7 +498,7 @@ export function PokerGame({
         setBoard([...currentBoard, card])
         setDeck(copy)
         setPhase('river')
-        setStatus('Ривер. Чек, ставка или фолд.')
+        setStatus(runout ? 'All-in. Ривер…' : 'Ривер. Чек, ставка или фолд.')
       } else {
         showdown(currentBoard, potAmount, playerHole, botHole)
       }
@@ -498,8 +506,56 @@ export function PokerGame({
     [showdown],
   )
 
+  const queueContinue = useCallback(
+    (
+      delay: number,
+      phaseNow: Phase,
+      deckNow: Card[],
+      boardNow: Card[],
+      potNow: number,
+      playerNow: Card[],
+      botNow: Card[],
+      playerChips: number,
+      botChips: number,
+    ) => {
+      streetBusyRef.current = true
+      window.setTimeout(() => {
+        const runout = playerChips <= 0 || botChips <= 0
+        if (phaseNow === 'river') {
+          showdown(boardNow, potNow, playerNow, botNow)
+        } else {
+          advance(phaseNow, deckNow, boardNow, potNow, playerNow, botNow, { runout })
+        }
+        streetBusyRef.current = false
+      }, delay)
+    },
+    [advance, showdown],
+  )
+
+  // After all-in is matched, player has no decisions — run streets out automatically.
+  useEffect(() => {
+    if (!allInSpectating) return
+    if (streetBusyRef.current) return
+    setStatus(stack <= 0 ? 'All-in — смотрите раздачу…' : 'Бот в all-in — открываем карты…')
+    streetBusyRef.current = true
+    const phaseNow = phase
+    const t = window.setTimeout(() => {
+      const h = handRef.current
+      if (phaseNow === 'river') {
+        showdown(h.board, h.pot, h.player, h.bot)
+      } else {
+        advance(phaseNow, h.deck, h.board, h.pot, h.player, h.bot, { runout: true })
+      }
+      streetBusyRef.current = false
+    }, 700)
+    return () => {
+      window.clearTimeout(t)
+      streetBusyRef.current = false
+    }
+  }, [allInSpectating, phase, stack, advance, showdown])
+
   const check = () => {
-    if (phase === 'over' || matchOver || facingBot) return
+    if (phase === 'over' || matchOver || facingBot || allInSpectating) return
     onHaptic?.('light')
 
     const decision = botDecide({
@@ -515,7 +571,7 @@ export function PokerGame({
 
     if (decision.type === 'raise') {
       const amount = clampBet(decision.amount, minWager, Math.min(stack, botStack))
-      if (amount > 0 && botStack >= amount) {
+      if (amount > 0 && botStack >= amount && stack > 0) {
         const nextBot = botStack - amount
         const nextPot = pot + amount
         setBotStack(nextBot)
@@ -529,17 +585,11 @@ export function PokerGame({
     }
 
     setStatus('Бот чекает.')
-    window.setTimeout(() => {
-      if (phase === 'river') {
-        showdown(board, pot, player, bot)
-      } else {
-        advance(phase, deck, board, pot, player, bot)
-      }
-    }, 320)
+    queueContinue(320, phase, deck, board, pot, player, bot, stack, botStack)
   }
 
   const callBot = () => {
-    if (phase === 'over' || matchOver || !facingBot) return
+    if (phase === 'over' || matchOver || !facingBot || stack <= 0) return
     const amount = Math.min(toCall, stack)
     if (amount <= 0) return
     onHaptic?.('medium')
@@ -549,23 +599,16 @@ export function PokerGame({
     setStack(nextStack)
     setPot(nextPot)
     setToCall(0)
-    setStatus(`Вы коллируете ${formatChips(amount)}.`)
-    const phaseNow = phase
-    const deckNow = deck
-    const boardNow = board
-    const playerNow = player
-    const botNow = bot
-    window.setTimeout(() => {
-      if (phaseNow === 'river') {
-        showdown(boardNow, nextPot, playerNow, botNow)
-      } else {
-        advance(phaseNow, deckNow, boardNow, nextPot, playerNow, botNow)
-      }
-    }, 280)
+    setStatus(
+      nextStack <= 0
+        ? `All-in ${formatChips(amount)}. Доигрываем раздачу…`
+        : `Вы коллируете ${formatChips(amount)}.`,
+    )
+    queueContinue(280, phase, deck, board, nextPot, player, bot, nextStack, botStack)
   }
 
   const bet = () => {
-    if (phase === 'over' || matchOver) return
+    if (phase === 'over' || matchOver || allInSpectating) return
 
     // Facing bot bet: wager above toCall is a raise; exactly toCall is call.
     if (facingBot) {
@@ -590,6 +633,7 @@ export function PokerGame({
       const nextBot = botStack - botAdd
       const nextPot = pot + raiseTotal + botAdd
       // Bot already put toCall into pot earlier; now matches the raise bump
+      stackRef.current = nextStack
       setStack(nextStack)
       setBotStack(nextBot)
       setPot(nextPot)
@@ -606,12 +650,7 @@ export function PokerGame({
         phase,
       })
 
-      const phaseNow = phase
-      const deckNow = deck
-      const boardNow = board
-      const playerNow = player
-      const botNow = bot
-
+      streetBusyRef.current = true
       window.setTimeout(() => {
         if (decision.type === 'fold') {
           settlePot('player', nextPot)
@@ -619,18 +658,24 @@ export function PokerGame({
           setStatus(`Бот сбросил на рейз. Вы забираете банк ${formatChips(nextPot)}.`)
           setResultClass('win')
           onHaptic?.('success')
+          streetBusyRef.current = false
           return
         }
-        // call or treat raise as call to avoid infinite re-raise wars this street
         setStatus(
-          decision.type === 'raise'
-            ? `Бот думал рейзить, но коллирует ${formatChips(botAdd)}.`
-            : `Бот коллирует ${formatChips(botAdd)}.`,
+          nextStack <= 0
+            ? `All-in. Бот коллирует ${formatChips(botAdd)}. Доигрываем…`
+            : decision.type === 'raise'
+              ? `Бот думал рейзить, но коллирует ${formatChips(botAdd)}.`
+              : `Бот коллирует ${formatChips(botAdd)}.`,
         )
-        if (phaseNow === 'river') {
-          showdown(boardNow, nextPot, playerNow, botNow)
+        if (phase === 'river') {
+          showdown(board, nextPot, player, bot)
+          streetBusyRef.current = false
         } else {
-          advance(phaseNow, deckNow, boardNow, nextPot, playerNow, botNow)
+          advance(phase, deck, board, nextPot, player, bot, {
+            runout: nextStack <= 0 || nextBot <= 0,
+          })
+          streetBusyRef.current = false
         }
       }, 420)
       return
@@ -654,18 +699,14 @@ export function PokerGame({
       phase,
     })
 
-    const phaseNow = phase
-    const deckNow = deck
-    const boardNow = board
-    const playerNow = player
-    const botNow = bot
     const potNow = pot
     const stackNow = stack
     const botStackNow = botStack
+    const nextStackAfterBet = stackNow - amount
 
     if (decision.type === 'fold') {
       // Player's bet goes into the pot; bot folds → player wins the pot.
-      stackRef.current = stackNow - amount
+      stackRef.current = nextStackAfterBet
       setStack(stackRef.current)
       const nextPot = potNow + amount
       setPot(nextPot)
@@ -677,11 +718,11 @@ export function PokerGame({
       return
     }
 
-    if (decision.type === 'raise') {
+    // Bot cannot re-raise an all-in (no chips left to call a bigger raise).
+    if (decision.type === 'raise' && nextStackAfterBet > 0) {
       const raiseAmt = clampBet(decision.amount, amount + minWager, Math.min(stackNow, botStackNow))
       if (raiseAmt > amount && botStackNow >= raiseAmt && stackNow >= raiseAmt) {
-        // Player puts amount now; bot puts raiseAmt; player must call the difference
-        const nextStack = stackNow - amount
+        const nextStack = nextStackAfterBet
         const nextBot = botStackNow - raiseAmt
         const nextPot = potNow + amount + raiseAmt
         setStack(nextStack)
@@ -701,24 +742,23 @@ export function PokerGame({
       return
     }
     const nextPot = potNow + amount * 2
-    const nextStack = stackNow - amount
+    const nextStack = nextStackAfterBet
     const nextBot = botStackNow - amount
+    stackRef.current = nextStack
     setPot(nextPot)
     setStack(nextStack)
     setBotStack(nextBot)
-    setStatus(`Ставка ${formatChips(amount)}. Бот коллирует.`)
+    setStatus(
+      nextStack <= 0
+        ? `All-in ${formatChips(amount)}. Бот коллирует. Доигрываем…`
+        : `Ставка ${formatChips(amount)}. Бот коллирует.`,
+    )
 
-    window.setTimeout(() => {
-      if (phaseNow === 'river') {
-        showdown(boardNow, nextPot, playerNow, botNow)
-      } else {
-        advance(phaseNow, deckNow, boardNow, nextPot, playerNow, botNow)
-      }
-    }, 320)
+    queueContinue(320, phase, deck, board, nextPot, player, bot, nextStack, nextBot)
   }
 
   const fold = () => {
-    if (phase === 'over' || matchOver) return
+    if (phase === 'over' || matchOver || allInSpectating) return
     setPhase('over')
     setToCall(0)
     settlePot('bot', pot)
@@ -839,7 +879,9 @@ export function PokerGame({
             </div>
 
             <div className="poker-actions">
-              {phase !== 'over' && !matchOver ? (
+              {phase !== 'over' && !matchOver && allInSpectating ? (
+                <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
+              ) : phase !== 'over' && !matchOver ? (
                 <>
                   <div className="poker-bet-panel">
                     <div className="poker-bet-stepper" aria-label="Размер ставки">

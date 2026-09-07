@@ -3024,6 +3024,19 @@ body.tg-webapp .game-topbar .back-btn {
   min-width: 0;
 }
 
+.poker-allin-wait {
+  margin: 0;
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(246, 212, 138, 0.92);
+  border-radius: 12px;
+  border: 1px solid rgba(232, 168, 56, 0.28);
+  background: rgba(232, 168, 56, 0.1);
+}
+
 .poker-actions-row {
   display: flex;
   justify-content: stretch;
