@@ -109,7 +109,7 @@ function handFanLayout(n: number, viewportW = 390) {
       step = peek
     }
   }
-  const rotStep = n <= 3 ? 8.5 : n <= 5 ? 6 : n <= 7 ? 4.4 : n <= 10 ? 2.6 : n <= 13 ? 1.8 : 1.3
+  const rotStep = n <= 3 ? 8.5 : n <= 5 ? 6 : n <= 7 ? 4.4 : n <= 10 ? 2.6 : n <= 13 ? 1.6 : 1.1
   const rowWidth = perRow <= 1 ? cardW : cardW + (perRow - 1) * step
   return {
     cardW: Math.round(cardW),
@@ -121,6 +121,16 @@ function handFanLayout(n: number, viewportW = 390) {
     perRow,
     scrollable: false,
   }
+}
+
+/** Vertical fan offset — lift left a bit, never bury the right under the dock. */
+function handFanY(offset: number, n: number) {
+  const arc = n <= 5 ? 2.2 : n <= 8 ? 1.0 : n <= 12 ? 0.3 : 0.1
+  const side = n <= 5 ? 1.0 : n <= 8 ? 1.15 : n <= 12 ? 0.4 : 0.15
+  const liftAll = n >= 12 ? -10 : n >= 9 ? -5 : 0
+  const y = Math.abs(offset) * arc + offset * side + liftAll
+  const maxSink = n <= 6 ? 12 : n <= 10 ? 5 : 1
+  return Math.min(maxSink, Math.max(-22, y))
 }
 
 
@@ -1016,11 +1026,7 @@ export function DurakGame({
                   const n = rowCards.length
                   const mid = (n - 1) / 2
                   const offset = i - mid
-                  // Soft arc + side bias: rotation around the bottom makes the left
-                  // index dip; lift left cards and settle right ones so the fan reads level.
-                  const arc = n <= 5 ? 2.4 : n <= 8 ? 1.2 : 0.6
-                  const side = n <= 5 ? 1.1 : n <= 8 ? 2.1 : 2.8
-                  const fanY = Math.abs(offset) * arc + offset * side
+                  const fanY = handFanY(offset, n)
                   const isDrag = drag?.card.id === c.id && drag.active
                   const dealI = dealOrder[c.id] ?? 0
                   return (

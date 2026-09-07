@@ -44,9 +44,18 @@ function onlineHandLayout(n: number, viewportW = 390) {
     cardW,
     cardH: Math.round(cardW * (138 / 98)),
     step: Math.round(step * 10) / 10,
-    rotStep: n <= 3 ? 8.5 : n <= 5 ? 5.8 : n <= 7 ? 4.2 : n <= 10 ? 2.5 : 1.6,
+    rotStep: n <= 3 ? 8.5 : n <= 5 ? 5.8 : n <= 7 ? 4.2 : n <= 10 ? 2.5 : n <= 13 ? 1.5 : 1.1,
     fanWidth: Math.round(n <= 1 ? cardW : Math.min(avail, cardW + (n - 1) * step)),
   }
+}
+
+function onlineHandFanY(offset: number, n: number) {
+  const arc = n <= 5 ? 2.2 : n <= 8 ? 1.0 : n <= 12 ? 0.3 : 0.1
+  const side = n <= 5 ? 1.0 : n <= 8 ? 1.15 : n <= 12 ? 0.4 : 0.15
+  const liftAll = n >= 12 ? -10 : n >= 9 ? -5 : 0
+  const y = Math.abs(offset) * arc + offset * side + liftAll
+  const maxSink = n <= 6 ? 12 : n <= 10 ? 5 : 1
+  return Math.min(maxSink, Math.max(-22, y))
 }
 
 export function DurakOnline({
@@ -382,9 +391,7 @@ export function DurakOnline({
                 const legal = view.legalCardIds.includes(c.id)
                 const mid = (n - 1) / 2
                 const offset = i - mid
-                const arc = n <= 5 ? 2.4 : n <= 8 ? 1.2 : 0.6
-                const side = n <= 5 ? 1.1 : n <= 8 ? 2.1 : 2.8
-                const fanY = Math.abs(offset) * arc + offset * side
+                const fanY = onlineHandFanY(offset, n)
                 const play = () => {
                   if (!legal) return
                   const now = Date.now()
