@@ -2360,6 +2360,19 @@ body.tg-webapp .app-main:not(.game-mode) {
   contain: layout paint;
 }
 
+/* Let pairs finish their flight into бита without a hard clip tear */
+.durak-field.is-bito-flight,
+.durak-field.is-take-flight {
+  overflow: visible;
+  contain: none;
+  z-index: 5;
+}
+
+.durak-field.is-bito-flight .durak-table-zone,
+.durak-field.is-take-flight .durak-table-zone {
+  overflow: visible;
+}
+
 /* Full-width table; deck/bita hang off the sides and are clipped by .durak-field */
 .durak-table-zone {
   position: absolute;
@@ -2654,12 +2667,13 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .durak-bito.is-catching {
-  animation: durak-bito-catch 0.45s ease both;
+  animation: durak-bito-catch 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 0.55s;
 }
 
 @keyframes durak-bito-catch {
   0% { transform: translateY(-48%) rotate(14deg) scale(1); }
-  40% { transform: translateY(-48%) rotate(8deg) scale(1.08); }
+  45% { transform: translateY(-48%) rotate(6deg) scale(1.1); }
   100% { transform: translateY(-48%) rotate(14deg) scale(1); }
 }
 
@@ -2669,28 +2683,45 @@ body.tg-webapp .app-main:not(.game-mode) {
     transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
     filter: brightness(1);
   }
-  55% {
+  35% {
     opacity: 1;
-    transform: translate3d(70px, 14px, 0) scale(0.72) rotate(16deg);
-    filter: brightness(1.08);
+    transform: translate3d(36px, 6px, 0) scale(0.92) rotate(8deg);
+    filter: brightness(1.06);
+  }
+  70% {
+    opacity: 0.85;
+    transform: translate3d(88px, 16px, 0) scale(0.62) rotate(18deg);
+    filter: brightness(1.02);
   }
   100% {
     opacity: 0;
-    transform: translate3d(130px, 28px, 0) scale(0.38) rotate(28deg);
-    filter: brightness(0.9);
+    transform: translate3d(118px, 22px, 0) scale(0.42) rotate(24deg);
+    filter: brightness(0.95);
   }
 }
 
-.durak-table-cards.is-to-bito .durak-pair {
-  animation: durak-fly-to-bito 0.78s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.durak-table-cards.is-to-bito {
+  pointer-events: none;
 }
 
-.durak-table-cards.is-to-bito .durak-pair:nth-child(1) { animation-delay: 0.02s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(2) { animation-delay: 0.07s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(3) { animation-delay: 0.12s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(4) { animation-delay: 0.17s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(5) { animation-delay: 0.22s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(6) { animation-delay: 0.27s; }
+.durak-table-cards.is-to-bito .durak-pair {
+  animation: durak-fly-to-bito 0.9s cubic-bezier(0.33, 0.1, 0.25, 1) forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.durak-table-cards.is-to-bito .durak-pair:nth-child(1) { animation-delay: 0s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(2) { animation-delay: 0.04s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(3) { animation-delay: 0.08s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(4) { animation-delay: 0.12s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(5) { animation-delay: 0.16s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(6) { animation-delay: 0.18s; }
+
+.durak-table-cards.is-to-bito .durak-pair .durak-card {
+  /* Freeze enter/throw animations so they don't fight the pair flight */
+  animation: none !important;
+  transition: none !important;
+}
 
 .durak-take-banner {
   position: relative;
