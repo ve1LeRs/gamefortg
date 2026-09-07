@@ -11,6 +11,7 @@ type Props = {
   /** latin (A,K,Q,J) or Russian Durak glyphs (Т,К,Д,В) */
   rankStyle?: 'latin' | 'ru'
   onClick?: () => void
+  onDoubleClick?: () => void
   onPointerDown?: (e: React.PointerEvent<HTMLButtonElement>) => void
   onPointerMove?: (e: React.PointerEvent<HTMLButtonElement>) => void
   onPointerUp?: (e: React.PointerEvent<HTMLButtonElement>) => void
@@ -29,6 +30,7 @@ export function PlayingCard({
   enter = 'deal',
   rankStyle = 'latin',
   onClick,
+  onDoubleClick,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -53,17 +55,26 @@ export function PlayingCard({
             ? 'enter-none'
             : ''
 
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!onClick) return
+    e.stopPropagation()
+    onClick()
+  }
+
+  const handleDoubleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!onDoubleClick) return
+    e.preventDefault()
+    e.stopPropagation()
+    onDoubleClick()
+  }
+
   if (faceDown || !card) {
     return (
       <button
         type="button"
         className={`pcard face-down ${throwing ? 'throwing' : ''} ${enterClass} ${className}`}
-        onClick={(e) => {
-          if (onClick) {
-            e.stopPropagation()
-            onClick()
-          }
-        }}
+        onClick={handleClick}
+        onDoubleClick={handleDoubleClick}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -81,12 +92,8 @@ export function PlayingCard({
     <button
       type="button"
       className={`pcard ${red ? 'red' : ''} ${selected ? 'selected' : ''} ${playable ? 'playable' : ''} ${throwing ? 'throwing' : ''} ${enterClass} ${className}`}
-      onClick={(e) => {
-        if (onClick) {
-          e.stopPropagation()
-          onClick()
-        }
-      }}
+      onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

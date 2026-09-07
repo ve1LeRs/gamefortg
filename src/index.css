@@ -1732,14 +1732,16 @@ body.tg-webapp .game-topbar .back-btn {
 
 .sol-flight {
   position: fixed;
-  left: 50%;
-  top: 42%;
+  left: 0;
+  top: 0;
   width: 58px;
   height: 82px;
   z-index: 40;
   pointer-events: none;
-  transform: translate(-50%, -50%);
-  animation: sol-fly-to-home 0.14s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  margin: 0;
+  padding: 0;
+  animation: sol-fly-to-home 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
 }
 
 .sol-flight .sol-flight-card,
@@ -1752,12 +1754,12 @@ body.tg-webapp .game-topbar .back-btn {
 
 @keyframes sol-fly-to-home {
   from {
-    transform: translate(-50%, 18%) scale(1.06);
-    opacity: 0.75;
+    transform: translate3d(var(--sol-fx, 40vw), var(--sol-fy, 30vh), 0) scale(1.04);
+    opacity: 1;
   }
   to {
-    transform: translate(-50%, -120%) scale(0.92);
-    opacity: 0;
+    transform: translate3d(var(--sol-tx, 70vw), var(--sol-ty, 12vh), 0) scale(0.9);
+    opacity: 0.25;
   }
 }
 
@@ -1781,6 +1783,7 @@ body.tg-webapp .game-topbar .back-btn {
   height: 100%;
   overflow-x: clip;
   padding-inline: 4px;
+  touch-action: manipulation;
 }
 
 .sol-top {
