@@ -21,27 +21,28 @@ function inviteLink(code: string): string {
   return `${window.location.origin}${window.location.pathname}?durakRoom=${code}`
 }
 
-/** Fit online hand on screen without clipping edge cards.
- *  `viewportW` should be the content-box width (padding already excluded). */
+/** Natural online hand fan — rank peek is enough, cards angled like a hold. */
 function onlineHandLayout(n: number, viewportW = 390) {
-  const avail = Math.max(180, Math.min(viewportW, 440) - 12)
-  let cardW = n <= 4 ? 88 : n <= 6 ? 76 : n <= 8 ? 68 : 60
-  const minPeek = n >= 10 ? 28 : 34
+  const avail = Math.max(180, Math.min(viewportW, 440) - 20)
+  let cardW = n <= 3 ? 96 : n <= 5 ? 88 : n <= 7 ? 80 : n <= 9 ? 72 : 64
+  const minPeek = n >= 10 ? 26 : 30
   let step = cardW
   if (n > 1) {
     const maxStep = (avail - cardW) / (n - 1)
-    step = Math.max(minPeek, Math.min(cardW - 8, maxStep))
     const need = cardW + (n - 1) * minPeek
     if (need > avail) {
       cardW = Math.max(48, Math.floor(avail - (n - 1) * minPeek))
       step = minPeek
+    } else {
+      const cozy = Math.min(cardW - 12, minPeek + (n <= 6 ? 10 : 6))
+      step = Math.max(minPeek, Math.min(cozy, maxStep))
     }
   }
   return {
     cardW,
     cardH: Math.round(cardW * (128 / 92)),
     step: Math.round(step * 10) / 10,
-    rotStep: n <= 4 ? 0.9 : n <= 7 ? 0.45 : 0.25,
+    rotStep: n <= 3 ? 7 : n <= 5 ? 5 : n <= 7 ? 3.6 : n <= 9 ? 2.4 : 1.6,
     fanWidth: Math.round(n <= 1 ? cardW : Math.min(avail, cardW + (n - 1) * step)),
   }
 }
