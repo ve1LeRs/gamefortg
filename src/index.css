@@ -1037,6 +1037,11 @@ body.tg-webapp .app-main:not(.game-mode) {
   padding-left: 16px;
 }
 
+/* Hard hide in-app chevron inside Telegram Mini App games */
+body.tg-webapp .game-topbar .back-btn {
+  display: none !important;
+}
+
 .back-btn {
   width: 40px;
   height: 40px;

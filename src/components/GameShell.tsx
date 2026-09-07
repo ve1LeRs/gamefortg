@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getGame, type GameId } from '../data/games'
 import { getWebApp } from '../lib/telegram'
 import { PokerGame } from '../games/PokerGame'
@@ -24,44 +24,84 @@ export function GameShell({
   const meta = getGame(gameId)
   const immersive = gameId === 'durak'
   const [durakMode, setDurakMode] = useState<DurakMode>(durakRoomCode ? 'online' : 'pick')
-  const [hasTgBack, setHasTgBack] = useState(false)
+  const inTelegram = typeof document !== 'undefined' && document.body.classList.contains('tg-webapp')
+  const onBackRef = useRef(onBack)
+  const durakModeRef = useRef(durakMode)
+  const gameIdRef = useRef(gameId)
+
+  useEffect(() => {
+    onBackRef.current = onBack
+  }, [onBack])
+  useEffect(() => {
+    durakModeRef.current = durakMode
+  }, [durakMode])
+  useEffect(() => {
+    gameIdRef.current = gameId
+  }, [gameId])
 
   useEffect(() => {
     if (durakRoomCode) setDurakMode('online')
   }, [durakRoomCode])
 
-  // Native Telegram BackButton for every game (replaces «Закрыть» with «Назад»).
+  // Native Telegram BackButton — keeps «Назад» instead of «Закрыть» while a game is open.
   useEffect(() => {
     const wa = getWebApp()
     const btn = wa?.BackButton
-    if (!btn) {
-      setHasTgBack(false)
-      return
-    }
-    setHasTgBack(true)
+    if (!btn) return
+
     const handle = () => {
-      if (gameId === 'durak' && durakMode !== 'pick') {
+      if (gameIdRef.current === 'durak' && durakModeRef.current !== 'pick') {
         setDurakMode('pick')
         return
       }
-      onBack()
+      onBackRef.current()
     }
-    btn.show()
+
+    const showBack = () => {
+      try {
+        btn.show()
+      } catch {
+        /* noop */
+      }
+    }
+
     btn.onClick(handle)
+    showBack()
+    // Fullscreen / viewport changes can restore «Закрыть» — re-assert Back.
+    wa.onEvent('fullscreenChanged', showBack)
+    wa.onEvent('viewportChanged', showBack)
+    const timers = [0, 120, 400, 1000].map((ms) => window.setTimeout(showBack, ms))
+
     return () => {
+      timers.forEach((id) => window.clearTimeout(id))
+      wa.offEvent?.('fullscreenChanged', showBack)
+      wa.offEvent?.('viewportChanged', showBack)
       btn.offClick(handle)
-      btn.hide()
+      try {
+        btn.hide()
+      } catch {
+        /* noop */
+      }
     }
-  }, [gameId, onBack, durakMode])
+  }, [])
+
+  // Re-show when entering a game / changing Durak mode without tearing down the listener.
+  useEffect(() => {
+    try {
+      getWebApp()?.BackButton?.show()
+    } catch {
+      /* noop */
+    }
+  }, [gameId, durakMode])
 
   return (
     <div
       className={`game-shell${gameId === 'durak' ? ' game-shell--durak' : ''}${immersive ? ' game-shell--immersive' : ''}`}
     >
       {!immersive && (
-        <header className={`game-topbar${hasTgBack ? ' game-topbar--tg-back' : ''}`}>
-          {/* Custom chevron only outside Telegram — in TG use native BackButton */}
-          {!hasTgBack && (
+        <header className={`game-topbar${inTelegram ? ' game-topbar--tg-back' : ''}`}>
+          {/* Never show an in-app chevron inside Telegram — only native BackButton */}
+          {!inTelegram && (
             <button type="button" className="back-btn" onClick={onBack} aria-label="Назад">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M15 18l-6-6 6-6" />
