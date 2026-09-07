@@ -23,6 +23,7 @@ export function GameShell({
 }) {
   const meta = getGame(gameId)
   const immersive = gameId === 'durak' || gameId === 'poker'
+  const isBoardGame = gameId === 'chess' || gameId === 'checkers' || gameId === 'solitaire'
   const [durakMode, setDurakMode] = useState<DurakMode>(durakRoomCode ? 'online' : 'pick')
   const inTelegram = typeof document !== 'undefined' && document.body.classList.contains('tg-webapp')
   const onBackRef = useRef(onBack)
@@ -125,7 +126,7 @@ export function GameShell({
 
   return (
     <div
-      className={`game-shell${gameId === 'durak' ? ' game-shell--durak' : ''}${gameId === 'poker' ? ' game-shell--poker' : ''}${immersive ? ' game-shell--immersive' : ''}`}
+      className={`game-shell${gameId === 'durak' ? ' game-shell--durak' : ''}${gameId === 'poker' ? ' game-shell--poker' : ''}${isBoardGame ? ' game-shell--board' : ''}${immersive ? ' game-shell--immersive' : ''}`}
     >
       {!immersive && (
         <header className={`game-topbar${inTelegram ? ' game-topbar--tg-back' : ''}`}>
@@ -140,7 +141,9 @@ export function GameShell({
           <h1>{meta?.title ?? 'Игра'}</h1>
         </header>
       )}
-      <div className={`game-body ${immersive ? 'game-body--felt' : ''}${gameId === 'poker' ? ' game-body--poker' : ''}`}>
+      <div
+        className={`game-body ${immersive ? 'game-body--felt' : ''}${gameId === 'poker' ? ' game-body--poker' : ''}${isBoardGame ? ' game-body--board' : ''}`}
+      >
         {gameId === 'poker' && <PokerGame onHaptic={onHaptic} />}
         {gameId === 'durak' && durakMode === 'pick' && (
           <div className="durak-mode-pick">
