@@ -24,18 +24,23 @@ export function GameShell({
   const meta = getGame(gameId)
   const immersive = gameId === 'durak'
   const [durakMode, setDurakMode] = useState<DurakMode>(durakRoomCode ? 'online' : 'pick')
+  const [hasTgBack, setHasTgBack] = useState(false)
 
   useEffect(() => {
     if (durakRoomCode) setDurakMode('online')
   }, [durakRoomCode])
 
+  // Native Telegram BackButton for every game (replaces «Закрыть» with «Назад»).
   useEffect(() => {
-    if (!immersive) return
     const wa = getWebApp()
     const btn = wa?.BackButton
-    if (!btn) return
+    if (!btn) {
+      setHasTgBack(false)
+      return
+    }
+    setHasTgBack(true)
     const handle = () => {
-      if (durakMode !== 'pick') {
+      if (gameId === 'durak' && durakMode !== 'pick') {
         setDurakMode('pick')
         return
       }
@@ -47,19 +52,22 @@ export function GameShell({
       btn.offClick(handle)
       btn.hide()
     }
-  }, [immersive, onBack, durakMode])
+  }, [gameId, onBack, durakMode])
 
   return (
     <div
       className={`game-shell${gameId === 'durak' ? ' game-shell--durak' : ''}${immersive ? ' game-shell--immersive' : ''}`}
     >
       {!immersive && (
-        <header className="game-topbar">
-          <button type="button" className="back-btn" onClick={onBack} aria-label="Назад">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </button>
+        <header className={`game-topbar${hasTgBack ? ' game-topbar--tg-back' : ''}`}>
+          {/* Custom chevron only outside Telegram — in TG use native BackButton */}
+          {!hasTgBack && (
+            <button type="button" className="back-btn" onClick={onBack} aria-label="Назад">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+          )}
           <h1>{meta?.title ?? 'Игра'}</h1>
         </header>
       )}
