@@ -1,4 +1,5 @@
 import { GAMES } from '../data/games'
+import { hardReloadApp } from '../lib/reloadApp'
 import { GameCover } from './GameCover'
 import type { TgUser } from '../hooks/useTelegram'
 
@@ -77,6 +78,12 @@ export function ProfilePage({
           ))}
         </div>
       </section>
+
+      <div className="profile-actions">
+        <button type="button" className="btn btn-soft" onClick={hardReloadApp}>
+          Обновить приложение
+        </button>
+      </div>
 
       <p className="profile-build" aria-hidden>
         {typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : 'dev'}
