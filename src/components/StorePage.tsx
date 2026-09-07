@@ -17,7 +17,7 @@ export function StorePage({
 
         <div className="hero-top">
           <h1 className="hero-brand">
-            GameFor<em>Tg</em>
+            Коз<em>ырь</em>
           </h1>
           <div className="user-chip" aria-label={user?.firstName ?? 'Гость'}>
             <div className="user-avatar">
@@ -31,7 +31,7 @@ export function StorePage({
           </div>
         </div>
 
-        <p className="hero-copy">Покер, дурак, шахматы, шашки и косынка — сразу в Telegram.</p>
+        <p className="hero-copy">Карты и доска за одним столом — сразу в Telegram.</p>
       </section>
 
       <section className="section">
