@@ -45,15 +45,18 @@ npm run build
 ## Telegram-бот
 
 1. В [@BotFather](https://t.me/BotFather) задайте имя бота: **Playfort**
-2. Main Mini App / Menu Button URL (новый путь — сбрасывает кэш Telegram):
+2. Описание (или через `npm run setup:bot`):
+   - Description: `Playfort — classic games in Telegram…`
+   - Short description: `Playfort: poker, Durak, chess, checkers, solitaire in Telegram`
+3. Main Mini App / Menu Button URL (новый путь — сбрасывает кэш Telegram):
 
 ```text
 https://ve1lers.github.io/gamefortg/play/?v=mqtt1
 ```
 
 Старый URL `.../gamefortg/` тоже работает, но Telegram часто кэширует PeerJS-оболочку.
-3. Аватар: `public/bot-avatar.png`
-4. Автонастройка через API (нужен токен бота):
+4. Аватар: `public/bot-avatar.png`
+5. Автонастройка через API (нужен токен бота) — ставит имя Playfort, английские описания, меню «Играть»:
 
 ```bash
 BOT_TOKEN=123:ABC npm run setup:bot
