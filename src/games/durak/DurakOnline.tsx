@@ -803,17 +803,10 @@ export function DurakOnline({
     setJoiningHost(null)
   }
 
-  const forceRefreshApp = () => {
-    const next = new URL(location.href)
-    next.searchParams.set('v', typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : String(Date.now()))
-    next.searchParams.set('_', String(Date.now()))
-    location.replace(next.toString())
-  }
-
   const friendlyError = (msg: string | null | undefined) => {
     if (!msg) return null
     if (/negotiation|peerjs|gft-durak|webrtc/i.test(msg)) {
-      return 'Старая версия приложения в кэше Telegram. Нажмите «Обновить» ниже или полностью закройте Telegram и откройте снова.'
+      return 'Старая версия приложения в кэше Telegram. Вернитесь на главную и нажмите «Обновить приложение», или полностью закройте Telegram и откройте снова.'
     }
     return msg
   }
@@ -930,9 +923,6 @@ export function DurakOnline({
             </div>
           )}
 
-          <button type="button" className="durak-btn" onClick={forceRefreshApp}>
-            Обновить приложение
-          </button>
           {onBackToBot && (
             <button type="button" className="durak-btn" onClick={onBackToBot}>
               Играть с ботом
