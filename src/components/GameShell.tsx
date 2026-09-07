@@ -34,14 +34,13 @@ export function GameShell({
     const wa = getWebApp()
     const btn = wa?.BackButton
     if (!btn) return
-    // No back chevron on the felt — Telegram Back only on mode pick.
-    if (durakMode !== 'pick') {
-      btn.hide()
-      return () => {
-        btn.hide()
+    const handle = () => {
+      if (durakMode !== 'pick') {
+        setDurakMode('pick')
+        return
       }
+      onBack()
     }
-    const handle = () => onBack()
     btn.show()
     btn.onClick(handle)
     return () => {
@@ -92,15 +91,12 @@ export function GameShell({
             </button>
           </div>
         )}
-        {gameId === 'durak' && durakMode === 'bot' && (
-          <DurakGame onHaptic={onHaptic} onLeave={() => setDurakMode('pick')} />
-        )}
+        {gameId === 'durak' && durakMode === 'bot' && <DurakGame onHaptic={onHaptic} />}
         {gameId === 'durak' && durakMode === 'online' && (
           <DurakOnline
             initialCode={durakRoomCode}
             onHaptic={onHaptic}
             onBackToBot={() => setDurakMode('bot')}
-            onLeave={() => setDurakMode('pick')}
           />
         )}
         {gameId === 'chess' && <ChessGame onHaptic={onHaptic} />}

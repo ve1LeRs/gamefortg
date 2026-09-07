@@ -150,10 +150,8 @@ const DEAL_MS = 980
 
 export function DurakGame({
   onHaptic,
-  onLeave,
 }: {
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
-  onLeave?: () => void
 }) {
   const initial = useMemo(() => dealDurak(), [])
   const [deck, setDeck] = useState(initial.deck)
@@ -879,23 +877,9 @@ export function DurakGame({
       )}
       <div className="durak-actions" onClick={(e) => e.stopPropagation()}>
         {over ? (
-          <>
-            <button type="button" className="durak-btn durak-btn-primary" onClick={reset}>
-              Ещё раз
-            </button>
-            {onLeave && (
-              <button
-                type="button"
-                className="durak-btn durak-btn-bito"
-                onClick={() => {
-                  onLeave()
-                  onHaptic?.('light')
-                }}
-              >
-                Меню
-              </button>
-            )}
-          </>
+          <button type="button" className="durak-btn durak-btn-primary" onClick={reset}>
+            Ещё раз
+          </button>
         ) : (
           <>
             {canTake && (
