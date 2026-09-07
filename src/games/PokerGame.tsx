@@ -134,21 +134,40 @@ function betSize(phase: Phase) {
   return 80
 }
 
+function isLandscapeNow() {
+  if (typeof window === 'undefined') return true
+  // Prefer geometry — Telegram WebView often lags on orientation media queries.
+  if (window.innerWidth > window.innerHeight) return true
+  if (window.innerHeight > window.innerWidth) return false
+  try {
+    return window.matchMedia('(orientation: landscape)').matches
+  } catch {
+    return true
+  }
+}
+
 function useLandscape() {
-  const [landscape, setLandscape] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia('(orientation: landscape)').matches : true,
-  )
+  const [landscape, setLandscape] = useState(isLandscapeNow)
   useEffect(() => {
-    const mq = window.matchMedia('(orientation: landscape)')
-    const sync = () => setLandscape(mq.matches)
+    const sync = () => setLandscape(isLandscapeNow())
     sync()
+    const mq = window.matchMedia('(orientation: landscape)')
     mq.addEventListener?.('change', sync)
     window.addEventListener('resize', sync)
     window.addEventListener('orientationchange', sync)
+    // Telegram may fire viewportChanged after rotate.
+    const wa = (window as Window & { Telegram?: { WebApp?: { onEvent?: (e: string, cb: () => void) => void; offEvent?: (e: string, cb: () => void) => void } } })
+      .Telegram?.WebApp
+    wa?.onEvent?.('viewportChanged', sync)
+    const t1 = window.setTimeout(sync, 120)
+    const t2 = window.setTimeout(sync, 400)
     return () => {
       mq.removeEventListener?.('change', sync)
       window.removeEventListener('resize', sync)
       window.removeEventListener('orientationchange', sync)
+      wa?.offEvent?.('viewportChanged', sync)
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
     }
   }, [])
   return landscape

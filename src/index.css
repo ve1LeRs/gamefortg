@@ -2394,6 +2394,17 @@ body.tg-webapp .game-topbar .back-btn {
   pointer-events: none;
 }
 
+/* Geometry fallback — Telegram sometimes delays JS orientation events. */
+@media (orientation: landscape) {
+  .poker-landscape .poker-rotate-hint {
+    display: none !important;
+  }
+  .poker-landscape .poker-stage {
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+}
+
 .poker-room {
   position: relative;
   width: 100%;
