@@ -4155,9 +4155,10 @@ body.poker-landscape-active .app-main.game-mode {
   box-sizing: border-box;
 }
 
-/* Deal flight starts above the hand — don't shear card tops on the footer edge */
+/* Deal flight may rise above the footer; still clip anything past the bottom edge */
 .durak-bottom:has(.durak-hand.is-receiving) {
   overflow: visible;
+  clip-path: inset(-240px -48px 0 -48px);
 }
 
 .durak-table:has(.durak-hand.is-receiving),
@@ -4278,8 +4279,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 .durak-hand.is-receiving {
   animation: durak-hand-open 0.45s ease both;
-  /* Paint deal flight over the felt, not under an invisible footer clip */
-  z-index: 45;
+  /* Keep under .durak-dock so cards tuck behind the profile panel */
+  z-index: 1;
 }
 
 /* Settled cards dim and ease aside while a new one inserts */
