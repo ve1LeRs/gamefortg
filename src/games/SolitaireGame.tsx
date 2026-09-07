@@ -138,7 +138,16 @@ function applyHomeMove(
   return { waste: wasteNext, foundations: foundationsNext, tableau: tableauNext }
 }
 
-type Hint = { select: Selection; message: string }
+type Hint = { select: Selection; message: string; pulse?: string }
+
+function allTableauFaceUp(tableau: Pile[], faceUp: Set<string>): boolean {
+  for (const col of tableau) {
+    for (const card of col) {
+      if (!faceUp.has(card.id)) return false
+    }
+  }
+  return true
+}
 
 function findHint(
   stock: Card[],
@@ -146,7 +155,17 @@ function findHint(
   foundations: Pile[],
   tableau: Pile[],
   faceUp: Set<string>,
+  canClear = false,
 ): Hint | null {
+  // Endgame: all open → collect, don't shuffle kings
+  if (canClear) {
+    return {
+      select: { where: 'waste', col: -2, index: -2 },
+      message: 'Нажмите «Собрать косынку»',
+      pulse: 'clear',
+    }
+  }
+
   // 1) Waste → foundation
   if (waste.length) {
     const card = waste[waste.length - 1]
@@ -209,13 +228,15 @@ function findHint(
     }
   }
 
-  // 4) Waste → tableau
+  const faceUpAll = allTableauFaceUp(tableau, faceUp)
+
+  // 4) Waste → tableau (no king-parking on empty when everything is already open)
   if (waste.length) {
     const card = waste[waste.length - 1]
     for (let to = 0; to < 7; to += 1) {
       const dest = tableau[to]
       if (dest.length === 0) {
-        if (card.rank === 'K') {
+        if (card.rank === 'K' && !faceUpAll) {
           return { select: { where: 'waste', col: 0, index: 0 }, message: `Король ${card.suit} на пустую колонку` }
         }
         continue
@@ -231,10 +252,10 @@ function findHint(
 
   // 5) Draw / recycle stock — prefer this over pointless reshuffles
   if (stock.length > 0) {
-    return { select: { where: 'waste', col: -1, index: -1 }, message: 'Возьмите карту из колоды' }
+    return { select: { where: 'waste', col: -1, index: -1 }, message: 'Возьмите карту из колоды', pulse: 'stock' }
   }
   if (waste.length > 0) {
-    return { select: { where: 'waste', col: -1, index: -1 }, message: 'Переверните колоду' }
+    return { select: { where: 'waste', col: -1, index: -1 }, message: 'Переверните колоду', pulse: 'stock' }
   }
 
   return null
@@ -453,7 +474,7 @@ export function SolitaireGame({
 
   const showHint = () => {
     if (won || clearing) return
-    const hint = findHint(stock, waste, foundations, tableau, faceUp)
+    const hint = findHint(stock, waste, foundations, tableau, faceUp, offerAutoClear)
     if (!hint) {
       setStatus('Ходов не видно — новая раздача')
       onHaptic?.('error')
@@ -463,8 +484,8 @@ export function SolitaireGame({
     onHaptic?.('medium')
     if (hint.select.col < 0) {
       setSelected(null)
-      setHintPulse('stock')
-      window.setTimeout(() => setHintPulse(null), 1200)
+      setHintPulse(hint.pulse ?? 'stock')
+      window.setTimeout(() => setHintPulse(null), 1400)
       return
     }
     setSelected(hint.select)
@@ -646,7 +667,12 @@ export function SolitaireGame({
           Подсказка
         </button>
         {offerAutoClear && (
-          <button type="button" className="btn btn-accent sol-clear-btn" onClick={startAutoClear} disabled={clearing}>
+          <button
+            type="button"
+            className={`btn btn-accent sol-clear-btn ${hintPulse === 'clear' ? 'sol-hint' : ''}`}
+            onClick={startAutoClear}
+            disabled={clearing}
+          >
             {clearing ? 'Собираем…' : 'Собрать косынку'}
           </button>
         )}
