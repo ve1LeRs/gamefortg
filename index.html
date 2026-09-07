@@ -19,21 +19,47 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
+    <style>
+      html,
+      body {
+        background: #071018;
+      }
+      /* Hide UI until cache/version check finishes so a stale GameForTg shell cannot flash. */
+      #root {
+        visibility: hidden;
+      }
+      #root.gft-ready {
+        visibility: visible;
+      }
+    </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
       ;(function () {
+        function reveal() {
+          var root = document.getElementById('root')
+          if (root) root.classList.add('gft-ready')
+        }
         // Bust Telegram WebView HTML/JS cache when a newer deploy exists.
         try {
           var base = '/gamefortg/'
           if (location.pathname.indexOf('/gamefortg') !== 0) base = '/'
           var KEY = 'gft-build-id'
           var url = base + 'version.json?t=' + Date.now()
+          var settled = false
+          var failSafe = setTimeout(function () {
+            if (!settled) reveal()
+          }, 700)
           fetch(url, { cache: 'no-store' })
             .then(function (r) {
               return r.json()
             })
             .then(function (v) {
-              if (!v || !v.id) return
+              if (!v || !v.id) {
+                settled = true
+                clearTimeout(failSafe)
+                reveal()
+                return
+              }
               var meta = document.querySelector('meta[name="build-id"]')
               var embedded = meta && meta.getAttribute('content')
               var stored = null
@@ -42,7 +68,7 @@
               } catch (e) {}
               var next = new URL(location.href)
               var already = next.searchParams.get('v') === v.id
-              // Stale HTML shell vs current Pages deploy.
+              // Stale HTML shell vs current Pages deploy — reload before revealing UI.
               if (embedded && embedded !== '__BUILD_ID__' && embedded !== v.id && !already) {
                 next.searchParams.set('v', v.id)
                 next.searchParams.set('_', String(Date.now()))
@@ -52,22 +78,28 @@
                 location.replace(next.toString())
                 return
               }
-              // Remember the newest id we have successfully loaded.
               if (embedded && embedded === v.id) {
                 try {
                   localStorage.setItem(KEY, v.id)
                 } catch (e) {}
-                return
-              }
-              // If we previously loaded a newer build than this HTML, force again.
-              if (stored && embedded && stored !== embedded && stored === v.id && !already) {
+              } else if (stored && embedded && stored !== embedded && stored === v.id && !already) {
                 next.searchParams.set('v', v.id)
                 next.searchParams.set('_', String(Date.now()))
                 location.replace(next.toString())
+                return
               }
+              settled = true
+              clearTimeout(failSafe)
+              reveal()
             })
-            .catch(function () {})
-        } catch (e) {}
+            .catch(function () {
+              settled = true
+              clearTimeout(failSafe)
+              reveal()
+            })
+        } catch (e) {
+          reveal()
+        }
       })()
     </script>
     <script>
@@ -88,12 +120,6 @@
         } catch (e) {}
       })()
     </script>
-    <style>
-      html,
-      body {
-        background: #071018;
-      }
-    </style>
   </head>
   <body>
     <div id="root"></div>
