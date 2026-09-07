@@ -21,6 +21,29 @@ function inviteLink(code: string): string {
   return `${window.location.origin}${window.location.pathname}?durakRoom=${code}`
 }
 
+/** Fit online hand on screen without clipping edge cards. */
+function onlineHandLayout(n: number, viewportW = 390) {
+  const avail = Math.max(220, Math.min(viewportW, 440) - 56)
+  let cardW = n <= 4 ? 92 : n <= 6 ? 84 : n <= 8 ? 76 : 66
+  const minPeek = n >= 10 ? 30 : 36
+  let step = cardW
+  if (n > 1) {
+    const maxStep = (avail - cardW) / (n - 1)
+    step = Math.max(minPeek, Math.min(cardW - 8, maxStep))
+    const need = cardW + (n - 1) * minPeek
+    if (need > avail) {
+      cardW = Math.max(52, Math.floor(avail - (n - 1) * minPeek))
+      step = minPeek
+    }
+  }
+  return {
+    cardW,
+    cardH: Math.round(cardW * (128 / 92)),
+    step: Math.round(step * 10) / 10,
+    rotStep: n <= 4 ? 1.6 : n <= 7 ? 0.9 : 0.4,
+  }
+}
+
 export function DurakOnline({
   initialCode,
   onHaptic,
@@ -201,6 +224,8 @@ export function DurakOnline({
 
   const view = room?.view
   if (room?.status === 'playing' && view) {
+    const n = view.you.length
+    const hand = onlineHandLayout(n, typeof window !== 'undefined' ? window.innerWidth : 390)
     return (
       <div className="durak-table durak-online">
         <header className="durak-top">
@@ -338,17 +363,16 @@ export function DurakOnline({
         <footer className="durak-bottom">
           <div
             className="durak-hand durak-online-hand"
-            data-count={view.you.length}
+            data-count={n}
             style={{
-              ['--hand-card-w' as string]: '92px',
-              ['--hand-card-h' as string]: '128px',
-              ['--hand-step' as string]: `${Math.max(34, Math.min(58, Math.floor(300 / Math.max(view.you.length, 1))))}px`,
+              ['--hand-card-w' as string]: `${hand.cardW}px`,
+              ['--hand-card-h' as string]: `${hand.cardH}px`,
+              ['--hand-step' as string]: `${hand.step}px`,
             }}
           >
             <div className="durak-hand-row">
               {view.you.map((c, i) => {
                 const legal = view.legalCardIds.includes(c.id)
-                const n = view.you.length
                 const mid = (n - 1) / 2
                 const offset = i - mid
                 const play = () => {
@@ -370,7 +394,7 @@ export function DurakOnline({
                     className={`durak-card durak-hand-card${legal ? ' playable' : ' is-waiting'}`}
                     style={{
                       ['--fan' as string]: offset,
-                      ['--rot' as string]: `${offset * 2.2}deg`,
+                      ['--rot' as string]: `${offset * hand.rotStep}deg`,
                       zIndex: legal ? 40 + i : i + 1,
                     }}
                     onClick={play}

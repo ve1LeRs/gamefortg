@@ -82,8 +82,8 @@ function maxAttackSlots(defenderHandSize: number, table: TablePair[]): number {
 
 /** Fit the whole hand on screen — no horizontal scroll. Large hands use 2 rows. */
 function handFanLayout(n: number, viewportW = 390) {
-  const pad = 12
-  const avail = Math.max(280, Math.min(viewportW, 440) - pad)
+  const pad = 56
+  const avail = Math.max(220, Math.min(viewportW, 440) - pad)
   const rows = n >= 9 ? 2 : 1
   const perRow = rows === 1 ? Math.max(1, n) : Math.ceil(n / 2)
   // Hand cards stay large vs table; shrink only enough to fit the row
@@ -106,7 +106,7 @@ function handFanLayout(n: number, viewportW = 390) {
       step = Math.max(minPeek, Math.min(cardW - 6, (avail - cardW) / (perRow - 1)))
     }
   }
-  const rotStep = rows === 2 ? 0.4 : n <= 4 ? 2.6 : n <= 7 ? 1.4 : 0.6
+  const rotStep = rows === 2 ? 0.35 : n <= 4 ? 1.8 : n <= 7 ? 1.0 : 0.45
   const rowWidth = perRow <= 1 ? cardW : cardW + (perRow - 1) * step
   return {
     cardW: Math.round(cardW),
@@ -758,7 +758,7 @@ export function DurakGame({
   const deckLayers = Math.min(5, Math.max(1, Math.ceil(deck.length / 6)))
   const playerHand = useMemo(() => sortHand(player, trump), [player, trump])
   const handLayout = useMemo(
-    () => handFanLayout(playerHand.length, handViewportW),
+    () => handFanLayout(playerHand.length, Math.max(200, handViewportW - 52)),
     [playerHand.length, handViewportW],
   )
   const statusClass = [
