@@ -2487,8 +2487,10 @@ body.tg-webapp .game-topbar .back-btn {
   height: 13px;
 }
 
-.durak-pair .durak-card .suit-lg {
-  font-size: 22px;
+/* Table cards: corner index only — center pip overlaps the small suit on small faces */
+.durak-pair .durak-card .suit-lg,
+.durak-trump-card .suit-lg {
+  display: none;
 }
 
 .durak-pair .durak-defence {
@@ -2555,11 +2557,6 @@ body.tg-webapp .game-topbar .back-btn {
   top: 36px;
   left: 30px;
   transform: rotate(14deg);
-}
-
-.durak-table-cards[data-count='3'] .durak-pair .durak-card .suit-lg,
-.durak-table-cards[data-count='4'] .durak-pair .durak-card .suit-lg {
-  font-size: 20px;
 }
 
 
