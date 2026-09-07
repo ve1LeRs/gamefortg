@@ -3,6 +3,9 @@ import { useCallback, useMemo, useState } from 'react'
 type Color = 'w' | 'b'
 type Piece = 'K' | 'Q' | 'R' | 'B' | 'N' | 'P' | 'k' | 'q' | 'r' | 'b' | 'n' | 'p' | null
 type Sq = { r: number; c: number }
+type Castle = { wK: boolean; wQ: boolean; bK: boolean; bQ: boolean }
+
+const START_CASTLE: Castle = { wK: true, wQ: true, bK: true, bQ: true }
 
 const START: Piece[][] = [
   ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
@@ -54,22 +57,74 @@ function findKing(board: Piece[][], white: boolean): Sq | null {
 }
 
 function attacksSquare(board: Piece[][], from: Sq, to: Sq): boolean {
-  const moves = pseudoMoves(board, from, false)
+  // Castling is never an attack — omit castle rights here.
+  const moves = pseudoMoves(board, from, null)
   return moves.some((m) => m.r === to.r && m.c === to.c)
+}
+
+function isSquareAttacked(board: Piece[][], sq: Sq, whiteVictim: boolean): boolean {
+  for (let r = 0; r < 8; r += 1) {
+    for (let c = 0; c < 8; c += 1) {
+      const p = board[r][c]
+      if (!p) continue
+      if (isWhite(p) === whiteVictim) continue
+      if (attacksSquare(board, { r, c }, sq)) return true
+    }
+  }
+  return false
 }
 
 function isInCheck(board: Piece[][], white: boolean): boolean {
   const king = findKing(board, white)
   if (!king) return true
-  for (let r = 0; r < 8; r += 1) {
-    for (let c = 0; c < 8; c += 1) {
-      const p = board[r][c]
-      if (!p) continue
-      if (isWhite(p) === white) continue
-      if (attacksSquare(board, { r, c }, king)) return true
+  return isSquareAttacked(board, king, white)
+}
+
+function updateCastle(castle: Castle, moved: Piece, from: Sq, to: Sq): Castle {
+  const next = { ...castle }
+  if (moved === 'K') {
+    next.wK = false
+    next.wQ = false
+  } else if (moved === 'k') {
+    next.bK = false
+    next.bQ = false
+  } else if (moved === 'R') {
+    if (from.r === 7 && from.c === 0) next.wQ = false
+    if (from.r === 7 && from.c === 7) next.wK = false
+  } else if (moved === 'r') {
+    if (from.r === 0 && from.c === 0) next.bQ = false
+    if (from.r === 0 && from.c === 7) next.bK = false
+  }
+  // Rook captured on its starting square
+  if (to.r === 7 && to.c === 0) next.wQ = false
+  if (to.r === 7 && to.c === 7) next.wK = false
+  if (to.r === 0 && to.c === 0) next.bQ = false
+  if (to.r === 0 && to.c === 7) next.bK = false
+  return next
+}
+
+function appendCastling(board: Piece[][], from: Sq, white: boolean, castle: Castle, moves: Sq[]) {
+  const row = white ? 7 : 0
+  if (from.r !== row || from.c !== 4) return
+  if (isInCheck(board, white)) return
+  const rook = white ? 'R' : 'r'
+
+  if ((white ? castle.wK : castle.bK) && board[row][7] === rook && !board[row][5] && !board[row][6]) {
+    if (!isSquareAttacked(board, { r: row, c: 5 }, white) && !isSquareAttacked(board, { r: row, c: 6 }, white)) {
+      moves.push({ r: row, c: 6 })
     }
   }
-  return false
+  if (
+    (white ? castle.wQ : castle.bQ) &&
+    board[row][0] === rook &&
+    !board[row][1] &&
+    !board[row][2] &&
+    !board[row][3]
+  ) {
+    if (!isSquareAttacked(board, { r: row, c: 3 }, white) && !isSquareAttacked(board, { r: row, c: 2 }, white)) {
+      moves.push({ r: row, c: 2 })
+    }
+  }
 }
 
 function rayMoves(board: Piece[][], r: number, c: number, dirs: number[][], white: boolean): Sq[] {
@@ -91,7 +146,7 @@ function rayMoves(board: Piece[][], r: number, c: number, dirs: number[][], whit
   return out
 }
 
-function pseudoMoves(board: Piece[][], from: Sq, _filterCheck: boolean): Sq[] {
+function pseudoMoves(board: Piece[][], from: Sq, castle: Castle | null): Sq[] {
   const p = board[from.r][from.c]
   if (!p) return []
   const white = isWhite(p)
@@ -165,33 +220,28 @@ function pseudoMoves(board: Piece[][], from: Sq, _filterCheck: boolean): Sq[] {
         if (!t || isWhite(t) !== white) moves.push({ r: nr, c: nc })
       }
     }
+    if (castle) appendCastling(board, from, white, castle, moves)
   }
   return moves
 }
 
-function legalMoves(board: Piece[][], from: Sq): Sq[] {
+function legalMoves(board: Piece[][], from: Sq, castle: Castle): Sq[] {
   const p = board[from.r][from.c]
   if (!p) return []
   const white = isWhite(p)
-  return pseudoMoves(board, from, true).filter((to) => {
-    const next = clone(board)
-    next[to.r][to.c] = next[from.r][from.c]
-    next[from.r][from.c] = null
-    // promote
-    const moved = next[to.r][to.c]
-    if (moved === 'P' && to.r === 0) next[to.r][to.c] = 'Q'
-    if (moved === 'p' && to.r === 7) next[to.r][to.c] = 'q'
+  return pseudoMoves(board, from, castle).filter((to) => {
+    const next = applyMove(board, from, to)
     return !isInCheck(next, white)
   })
 }
 
-function allMoves(board: Piece[][], white: boolean): { from: Sq; to: Sq }[] {
+function allMoves(board: Piece[][], white: boolean, castle: Castle): { from: Sq; to: Sq }[] {
   const list: { from: Sq; to: Sq }[] = []
   for (let r = 0; r < 8; r += 1) {
     for (let c = 0; c < 8; c += 1) {
       const p = board[r][c]
       if (!p || isWhite(p) !== white) continue
-      for (const to of legalMoves(board, { r, c })) {
+      for (const to of legalMoves(board, { r, c }, castle)) {
         list.push({ from: { r, c }, to })
       }
     }
@@ -303,12 +353,31 @@ function scoreBoard(board: Piece[][]): number {
 
 function applyMove(board: Piece[][], from: Sq, to: Sq): Piece[][] {
   const next = clone(board)
-  next[to.r][to.c] = next[from.r][from.c]
+  const piece = next[from.r][from.c]
+  next[to.r][to.c] = piece
   next[from.r][from.c] = null
+  // Castling: king jumps two files — also move the rook.
+  if (piece && piece.toUpperCase() === 'K' && Math.abs(to.c - from.c) === 2) {
+    if (to.c === 6) {
+      next[to.r][5] = next[to.r][7]
+      next[to.r][7] = null
+    } else if (to.c === 2) {
+      next[to.r][3] = next[to.r][0]
+      next[to.r][0] = null
+    }
+  }
   const moved = next[to.r][to.c]
   if (moved === 'P' && to.r === 0) next[to.r][to.c] = 'Q'
   if (moved === 'p' && to.r === 7) next[to.r][to.c] = 'q'
   return next
+}
+
+function playMove(board: Piece[][], from: Sq, to: Sq, castle: Castle): { board: Piece[][]; castle: Castle } {
+  const piece = board[from.r][from.c]
+  return {
+    board: applyMove(board, from, to),
+    castle: updateCastle(castle, piece, from, to),
+  }
 }
 
 function moveOrderKey(board: Piece[][], m: { from: Sq; to: Sq }): number {
@@ -316,11 +385,13 @@ function moveOrderKey(board: Piece[][], m: { from: Sq; to: Sq }): number {
   const attacker = board[m.from.r][m.from.c]
   // MVV-LVA: prefer valuable captures first for alpha-beta cutoffs
   const cap = victim ? pieceValue(victim) * 10 - pieceValue(attacker) : 0
-  return cap
+  // Mild bonus for castling so the bot considers it early
+  const castleBonus = attacker && attacker.toUpperCase() === 'K' && Math.abs(m.to.c - m.from.c) === 2 ? 40 : 0
+  return cap + castleBonus
 }
 
-function orderedMoves(board: Piece[][], white: boolean): { from: Sq; to: Sq }[] {
-  const moves = allMoves(board, white)
+function orderedMoves(board: Piece[][], white: boolean, castle: Castle): { from: Sq; to: Sq }[] {
+  const moves = allMoves(board, white, castle)
   moves.sort((a, b) => moveOrderKey(board, b) - moveOrderKey(board, a))
   return moves
 }
@@ -329,6 +400,7 @@ const BOT_DEPTH = 3
 
 function minimax(
   board: Piece[][],
+  castle: Castle,
   depth: number,
   alpha: number,
   beta: number,
@@ -336,7 +408,7 @@ function minimax(
 ): number {
   if (depth === 0) return scoreBoard(board)
 
-  const moves = orderedMoves(board, maximizingWhite)
+  const moves = orderedMoves(board, maximizingWhite, castle)
   if (moves.length === 0) {
     // Checkmate is catastrophic; stalemate is draw
     if (maximizingWhite) return isInCheck(board, true) ? -100000 - depth : 0
@@ -346,7 +418,8 @@ function minimax(
   if (maximizingWhite) {
     let best = -Infinity
     for (const m of moves) {
-      const sc = minimax(applyMove(board, m.from, m.to), depth - 1, alpha, beta, false)
+      const next = playMove(board, m.from, m.to, castle)
+      const sc = minimax(next.board, next.castle, depth - 1, alpha, beta, false)
       if (sc > best) best = sc
       if (sc > alpha) alpha = sc
       if (beta <= alpha) break
@@ -356,7 +429,8 @@ function minimax(
 
   let best = Infinity
   for (const m of moves) {
-    const sc = minimax(applyMove(board, m.from, m.to), depth - 1, alpha, beta, true)
+    const next = playMove(board, m.from, m.to, castle)
+    const sc = minimax(next.board, next.castle, depth - 1, alpha, beta, true)
     if (sc < best) best = sc
     if (sc < beta) beta = sc
     if (beta <= alpha) break
@@ -364,9 +438,9 @@ function minimax(
   return best
 }
 
-function botMove(board: Piece[][]): Piece[][] {
-  const moves = orderedMoves(board, false)
-  if (moves.length === 0) return board
+function botMove(board: Piece[][], castle: Castle): { board: Piece[][]; castle: Castle } {
+  const moves = orderedMoves(board, false, castle)
+  if (moves.length === 0) return { board, castle }
 
   let best = moves[0]
   let bestScore = Infinity
@@ -374,20 +448,21 @@ function botMove(board: Piece[][]): Piece[][] {
   let beta = Infinity
 
   for (const m of moves) {
-    const next = applyMove(board, m.from, m.to)
+    const next = playMove(board, m.from, m.to, castle)
     // Bot is black: minimize white's score
-    const sc = minimax(next, BOT_DEPTH - 1, alpha, beta, true)
+    const sc = minimax(next.board, next.castle, BOT_DEPTH - 1, alpha, beta, true)
     if (sc < bestScore) {
       bestScore = sc
       best = m
       beta = Math.min(beta, sc)
     }
   }
-  return applyMove(board, best.from, best.to)
+  return playMove(board, best.from, best.to, castle)
 }
 
 export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void }) {
   const [board, setBoard] = useState(() => clone(START))
+  const [castle, setCastle] = useState<Castle>(() => ({ ...START_CASTLE }))
   const [turn, setTurn] = useState<Color>('w')
   const [selected, setSelected] = useState<Sq | null>(null)
   const [status, setStatus] = useState('Вы — белые. Ваш ход')
@@ -395,11 +470,12 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
 
   const hints = useMemo(() => {
     if (!selected) return [] as Sq[]
-    return legalMoves(board, selected)
-  }, [board, selected])
+    return legalMoves(board, selected, castle)
+  }, [board, selected, castle])
 
   const reset = useCallback(() => {
     setBoard(clone(START))
+    setCastle({ ...START_CASTLE })
     setTurn('w')
     setSelected(null)
     setStatus('Вы — белые. Ваш ход')
@@ -414,34 +490,36 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     if (selected) {
       const can = hints.some((h) => h.r === r && h.c === c)
       if (can) {
-        let next = applyMove(board, selected, { r, c })
-        setBoard(next)
+        let played = playMove(board, selected, { r, c }, castle)
+        setBoard(played.board)
+        setCastle(played.castle)
         setSelected(null)
         onHaptic?.('light')
 
-        const botMoves = allMoves(next, false)
+        const botMoves = allMoves(played.board, false, played.castle)
         if (botMoves.length === 0) {
           setOver(true)
-          setStatus(isInCheck(next, false) ? 'Шах и мат! Победа.' : 'Пат. Ничья.')
-          onHaptic?.(isInCheck(next, false) ? 'success' : 'medium')
+          setStatus(isInCheck(played.board, false) ? 'Шах и мат! Победа.' : 'Пат. Ничья.')
+          onHaptic?.(isInCheck(played.board, false) ? 'success' : 'medium')
           return
         }
 
         setStatus('Ход бота…')
         setTurn('b')
         setTimeout(() => {
-          next = botMove(next)
-          setBoard(next)
-          const youMoves = allMoves(next, true)
+          played = botMove(played.board, played.castle)
+          setBoard(played.board)
+          setCastle(played.castle)
+          const youMoves = allMoves(played.board, true, played.castle)
           if (youMoves.length === 0) {
             setOver(true)
-            setStatus(isInCheck(next, true) ? 'Мат. Поражение.' : 'Пат. Ничья.')
-            onHaptic?.(isInCheck(next, true) ? 'error' : 'medium')
+            setStatus(isInCheck(played.board, true) ? 'Мат. Поражение.' : 'Пат. Ничья.')
+            onHaptic?.(isInCheck(played.board, true) ? 'error' : 'medium')
             setTurn('w')
             return
           }
           setTurn('w')
-          setStatus(isInCheck(next, true) ? 'Шах! Ваш ход (белые).' : 'Вы — белые. Ваш ход')
+          setStatus(isInCheck(played.board, true) ? 'Шах! Ваш ход (белые).' : 'Вы — белые. Ваш ход')
         }, 420)
         return
       }
