@@ -482,9 +482,17 @@ export function DurakGame({
     const newBot = bot.filter((c) => c.id !== defence.id)
     setBot(newBot)
     setEnterMap((m) => ({ ...m, [defence.id]: 'throw-bot' }))
-    setTable((t) => t.map((p) => (p.attack.id === card.id ? { ...p, defence } : p)))
+    const defendedTable = nextTable.map((p) => (p.attack.id === card.id ? { ...p, defence } : p))
+    setTable(defendedTable)
     await waitThrow(defence.id)
-    setStatus('Отбил. Подкиньте ещё на погоны или бито.')
+    const ranks = new Set<Rank>()
+    for (const p of defendedTable) {
+      ranks.add(p.attack.rank)
+      if (p.defence) ranks.add(p.defence.rank)
+    }
+    const canToss =
+      slotsLeft(newBot.length, defendedTable) > 0 && newPlayer.some((c) => ranks.has(c.rank))
+    setStatus(canToss ? 'Отбил. Подкиньте ещё на погоны или бито.' : 'Отбил — бито')
     setBusy(false)
   }
 
@@ -561,7 +569,7 @@ export function DurakGame({
       await waitThrow(toss.id)
       setStatus('Бот подкинул. Отбейтесь!')
     } else {
-      setStatus('Отбились. Нажмите «Бито».')
+      setStatus('Отбились — бито')
     }
     setBusy(false)
   }
@@ -757,7 +765,28 @@ export function DurakGame({
     }
   }
 
+  const bitoRef = useRef(bito)
+  bitoRef.current = bito
 
+  // Auto-bito when the fight is over and nobody has a toss decision left:
+  // - you defended everything and the bot is done tossing
+  // - you attacked, bot covered all, and you have nothing left to toss
+  useEffect(() => {
+    if (busy || over || botTaking || bitoFlying) return
+    if (table.length === 0 || table.some((p) => !p.defence)) return
+    const canPlayerToss =
+      attacker === 'player' &&
+      slotsLeft(bot.length, table) > 0 &&
+      player.some((c) => ranksOnTable.has(c.rank))
+    if (canPlayerToss) return
+    const t = window.setTimeout(
+      () => {
+        void bitoRef.current()
+      },
+      prefersReducedMotion() ? 40 : 320,
+    )
+    return () => window.clearTimeout(t)
+  }, [busy, over, botTaking, bitoFlying, table, attacker, bot.length, player, ranksOnTable])
 
   const startBotAttackIfNeeded = () => {
     if (busy || attacker !== 'bot' || table.length !== 0 || over || botTaking) return
@@ -770,11 +799,14 @@ export function DurakGame({
 
   const canBito =
     !busy &&
+    !over &&
     !botTaking &&
     !bitoFlying &&
     table.length > 0 &&
     table.every((p) => p.defence) &&
-    (attacker === 'player' || attacker === 'bot')
+    attacker === 'player' &&
+    slotsLeft(bot.length, table) > 0 &&
+    player.some((c) => ranksOnTable.has(c.rank))
   const canTake = !busy && !over && !botTaking && attacker === 'bot' && table.some((p) => !p.defence)
   const canGiveToBot = !busy && !over && botTaking
   const deckLayers = Math.min(5, Math.max(1, Math.ceil(deck.length / 6)))
