@@ -2903,13 +2903,15 @@ body.tg-webapp .game-topbar .back-btn {
 .durak-bottom {
   position: relative;
   z-index: 40;
-  padding: 0 0 calc(10px + var(--safe-bottom));
+  /* Safe inset lives on the dock so the panel seals the bottom edge */
+  padding: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
   isolation: isolate;
-  overflow: visible;
+  /* Clip card bottoms so they can't peek under the dock */
+  overflow: hidden;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -2920,6 +2922,8 @@ body.tg-webapp .game-topbar .back-btn {
   --hand-card-w: 112px;
   --hand-card-h: 158px;
   --hand-step: 62px;
+  /* How far the dock covers the hand — must stay within dock height */
+  --hand-dock-tuck: 56px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -2931,8 +2935,8 @@ body.tg-webapp .game-topbar .back-btn {
   /* Extra top room for fanned tops; side inset for angled edges */
   min-height: calc(var(--hand-card-h, 158px) + 28px);
   padding: 14px 12px 0;
-  /* Pull the dock up over the hand so card midpoints sit under the panel */
-  margin-bottom: calc(var(--hand-card-h, 158px) * -0.55);
+  /* Tuck under dock without extending past the dock bottom */
+  margin-bottom: calc(var(--hand-dock-tuck) * -1);
   box-sizing: border-box;
   overflow: visible;
   z-index: 1;
@@ -3142,9 +3146,9 @@ body.tg-webapp .game-topbar .back-btn {
 .durak-dock {
   width: min(100%, 420px);
   margin: 0 12px;
-  padding: 12px 16px 14px;
+  padding: 12px 16px calc(14px + var(--safe-bottom));
   border-radius: 18px 18px 0 0;
-  background: rgba(28, 36, 48, 0.78);
+  background: rgba(28, 36, 48, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -3495,7 +3499,7 @@ body.tg-webapp .game-topbar .back-btn {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  margin-bottom: calc(var(--hand-card-h, 158px) * -0.55);
+  margin-bottom: calc(var(--hand-dock-tuck, 56px) * -1);
 }
 
 .durak-online-hand .durak-hand-row {
