@@ -4,7 +4,7 @@ import { PlayingCard } from '../../components/PlayingCard'
 import { type Card, isRed } from '../../lib/cards'
 import { getWebApp } from '../../lib/telegram'
 import { createSoloDurakRoom } from './localRoom'
-import { type DurakRoom, type PlayerInfo, hostDurakRoom, joinDurakRoom } from './peerRoom'
+import { type DurakRoom, type LobbyListing, type PlayerInfo, hostDurakRoom, joinDurakRoom, watchDurakLobby } from './peerRoom'
 import type { SeatView, TablePair } from './engine'
 import { bitoMess, handFanLayout, handFanY } from './handFan'
 
@@ -632,6 +632,10 @@ export function DurakOnline({
   const you = useMemo(() => playerFromTelegram(), [])
   const [mode, setMode] = useState<Mode>(initialCode ? 'join' : 'menu')
   const [joinCode, setJoinCode] = useState(initialCode?.toUpperCase() ?? '')
+  const [showCodeJoin, setShowCodeJoin] = useState(false)
+  const [lobbyRooms, setLobbyRooms] = useState<LobbyListing[]>([])
+  const [lobbyReady, setLobbyReady] = useState(false)
+  const [joiningHost, setJoiningHost] = useState<string | null>(null)
   const [room, setRoom] = useState<DurakRoom | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -644,6 +648,21 @@ export function DurakOnline({
       roomRef.current?.destroy()
     }
   }, [])
+
+  useEffect(() => {
+    if (mode !== 'menu' || busy) {
+      setLobbyReady(false)
+      return
+    }
+    setLobbyReady(false)
+    const stop = watchDurakLobby((rooms) => {
+      setLobbyRooms(rooms.filter((r) => r.host.id !== you.id))
+      setLobbyReady(true)
+    })
+    return () => {
+      stop()
+    }
+  }, [mode, busy, you.id])
 
   useEffect(() => {
     if (!initialCode) return
@@ -689,16 +708,17 @@ export function DurakOnline({
     }
   }
 
-  const connectJoin = async (code: string) => {
+  const connectJoin = async (code: string, hostName?: string) => {
     const clean = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
     if (clean.length < 4) {
-      setError('Введите код комнаты')
+      setError('Выберите комнату из списка')
       return
     }
     const session = ++sessionRef.current
     roomRef.current?.destroy()
     roomRef.current = null
     setJoinCode(clean)
+    setJoiningHost(hostName ?? null)
     setError(null)
     setBusy(true)
     setMode('join')
@@ -718,6 +738,7 @@ export function DurakOnline({
       setError(e instanceof Error ? e.message : 'Не удалось подключиться')
       setMode('menu')
       setRoom(null)
+      setJoiningHost(null)
       onHaptic?.('error')
     } finally {
       if (session === sessionRef.current) setBusy(false)
@@ -779,6 +800,7 @@ export function DurakOnline({
     setMode('menu')
     setBusy(false)
     setError(null)
+    setJoiningHost(null)
   }
 
   const forceRefreshApp = () => {
@@ -805,8 +827,10 @@ export function DurakOnline({
   const waitStatus =
     room?.status === 'waiting'
       ? room.role === 'host'
-        ? 'Ждём соперника… Отправьте код другу.'
-        : 'Подключаемся к хосту…'
+        ? 'Комната в списке лобби. Ждём соперника…'
+        : joiningHost
+          ? `Подключаемся к ${joiningHost}…`
+          : 'Подключаемся к комнате…'
       : room?.status === 'connecting' || (busy && !room)
         ? 'Соединение…'
         : room?.status === 'disconnected'
@@ -822,9 +846,9 @@ export function DurakOnline({
   return (
     <div className="durak-online-lobby">
       <h2>Дурак онлайн</h2>
-      <p className="durak-online-lead">Два игрока по ссылке или коду. Хост раздаёт карты.</p>
+      <p className="durak-online-lead">Создайте комнату или зайдите в открытую из списка.</p>
       <p className="durak-online-build" title={typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : ''}>
-        онлайн · mqtt
+        онлайн · лобби
       </p>
       {shownError && <p className="durak-online-error">{shownError}</p>}
 
@@ -838,34 +862,74 @@ export function DurakOnline({
           >
             Создать комнату
           </button>
+
+          <div className="durak-lobby-list" aria-live="polite">
+            <div className="durak-lobby-list-head">
+              <span>Открытые комнаты</span>
+              <span className="durak-lobby-list-count">
+                {!lobbyReady ? 'поиск…' : lobbyRooms.length ? `${lobbyRooms.length}` : 'пусто'}
+              </span>
+            </div>
+            {!lobbyReady && <p className="durak-lobby-empty">Ищем комнаты…</p>}
+            {lobbyReady && lobbyRooms.length === 0 && (
+              <p className="durak-lobby-empty">Пока никого нет — создайте комнату</p>
+            )}
+            {lobbyRooms.map((row) => (
+              <button
+                key={row.code}
+                type="button"
+                className="durak-lobby-row"
+                disabled={busy}
+                onClick={() => void connectJoin(row.code, row.host.name)}
+              >
+                <span className="durak-lobby-row-name">{row.host.name}</span>
+                <span className="durak-lobby-row-meta">1 / 2 · войти</span>
+              </button>
+            ))}
+          </div>
+
           <button type="button" className="durak-btn durak-btn-bito" disabled={busy} onClick={startSolo}>
             Тест на одном устройстве
           </button>
-          <div className="durak-online-join">
-            <label className="durak-online-join-label" htmlFor="durak-room-code">
-              Код комнаты
-            </label>
-            <input
-              id="durak-room-code"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="например VPAZRT"
-              maxLength={8}
-              autoCapitalize="characters"
-              autoCorrect="off"
-              spellCheck={false}
-              inputMode="text"
-              aria-label="Код комнаты"
-            />
-            <button
-              type="button"
-              className="durak-btn durak-btn-bito"
-              disabled={busy || joinCode.trim().length < 4}
-              onClick={() => void connectJoin(joinCode)}
-            >
-              Войти
-            </button>
-          </div>
+
+          <button
+            type="button"
+            className="durak-btn"
+            onClick={() => {
+              setShowCodeJoin((v) => !v)
+              onHaptic?.('light')
+            }}
+          >
+            {showCodeJoin ? 'Скрыть код' : 'Войти по коду'}
+          </button>
+          {showCodeJoin && (
+            <div className="durak-online-join">
+              <label className="durak-online-join-label" htmlFor="durak-room-code">
+                Код комнаты
+              </label>
+              <input
+                id="durak-room-code"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="например VPAZRT"
+                maxLength={8}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                inputMode="text"
+                aria-label="Код комнаты"
+              />
+              <button
+                type="button"
+                className="durak-btn durak-btn-bito"
+                disabled={busy || joinCode.trim().length < 4}
+                onClick={() => void connectJoin(joinCode)}
+              >
+                Войти
+              </button>
+            </div>
+          )}
+
           <button type="button" className="durak-btn" onClick={forceRefreshApp}>
             Обновить приложение
           </button>
@@ -879,19 +943,17 @@ export function DurakOnline({
 
       {showWait && (
         <div className="durak-online-wait">
-          {(room?.code || joinCode) && (
-            <p className="durak-online-code">
-              Код: <strong>{room?.code || joinCode}</strong>
-            </p>
+          {room?.role === 'host' && room.status === 'waiting' && (
+            <p className="durak-online-wait-hint">Вас видно в списке лобби у других игроков</p>
           )}
           {waitStatus && <p className="durak-online-wait-status">{waitStatus}</p>}
           {room?.role === 'host' && room.status === 'waiting' && (
             <div className="durak-online-actions">
               <button type="button" className="durak-btn durak-btn-primary" onClick={() => void shareInvite()}>
-                Поделиться
+                Пригласить по ссылке
               </button>
               <button type="button" className="durak-btn" onClick={() => void copyInvite()}>
-                Скопировать
+                Скопировать ссылку
               </button>
             </div>
           )}

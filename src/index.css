@@ -4335,6 +4335,87 @@ body.tg-webapp .game-topbar .back-btn {
   min-height: 48px;
 }
 
+.durak-lobby-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(320px, 100%);
+  margin: 4px 0 2px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+  text-align: left;
+}
+
+.durak-lobby-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.durak-lobby-list-count {
+  font-variant-numeric: tabular-nums;
+  color: rgba(120, 220, 180, 0.9);
+}
+
+.durak-lobby-empty {
+  margin: 4px 0 2px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.durak-lobby-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  text-align: left;
+}
+
+.durak-lobby-row:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.durak-lobby-row-name {
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.durak-lobby-row-meta {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(232, 210, 160, 0.9);
+}
+
+.durak-online-wait-hint {
+  margin: 0;
+  max-width: 280px;
+  color: rgba(180, 230, 200, 0.85);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .durak-online-wait-status {
   margin: 0;
   color: rgba(255, 255, 255, 0.78);

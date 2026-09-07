@@ -22,6 +22,25 @@ type ByeMsg = { type: 'bye'; role: 'host' | 'guest' }
 type PingMsg = { type: 'ping'; role: 'host' }
 type NetMsg = HelloMsg | ActionMsg | StateMsg | BusyMsg | ByeMsg | PingMsg
 
+type LobbyAnnounceMsg = {
+  type: 'announce'
+  code: string
+  host: PlayerInfo
+  ts: number
+}
+type LobbyWithdrawMsg = {
+  type: 'withdraw'
+  code: string
+  ts: number
+}
+type LobbyMsg = LobbyAnnounceMsg | LobbyWithdrawMsg
+
+export type LobbyListing = {
+  code: string
+  host: PlayerInfo
+  ts: number
+}
+
 export type RoomStatus = 'connecting' | 'waiting' | 'playing' | 'disconnected' | 'error'
 
 export type DurakRoom = {
@@ -58,6 +77,10 @@ const CONNECT_MS = 10_000
 const HANDSHAKE_MS = 30_000
 const HELLO_RETRY_MS = 1_500
 const HOST_PING_MS = 4_000
+const LOBBY_TOPIC = 'gft/durak/v2/lobby'
+const LOBBY_ANNOUNCE_MS = 3_000
+const LOBBY_STALE_MS = 9_000
+const LOBBY_SWEEP_MS = 2_000
 
 function topicFor(code: string): string {
   return `gft/durak/v2/${code.toUpperCase()}/bus`
@@ -78,6 +101,25 @@ function parseMsg(raw: string): NetMsg | null {
     const msg = JSON.parse(raw) as NetMsg
     if (!msg || typeof msg !== 'object' || !('type' in msg)) return null
     return msg
+  } catch {
+    return null
+  }
+}
+
+function parseLobbyMsg(raw: string): LobbyMsg | null {
+  try {
+    const msg = JSON.parse(raw) as LobbyMsg
+    if (!msg || typeof msg !== 'object' || !('type' in msg)) return null
+    if (msg.type === 'announce') {
+      if (typeof msg.code !== 'string' || !msg.host?.id || !msg.host?.name) return null
+      if (typeof msg.ts !== 'number') return null
+      return msg
+    }
+    if (msg.type === 'withdraw') {
+      if (typeof msg.code !== 'string' || typeof msg.ts !== 'number') return null
+      return msg
+    }
+    return null
   } catch {
     return null
   }
@@ -144,7 +186,7 @@ async function connectAllBrokers(clientId: string): Promise<MqttClient[]> {
   return clients
 }
 
-function publishAll(clients: MqttClient[], topic: string, msg: NetMsg) {
+function publishAll(clients: MqttClient[], topic: string, msg: NetMsg | LobbyMsg) {
   const body = JSON.stringify(msg)
   for (const client of clients) {
     if (!client.connected) continue
@@ -173,6 +215,99 @@ function endAll(clients: MqttClient[]) {
   }
 }
 
+function announceLobby(clients: MqttClient[], code: string, host: PlayerInfo) {
+  publishAll(clients, LOBBY_TOPIC, {
+    type: 'announce',
+    code: code.toUpperCase(),
+    host,
+    ts: Date.now(),
+  })
+}
+
+function withdrawLobby(clients: MqttClient[], code: string) {
+  publishAll(clients, LOBBY_TOPIC, {
+    type: 'withdraw',
+    code: code.toUpperCase(),
+    ts: Date.now(),
+  })
+}
+
+/**
+ * Live list of open Durak rooms (hosts announcing while waiting for a guest).
+ * Returns a stop function; call it when leaving the online menu.
+ */
+export function watchDurakLobby(onChange: (rooms: LobbyListing[]) => void): () => void {
+  let alive = true
+  let clients: MqttClient[] = []
+  let sweepTimer: number | null = null
+  const map = new Map<string, LobbyListing>()
+
+  const flush = () => {
+    if (!alive) return
+    const now = Date.now()
+    for (const [code, row] of map) {
+      if (now - row.ts > LOBBY_STALE_MS) map.delete(code)
+    }
+    const rooms = [...map.values()].sort((a, b) => b.ts - a.ts)
+    onChange(rooms)
+  }
+
+  const onBus = (_t: string, payload: Buffer | string) => {
+    if (!alive) return
+    const msg = parseLobbyMsg(payload.toString())
+    if (!msg) return
+    if (msg.type === 'announce') {
+      const code = msg.code.trim().toUpperCase()
+      if (code.length < 4) return
+      map.set(code, { code, host: msg.host, ts: msg.ts || Date.now() })
+      flush()
+      return
+    }
+    if (msg.type === 'withdraw') {
+      map.delete(msg.code.trim().toUpperCase())
+      flush()
+    }
+  }
+
+  void (async () => {
+    try {
+      clients = await connectAllBrokers(`gft-lobby-${Math.random().toString(36).slice(2, 8)}`)
+    } catch {
+      if (alive) onChange([])
+      return
+    }
+    if (!alive) {
+      endAll(clients)
+      clients = []
+      return
+    }
+    try {
+      await subscribeAll(clients, LOBBY_TOPIC)
+    } catch {
+      endAll(clients)
+      clients = []
+      if (alive) onChange([])
+      return
+    }
+    for (const client of clients) {
+      client.on('message', onBus)
+      client.on('close', () => {
+        if (!alive) return
+        clients = clients.filter((c) => c !== client && c.connected)
+      })
+    }
+    flush()
+    sweepTimer = window.setInterval(flush, LOBBY_SWEEP_MS)
+  })()
+
+  return () => {
+    alive = false
+    if (sweepTimer != null) window.clearInterval(sweepTimer)
+    endAll(clients)
+    clients = []
+  }
+}
+
 export async function hostDurakRoom(
   you: PlayerInfo,
   handlers: RoomHandlers,
@@ -184,6 +319,23 @@ export async function hostDurakRoom(
   let clients: MqttClient[] = []
   let alive = true
   let pingTimer: number | null = null
+  let lobbyTimer: number | null = null
+  let listed = false
+
+  const stopLobby = () => {
+    if (lobbyTimer != null) {
+      window.clearInterval(lobbyTimer)
+      lobbyTimer = null
+    }
+    if (listed && clients.length) {
+      try {
+        withdrawLobby(clients, code)
+      } catch {
+        /* noop */
+      }
+    }
+    listed = false
+  }
 
   const room: DurakRoom = {
     code,
@@ -196,6 +348,7 @@ export async function hostDurakRoom(
     destroy: () => {
       alive = false
       if (pingTimer != null) window.clearInterval(pingTimer)
+      stopLobby()
       try {
         publishAll(clients, topic, { type: 'bye', role: 'host' })
       } catch {
@@ -210,6 +363,7 @@ export async function hostDurakRoom(
 
   const pushViews = () => {
     if (!alive || !state || !opponent || clients.length === 0) return
+    stopLobby()
     const hostView = seatView(state, 'a')
     const guestView = seatView(state, 'b')
     room.view = hostView
@@ -291,10 +445,16 @@ export async function hostDurakRoom(
   room.status = 'waiting'
   emit(room, handlers)
   publishAll(clients, topic, { type: 'ping', role: 'host' })
+  listed = true
+  announceLobby(clients, code, you)
   pingTimer = window.setInterval(() => {
     if (!alive || room.status !== 'waiting') return
     publishAll(clients, topic, { type: 'ping', role: 'host' })
   }, HOST_PING_MS)
+  lobbyTimer = window.setInterval(() => {
+    if (!alive || room.status !== 'waiting') return
+    announceLobby(clients, code, you)
+  }, LOBBY_ANNOUNCE_MS)
 
   return room
 }
@@ -375,7 +535,7 @@ export async function joinDurakRoom(
       settle(() =>
         reject(
           new Error(
-            'Хост не ответил. Убедитесь, что друг открыл «Создать комнату» и ждёт с этим кодом.',
+            'Хост не ответил. Комната могла закрыться — обновите список и зайдите снова.',
           ),
         ),
       )
