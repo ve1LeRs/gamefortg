@@ -2917,8 +2917,8 @@ body.tg-webapp .game-topbar .back-btn {
 
 .durak-hand {
   /* --hand-step = visible strip of each card (set in JS); overlap derived from card width */
-  --hand-card-w: 98px;
-  --hand-card-h: 138px;
+  --hand-card-w: 112px;
+  --hand-card-h: 158px;
   --hand-step: 62px;
   position: relative;
   display: flex;
@@ -2929,32 +2929,39 @@ body.tg-webapp .game-topbar .back-btn {
   max-width: 100%;
   height: auto;
   /* Extra top room for fanned tops; side inset for angled edges */
-  min-height: calc(var(--hand-card-h, 122px) + 36px);
-  padding: 18px 16px 6px;
-  margin-bottom: 0;
+  min-height: calc(var(--hand-card-h, 158px) + 28px);
+  padding: 14px 12px 0;
+  /* Tuck so the card midpoint sits under the player dock */
+  margin-bottom: calc(var(--hand-card-h, 158px) * -0.5 + 8px);
   box-sizing: border-box;
   overflow: visible;
   z-index: 2;
+  pointer-events: none;
+}
+
+.durak-hand .durak-hand-row,
+.durak-hand .durak-hand-card {
+  pointer-events: auto;
 }
 
 
 .durak-hand:not(.is-multi-row) {
   height: auto;
-  min-height: calc(var(--hand-card-h, 122px) + 36px);
+  min-height: calc(var(--hand-card-h, 158px) + 28px);
 }
 
 .durak-hand:not(.is-multi-row) .durak-hand-row {
-  height: calc(var(--hand-card-h, 122px) + 28px);
+  height: calc(var(--hand-card-h, 158px) + 22px);
 }
 .durak-hand.is-multi-row {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
   height: auto;
-  min-height: calc(var(--hand-card-h, 122px) + 36px);
+  min-height: calc(var(--hand-card-h, 158px) + 28px);
   gap: 10px;
   overflow: visible;
-  padding: 14px 16px 6px;
+  padding: 12px 12px 0;
 }
 
 .durak-hand-row {
@@ -2962,11 +2969,11 @@ body.tg-webapp .game-topbar .back-btn {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  height: calc(var(--hand-card-h, 122px) + 28px);
+  height: calc(var(--hand-card-h, 158px) + 22px);
   max-width: 100%;
   box-sizing: border-box;
   overflow: visible;
-  padding-bottom: 2px;
+  padding-bottom: 0;
 }
 
 .durak-hand-row .durak-hand-card:first-child {
@@ -3060,14 +3067,14 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .durak-hand-card .pcard-rank {
-  font-size: 16px;
+  font-size: 18px;
   height: auto;
   line-height: 1;
   font-weight: 800;
 }
 
 .durak-hand-card .pcard-suit {
-  font-size: 13px;
+  font-size: 14px;
   height: auto;
   line-height: 1;
 }
@@ -3079,7 +3086,7 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .durak-hand-card .suit-lg {
-  font-size: 30px;
+  font-size: 34px;
 }
 
 /* Crowded hands: keep the left index strip readable under tight peek */
@@ -3149,6 +3156,7 @@ body.tg-webapp .game-topbar .back-btn {
   position: relative;
   z-index: 1;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .durak-dock .durak-seat {
@@ -3216,7 +3224,7 @@ body.tg-webapp .game-topbar .back-btn {
 
 @media (max-width: 360px) {
   .durak-hand:not(.is-multi-row) {
-    min-height: calc(var(--hand-card-h, 110px) + 16px);
+    min-height: calc(var(--hand-card-h, 140px) + 12px);
   }
   .durak-pair {
     width: 90px;
@@ -3481,13 +3489,13 @@ body.tg-webapp .game-topbar .back-btn {
   align-items: flex-end;
   overflow: visible;
   height: auto;
-  min-height: calc(var(--hand-card-h, 128px) + 32px);
-  pointer-events: auto;
-  padding: 16px 16px 6px;
+  min-height: calc(var(--hand-card-h, 158px) + 24px);
+  pointer-events: none;
+  padding: 12px 12px 0;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  margin-bottom: 0;
+  margin-bottom: calc(var(--hand-card-h, 158px) * -0.5 + 8px);
 }
 
 .durak-online-hand .durak-hand-row {
@@ -3497,16 +3505,16 @@ body.tg-webapp .game-topbar .back-btn {
   align-items: flex-end;
   width: auto;
   max-width: 100%;
-  height: calc(var(--hand-card-h, 128px) + 8px);
+  height: calc(var(--hand-card-h, 158px) + 8px);
   overflow: visible;
   pointer-events: auto;
 }
 
 .durak-online-hand .durak-hand-card {
-  width: var(--hand-card-w, 92px) !important;
-  height: var(--hand-card-h, 128px) !important;
+  width: var(--hand-card-w, 112px) !important;
+  height: var(--hand-card-h, 158px) !important;
   flex: 0 0 auto;
-  margin-left: calc(var(--hand-step, 48px) - var(--hand-card-w, 92px));
+  margin-left: calc(var(--hand-step, 48px) - var(--hand-card-w, 112px));
   border: none;
   padding: 0;
   transform: translate3d(0, var(--fan-y, 0px), 0) rotate(var(--rot, 0deg));
