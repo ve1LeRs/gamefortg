@@ -2947,6 +2947,54 @@ body.tg-webapp .game-topbar .back-btn {
   font-size: clamp(12px, 2vw, 15px);
   animation: none;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+  padding: 4px 5px;
+}
+
+/* Hole cards: rank in corner + one clear center suit (no double-suit clash). */
+.poker-hand .pcard .pcard-suit,
+.poker-hand .poker-hole-card .pcard-suit,
+.poker-board .pcard .pcard-suit {
+  display: none !important;
+}
+
+.poker-hand .pcard .pcard-corner-br,
+.poker-hand .poker-hole-card .pcard-corner-br,
+.poker-board .pcard .pcard-corner-br {
+  display: none;
+}
+
+.poker-hand .pcard .pcard-corner,
+.poker-hand .poker-hole-card .pcard-corner,
+.poker-board .pcard .pcard-corner {
+  gap: 0;
+  max-width: none;
+  align-items: flex-start;
+}
+
+.poker-hand .pcard .pcard-rank,
+.poker-hand .poker-hole-card .pcard-rank {
+  font-size: clamp(13px, 2.2vw, 16px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.poker-hand .pcard .suit-lg,
+.poker-hand .poker-hole-card .suit-lg {
+  inset: 22% 10% 14% 10%;
+  font-size: clamp(18px, 3.6vw, 28px);
+  opacity: 1;
+}
+
+.poker-board .pcard .pcard-rank {
+  font-size: clamp(10px, 1.7vw, 13px);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.poker-board .pcard .suit-lg {
+  inset: 24% 10% 14% 10%;
+  font-size: clamp(14px, 2.6vw, 20px);
+  opacity: 1;
 }
 
 .poker-hand .pcard.poker-deal-to-you {
@@ -3105,6 +3153,15 @@ body.tg-webapp .game-topbar .back-btn {
   .poker-hand .poker-hole-card {
     width: clamp(34px, 6vw, 48px);
     height: clamp(48px, 8.5vw, 66px);
+  }
+  .poker-hand .pcard .suit-lg,
+  .poker-hand .poker-hole-card .suit-lg {
+    inset: 24% 10% 14% 10%;
+    font-size: clamp(15px, 3.2vw, 22px);
+  }
+  .poker-hand .pcard .pcard-rank,
+  .poker-hand .poker-hole-card .pcard-rank {
+    font-size: clamp(11px, 2vw, 14px);
   }
   .poker-btn {
     padding: 7px 8px;
