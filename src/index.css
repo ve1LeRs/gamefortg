@@ -2563,8 +2563,9 @@ body.tg-webapp .game-topbar .back-btn {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: max(6px, env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px))
-    max(8px, env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
+  gap: 4px;
+  padding: max(4px, env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px))
+    max(6px, env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
   background:
     radial-gradient(ellipse 80% 60% at 50% 40%, rgba(90, 20, 30, 0.45), transparent 70%),
     repeating-linear-gradient(
@@ -2576,12 +2577,12 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .poker-status {
-  margin: 0 0 4px;
+  margin: 0;
   text-align: center;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.72);
-  min-height: 1.2em;
+  min-height: 1.1em;
   flex-shrink: 0;
 }
 
@@ -2593,19 +2594,19 @@ body.tg-webapp .game-topbar .back-btn {
   color: #ff8a74;
 }
 
+/* Fill leftover height — aspect-ratio was crushing the oval on short phones. */
 .poker-table {
   position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  width: min(100%, 920px);
+  flex: 1 1 0;
+  min-height: 140px;
+  width: 100%;
+  max-width: 960px;
   margin: 0 auto;
-  aspect-ratio: 16 / 9;
-  max-height: min(58vh, calc(100% - 148px));
 }
 
 .poker-table-rail {
   position: absolute;
-  inset: 4% 2%;
+  inset: 6% 3%;
   border-radius: 50% / 42%;
   background:
     linear-gradient(145deg, #5a3a28, #2a1810 45%, #1a100c);
@@ -2617,7 +2618,7 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-table-felt {
   position: absolute;
-  inset: 9% 5.5%;
+  inset: 12% 7%;
   border-radius: 50% / 42%;
   background:
     radial-gradient(ellipse at 50% 40%, #8b2a36 0%, #6a1c28 42%, #4a121c 100%);
@@ -2631,11 +2632,11 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-table-brand {
   position: absolute;
-  top: 22%;
+  top: 18%;
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-display);
-  font-size: clamp(11px, 2.2vw, 16px);
+  font-size: clamp(10px, 2vw, 14px);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2649,9 +2650,8 @@ body.tg-webapp .game-topbar .back-btn {
   align-items: center;
   justify-content: center;
   gap: clamp(4px, 0.8vw, 8px);
-  min-height: clamp(48px, 12vh, 72px);
+  min-height: clamp(40px, 10vh, 64px);
   z-index: 2;
-  margin-top: 4%;
 }
 
 .poker-board-empty {
@@ -2662,9 +2662,9 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-board .poker-board-card,
 .poker-board .pcard {
-  width: clamp(36px, 6.2vw, 54px);
-  height: clamp(50px, 8.6vw, 76px);
-  font-size: clamp(11px, 1.8vw, 14px);
+  width: clamp(32px, 5.4vw, 48px);
+  height: clamp(44px, 7.5vw, 68px);
+  font-size: clamp(10px, 1.6vw, 13px);
   animation: none;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
 }
@@ -2675,25 +2675,25 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-pot {
   position: absolute;
-  bottom: 18%;
+  bottom: 16%;
   left: 50%;
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
+  gap: 6px;
+  padding: 3px 10px;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(232, 168, 56, 0.35);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #f0d9a8;
   z-index: 2;
 }
 
 .poker-pot-chip {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background:
     radial-gradient(circle at 35% 30%, #fff, transparent 40%),
@@ -2701,11 +2701,11 @@ body.tg-webapp .game-topbar .back-btn {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
-/* Heads-up seats only (you + bot). */
+/* Heads-up: bot top-center, you bottom-left — never the same spot. */
 .poker-seat-slot {
   position: absolute;
   z-index: 4;
-  width: clamp(72px, 14vw, 110px);
+  width: clamp(64px, 12vw, 100px);
 }
 
 .poker-seat-bot {
@@ -2716,28 +2716,28 @@ body.tg-webapp .game-topbar .back-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .poker-seat-you {
-  left: 50%;
-  bottom: 1%;
-  transform: translateX(-50%);
+  left: 6%;
+  bottom: 2%;
+  transform: none;
 }
 
 .poker-bot-cards {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   justify-content: center;
 }
 
 .poker-bot-cards .pcard,
 .poker-bot-cards .poker-hole-card {
-  width: clamp(26px, 4.2vw, 38px);
-  height: clamp(36px, 5.8vw, 52px);
-  font-size: 10px;
+  width: clamp(22px, 3.6vw, 32px);
+  height: clamp(30px, 5vw, 44px);
+  font-size: 9px;
   padding: 2px;
-  border-radius: 5px;
+  border-radius: 4px;
   animation: none;
 }
 
@@ -2749,7 +2749,7 @@ body.tg-webapp .game-topbar .back-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
 }
 
 .poker-seat.is-active .poker-seat-avatar {
@@ -2757,7 +2757,7 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .poker-seat-name {
-  padding: 2px 8px;
+  padding: 1px 7px;
   border-radius: 4px;
   background: rgba(0, 0, 0, 0.72);
   font-size: 10px;
@@ -2771,8 +2771,8 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-seat-avatar-wrap {
   position: relative;
-  width: clamp(42px, 7vw, 58px);
-  height: clamp(42px, 7vw, 58px);
+  width: clamp(36px, 6vw, 50px);
+  height: clamp(36px, 6vw, 50px);
 }
 
 .poker-seat-avatar {
@@ -2785,7 +2785,7 @@ body.tg-webapp .game-topbar .back-btn {
   place-items: center;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: clamp(16px, 2.8vw, 22px);
+  font-size: clamp(14px, 2.4vw, 20px);
   color: #f2f6fb;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
 }
@@ -2794,13 +2794,13 @@ body.tg-webapp .game-topbar .back-btn {
   position: absolute;
   right: -4px;
   bottom: -4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
   border-radius: 999px;
   background: #2f6fed;
   border: 1.5px solid rgba(255, 255, 255, 0.85);
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   display: grid;
   place-items: center;
@@ -2811,12 +2811,12 @@ body.tg-webapp .game-topbar .back-btn {
   position: absolute;
   left: -6px;
   top: -6px;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: linear-gradient(180deg, #ffd36a, #e8a838);
   color: #1a1208;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   display: grid;
   place-items: center;
@@ -2832,19 +2832,28 @@ body.tg-webapp .game-topbar .back-btn {
   color: #f0d9a8;
 }
 
-/* Hand lives BELOW the oval — never over community cards / pot. */
-.poker-hand-dock {
+/* Hand + controls share one bottom strip so the table keeps height. */
+.poker-bottom {
   flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px 4px;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding: 2px 4px 0;
   z-index: 8;
 }
 
+.poker-hand-dock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
 .poker-hand-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2855,16 +2864,16 @@ body.tg-webapp .game-topbar .back-btn {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .poker-hand .pcard,
 .poker-hand .poker-hole-card {
-  width: clamp(46px, 8vw, 68px);
-  height: clamp(64px, 11vw, 94px);
-  font-size: clamp(13px, 2.2vw, 16px);
+  width: clamp(40px, 7vw, 58px);
+  height: clamp(56px, 9.5vw, 80px);
+  font-size: clamp(12px, 2vw, 15px);
   animation: none;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
 }
 
 .poker-hand .pcard.poker-deal-to-you {
@@ -2872,53 +2881,51 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .poker-actions {
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px 2px;
-  z-index: 6;
+  align-items: stretch;
+  gap: 4px;
+  flex: 1 1 auto;
+  max-width: 420px;
+  min-width: 0;
 }
 
 .poker-actions-row {
   display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  justify-content: stretch;
+  gap: 6px;
   width: 100%;
+}
+
+.poker-actions-row .poker-btn {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .poker-bet-panel {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  width: min(100%, 420px);
-}
-
-.poker-bet-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(240, 217, 168, 0.7);
+  justify-content: center;
+  gap: 6px 10px;
+  width: 100%;
 }
 
 .poker-bet-stepper {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .poker-bet-nudge {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
   border: 1px solid rgba(232, 168, 56, 0.4);
   background: rgba(0, 0, 0, 0.35);
   color: #f0d9a8;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1;
   display: grid;
@@ -2930,10 +2937,10 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .poker-bet-value {
-  min-width: 64px;
+  min-width: 48px;
   text-align: center;
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 800;
   color: #f0d9a8;
 }
@@ -2942,31 +2949,24 @@ body.tg-webapp .game-topbar .back-btn {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .poker-bet-chip {
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.06);
   color: rgba(242, 246, 251, 0.85);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
 }
 
-.poker-bet-meta {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.45);
-}
-
 .poker-btn {
-  min-width: 88px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 13px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -3023,31 +3023,26 @@ body.tg-webapp .game-topbar .back-btn {
 
 @media (orientation: landscape) and (max-height: 430px) {
   .poker-status {
-    font-size: 11px;
+    font-size: 10px;
   }
   .poker-table {
-    max-height: min(52vh, calc(100% - 132px));
-  }
-  .poker-actions {
-    padding-top: 2px;
-    gap: 4px;
-  }
-  .poker-btn {
-    padding: 8px 12px;
-    min-width: 76px;
-    font-size: 12px;
-  }
-  .poker-bet-value {
-    font-size: 18px;
-  }
-  .poker-bet-nudge {
-    width: 32px;
-    height: 32px;
+    min-height: 120px;
   }
   .poker-hand .pcard,
   .poker-hand .poker-hole-card {
-    width: clamp(40px, 7vw, 56px);
-    height: clamp(56px, 9.5vw, 78px);
+    width: clamp(34px, 6vw, 48px);
+    height: clamp(48px, 8.5vw, 66px);
+  }
+  .poker-btn {
+    padding: 7px 8px;
+    font-size: 11px;
+  }
+  .poker-bet-nudge {
+    width: 28px;
+    height: 28px;
+  }
+  .poker-bet-value {
+    font-size: 16px;
   }
 }
 
