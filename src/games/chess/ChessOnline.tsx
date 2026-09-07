@@ -213,7 +213,6 @@ export function ChessOnline({
       setJoinCode={lobby.setJoinCode}
       onHost={() => void lobby.connectHost()}
       onJoin={(code, name) => void lobby.connectJoin(code, name)}
-      onRefresh={lobby.forceRefreshApp}
       onBackToBot={onBackToBot}
       onHaptic={onHaptic}
     />

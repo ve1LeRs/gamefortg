@@ -153,13 +153,6 @@ export function useOnlineLobbyRoom<TState>(opts: {
     setJoiningHost(null)
   }
 
-  const forceRefreshApp = () => {
-    const next = new URL(location.href)
-    next.searchParams.set('v', typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : String(Date.now()))
-    next.searchParams.set('_', String(Date.now()))
-    location.replace(next.toString())
-  }
-
   return {
     you,
     title: opts.title,
@@ -177,7 +170,6 @@ export function useOnlineLobbyRoom<TState>(opts: {
     connectHost,
     connectJoin,
     leave,
-    forceRefreshApp,
     onHaptic: opts.onHaptic,
   }
 }
@@ -195,7 +187,6 @@ export function OnlineLobbyMenu({
   setJoinCode,
   onHost,
   onJoin,
-  onRefresh,
   onBackToBot,
   onHaptic,
 }: {
@@ -211,7 +202,6 @@ export function OnlineLobbyMenu({
   setJoinCode: (v: string) => void
   onHost: () => void
   onJoin: (code: string, hostName?: string) => void
-  onRefresh: () => void
   onBackToBot?: () => void
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
 }) {
@@ -289,9 +279,6 @@ export function OnlineLobbyMenu({
             </div>
           )}
 
-          <button type="button" className="durak-btn" onClick={onRefresh}>
-            Обновить приложение
-          </button>
           {onBackToBot && (
             <button type="button" className="durak-btn" onClick={onBackToBot}>
               Играть с ботом
