@@ -2038,8 +2038,10 @@ body.tg-webapp .game-topbar .back-btn {
     0 2px 5px rgba(0, 0, 0, 0.22);
   transition:
     top 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.45s ease,
-    outline-color 0.35s ease;
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    outline-color 0.25s ease,
+    filter 0.25s ease;
 }
 
 .sol-col .pcard .suit-lg {
@@ -2054,24 +2056,42 @@ body.tg-webapp .game-topbar .back-btn {
   outline: none;
 }
 
-/* Keep selection inside the card — inset ring, no outer glow / scale. */
+/* Clear selected card — tight gold frame + slight lift (stays in column). */
 .solitaire .pcard.selected,
 .sol-col .pcard.selected {
-  transform: none;
-  outline: none;
+  transform: translateY(-7px);
+  outline: 2px solid rgba(255, 210, 120, 0.95);
+  outline-offset: 1px;
   box-shadow:
-    inset 0 0 0 1.5px rgba(232, 168, 56, 0.95),
-    0 2px 6px rgba(0, 0, 0, 0.22);
+    inset 0 0 0 2px rgba(232, 168, 56, 1),
+    0 8px 16px rgba(0, 0, 0, 0.35),
+    0 0 0 3px rgba(232, 168, 56, 0.28);
+  filter: brightness(1.08);
   z-index: 24;
+  animation: sol-select-pulse 1.2s ease;
 }
 
 .sol-col .pcard.playable:active {
-  transform: none;
+  transform: translateY(-2px);
 }
 
-/* Rest of a movable run: slight lift only, no second outline box. */
+/* Rest of a movable run: shared gold edge so the whole stack reads as selected. */
 .sol-col .pcard.sol-in-run:not(.selected) {
-  filter: brightness(1.04);
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(232, 168, 56, 0.75),
+    0 2px 6px rgba(0, 0, 0, 0.22);
+  transform: translateY(-3px);
+  z-index: 20;
+}
+
+@keyframes sol-select-pulse {
+  0% {
+    filter: brightness(1.18);
+  }
+  100% {
+    filter: brightness(1.08);
+  }
 }
 
 .sol-slot.sol-hint,
