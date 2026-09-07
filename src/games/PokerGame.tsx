@@ -19,15 +19,6 @@ type HandRank = {
 const START_STACK = 1000
 const BLIND = 15
 
-const TABLE_SEATS = [
-  { id: 'tl', name: 'Инга', level: 73, role: 'npc' as const, stackLabel: '410K' },
-  { id: 'tc', name: 'Крупье', level: 99, role: 'dealer' as const, stackLabel: '' },
-  { id: 'tr', name: 'Анюта', level: 63, role: 'npc' as const, stackLabel: '280K' },
-  { id: 'bl', name: 'Анна', level: 40, role: 'npc' as const, stackLabel: '520K' },
-  { id: 'bc', name: 'Вы', level: 12, role: 'player' as const, stackLabel: '' },
-  { id: 'br', name: 'Бот', level: 55, role: 'bot' as const, stackLabel: '' },
-]
-
 function formatChips(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
   if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`
@@ -134,6 +125,11 @@ function betSize(phase: Phase) {
   return 80
 }
 
+function clampBet(value: number, min: number, max: number) {
+  if (max < min) return Math.max(0, max)
+  return Math.min(max, Math.max(min, value))
+}
+
 function isLandscapeNow() {
   if (typeof window === 'undefined') return true
   // Prefer geometry — Telegram WebView often lags on orientation media queries.
@@ -177,39 +173,19 @@ function SeatCard({
   name,
   level,
   stackText,
-  bankText,
   dealer,
   active,
-  cards,
-  showCards,
   accent,
 }: {
   name: string
   level: number
   stackText: string
-  bankText?: string
   dealer?: boolean
   active?: boolean
-  cards?: Card[]
-  showCards?: boolean
   accent?: string
 }) {
   return (
     <div className={`poker-seat${active ? ' is-active' : ''}`}>
-      {cards && cards.length > 0 && (
-        <div className="poker-seat-cards">
-          {cards.map((c, i) => (
-            <PlayingCard
-              key={c.id}
-              card={c}
-              faceDown={!showCards}
-              index={i}
-              enter="none"
-              className="poker-mini-card"
-            />
-          ))}
-        </div>
-      )}
       <div className="poker-seat-name">{name}</div>
       <div className="poker-seat-avatar-wrap">
         {dealer && <span className="poker-dealer-btn">D</span>}
@@ -218,12 +194,9 @@ function SeatCard({
         </div>
         <span className="poker-seat-level">{level}</span>
       </div>
-      {(stackText || bankText) && (
-        <div className="poker-seat-money">
-          {stackText && <span>{stackText}</span>}
-          {bankText && <span className="poker-seat-bank">{bankText}</span>}
-        </div>
-      )}
+      <div className="poker-seat-money">
+        <span>{stackText}</span>
+      </div>
     </div>
   )
 }
@@ -246,14 +219,35 @@ export function PokerGame({
   const [stack, setStack] = useState(firstBlinds.stack)
   const [botStack, setBotStack] = useState(firstBlinds.botStack)
   const [showBot, setShowBot] = useState(false)
-  const [status, setStatus] = useState(`Блайнды по ${BLIND}. Чек или ставка ${betSize('preflop')}?`)
+  const [status, setStatus] = useState(`Блайнды по ${BLIND}. Чек или выберите ставку.`)
   const [resultClass, setResultClass] = useState('')
   const [matchOver, setMatchOver] = useState(false)
+  const [dealTick, setDealTick] = useState(1)
+  const [boardTick, setBoardTick] = useState(0)
+  const [wager, setWager] = useState(() => betSize('preflop'))
 
   const stackRef = useRef(stack)
   const botStackRef = useRef(botStack)
   stackRef.current = stack
   botStackRef.current = botStack
+
+  const maxWager = Math.min(stack, botStack)
+  const minWager = Math.min(betSize(phase === 'over' ? 'preflop' : phase), Math.max(0, maxWager))
+
+  useEffect(() => {
+    if (phase === 'over' || matchOver) return
+    setWager(clampBet(betSize(phase), minWager, maxWager))
+  }, [phase, matchOver, minWager, maxWager])
+
+  const nudgeWager = (delta: number) => {
+    setWager((w) => clampBet(w + delta, minWager, maxWager))
+    onHaptic?.('light')
+  }
+
+  const setWagerPreset = (value: number) => {
+    setWager(clampBet(value, minWager, maxWager))
+    onHaptic?.('light')
+  }
 
   const settlePot = useCallback((winner: 'player' | 'bot' | 'tie', potAmount: number) => {
     if (winner === 'player') {
@@ -306,7 +300,10 @@ export function PokerGame({
       setShowBot(false)
       setResultClass('')
       setMatchOver(false)
-      setStatus(`Блайнды по ${BLIND}. Чек или ставка ${betSize('preflop')}?`)
+      setDealTick((n) => n + 1)
+      setBoardTick(0)
+      setWager(betSize('preflop'))
+      setStatus(`Блайнды по ${BLIND}. Ваш ход: чек, ставка или фолд.`)
       onHaptic?.('medium')
     },
     [onHaptic],
@@ -362,21 +359,24 @@ export function PokerGame({
         setBoard(flop)
         setDeck(copy)
         setPhase('flop')
-        setStatus(`Флоп. Чек или ставка ${betSize('flop')}?`)
+        setBoardTick((n) => n + 1)
+        setStatus(`Флоп открыт. Чек, ставка или фолд.`)
       } else if (from === 'flop') {
         copy.pop()
         const nextBoard = [...currentBoard, copy.pop()!]
         setBoard(nextBoard)
         setDeck(copy)
         setPhase('turn')
-        setStatus(`Тёрн. Чек или ставка ${betSize('turn')}?`)
+        setBoardTick((n) => n + 1)
+        setStatus(`Тёрн. Чек, ставка или фолд.`)
       } else if (from === 'turn') {
         copy.pop()
         const nextBoard = [...currentBoard, copy.pop()!]
         setBoard(nextBoard)
         setDeck(copy)
         setPhase('river')
-        setStatus(`Ривер. Чек или ставка ${betSize('river')}?`)
+        setBoardTick((n) => n + 1)
+        setStatus(`Ривер. Чек, ставка или фолд.`)
       } else {
         showdown(currentBoard, potAmount, playerHole, botHole)
       }
@@ -393,8 +393,8 @@ export function PokerGame({
     let nextBot = botStack
 
     if (Math.random() < 0.25 && phase !== 'river') {
-      const amount = betSize(phase)
-      if (nextStack >= amount && nextBot >= amount) {
+      const amount = clampBet(wager, minWager, Math.min(nextStack, nextBot))
+      if (amount > 0 && nextStack >= amount && nextBot >= amount) {
         nextPot += amount * 2
         nextStack -= amount
         nextBot -= amount
@@ -414,8 +414,8 @@ export function PokerGame({
 
   const bet = () => {
     if (phase === 'over' || matchOver) return
-    const amount = betSize(phase)
-    if (stack < amount || botStack < amount) {
+    const amount = clampBet(wager, minWager, maxWager)
+    if (amount <= 0 || stack < amount || botStack < amount) {
       setStatus('Недостаточно фишек для ставки — нажмите чек.')
       return
     }
@@ -473,12 +473,19 @@ export function PokerGame({
             <div className="poker-table-felt">
               <div className="poker-table-brand">Playfort Poker</div>
 
-              <div className="poker-board">
+              <div className="poker-board" key={`board-${boardTick}`}>
                 {board.length === 0 ? (
                   <span className="poker-board-empty">Общие карты</span>
                 ) : (
                   board.map((c, i) => (
-                    <PlayingCard key={c.id} card={c} index={i} enter="none" className="poker-board-card" />
+                    <PlayingCard
+                      key={c.id}
+                      card={c}
+                      index={i}
+                      enter="none"
+                      className="poker-board-card poker-deal-board"
+                      style={{ animationDelay: `${i * 70}ms` }}
+                    />
                   ))
                 )}
               </div>
@@ -489,59 +496,120 @@ export function PokerGame({
               </div>
             </div>
 
-            {TABLE_SEATS.map((seat) => {
-              const isPlayer = seat.role === 'player'
-              const isBot = seat.role === 'bot'
-              return (
-                <div key={seat.id} className={`poker-seat-slot poker-seat-${seat.id}`}>
-                  <SeatCard
-                    name={seat.name}
-                    level={seat.level}
-                    stackText={
-                      isPlayer
-                        ? formatChips(stack)
-                        : isBot
-                          ? formatChips(botStack)
-                          : seat.stackLabel
-                    }
-                    bankText={isPlayer || isBot ? '1M' : seat.role === 'dealer' ? undefined : '1M'}
-                    dealer={isPlayer && phase !== 'over'}
-                    active={isPlayer || isBot}
-                    cards={isPlayer ? player : isBot ? bot : undefined}
-                    showCards={isPlayer ? true : isBot ? showBot : false}
-                    accent={
-                      isPlayer
-                        ? 'linear-gradient(145deg,#3a6ea5,#1a3358)'
-                        : isBot
-                          ? 'linear-gradient(145deg,#6b3a3a,#3a1515)'
-                          : seat.role === 'dealer'
-                            ? 'linear-gradient(145deg,#5a4a6a,#2a2038)'
-                            : undefined
-                    }
+            <div className="poker-seat-slot poker-seat-bot">
+              <div className="poker-bot-cards" key={`bot-${dealTick}`}>
+                {bot.map((c, i) => (
+                  <PlayingCard
+                    key={c.id}
+                    card={c}
+                    faceDown={!showBot}
+                    index={i}
+                    enter="none"
+                    className="poker-hole-card poker-deal-to-bot"
+                    style={{ animationDelay: `${80 + i * 90}ms` }}
                   />
-                </div>
-              )
-            })}
+                ))}
+              </div>
+              <SeatCard
+                name="Бот"
+                level={55}
+                stackText={formatChips(botStack)}
+                active
+                accent="linear-gradient(145deg,#6b3a3a,#3a1515)"
+              />
+            </div>
+
+            <div className="poker-seat-slot poker-seat-you">
+              <SeatCard
+                name="Вы"
+                level={12}
+                stackText={formatChips(stack)}
+                dealer={phase !== 'over'}
+                active
+                accent="linear-gradient(145deg,#3a6ea5,#1a3358)"
+              />
+            </div>
           </div>
 
-          <div className="poker-fg-chips" aria-hidden>
-            <span className="poker-fg-chip poker-fg-a" />
-            <span className="poker-fg-chip poker-fg-b" />
-            <span className="poker-fg-chip poker-fg-c" />
+          <div className="poker-hand-dock" key={`hand-${dealTick}`}>
+            <span className="poker-hand-label">Ваши карты</span>
+            <div className="poker-hand">
+              {player.map((c, i) => (
+                <PlayingCard
+                  key={c.id}
+                  card={c}
+                  index={i}
+                  enter="none"
+                  className="poker-hole-card poker-deal-to-you"
+                  style={{ animationDelay: `${i * 90}ms` }}
+                />
+              ))}
+            </div>
           </div>
 
           <div className="poker-actions">
             {phase !== 'over' && !matchOver ? (
               <>
-                <button type="button" className="poker-btn poker-btn-soft" onClick={check}>
-                  Чек
-                </button>
-                <button type="button" className="poker-btn poker-btn-bet" onClick={bet}>
-                  Ставка {betSize(phase)}
-                </button>
-                <button type="button" className="poker-btn poker-btn-fold" onClick={fold}>
-                  Фолд
-                </button>
+                <div className="poker-bet-panel">
+                  <span className="poker-bet-label">Размер ставки</span>
+                  <div className="poker-bet-stepper">
+                    <button
+                      type="button"
+                      className="poker-bet-nudge"
+                      aria-label="Уменьшить ставку"
+                      disabled={wager <= minWager}
+                      onClick={() => nudgeWager(-10)}
+                    >
+                      −
+                    </button>
+                    <span className="poker-bet-value">{formatChips(wager)}</span>
+                    <button
+                      type="button"
+                      className="poker-bet-nudge"
+                      aria-label="Увеличить ставку"
+                      disabled={wager >= maxWager}
+                      onClick={() => nudgeWager(10)}
+                    >
+                      +
+                    </button>
+                  </div>
+                  <div className="poker-bet-presets">
+                    <button type="button" className="poker-bet-chip" onClick={() => setWagerPreset(minWager)}>
+                      Мин
+                    </button>
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      onClick={() => setWagerPreset(Math.max(minWager, Math.floor(pot / 2) || minWager))}
+                    >
+                      ½ банка
+                    </button>
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      onClick={() => setWagerPreset(Math.max(minWager, pot || minWager))}
+                    >
+                      Банк
+                    </button>
+                    <button type="button" className="poker-bet-chip" onClick={() => setWagerPreset(maxWager)}>
+                      Макс
+                    </button>
+                  </div>
+                  <p className="poker-bet-meta">
+                    Стек {formatChips(stack)} · бот {formatChips(botStack)}
+                  </p>
+                </div>
+                <div className="poker-actions-row">
+                  <button type="button" className="poker-btn poker-btn-soft" onClick={check}>
+                    Чек
+                  </button>
+                  <button type="button" className="poker-btn poker-btn-bet" onClick={bet} disabled={wager <= 0}>
+                    Поставить {formatChips(wager)}
+                  </button>
+                  <button type="button" className="poker-btn poker-btn-fold" onClick={fold}>
+                    Фолд
+                  </button>
+                </div>
               </>
             ) : matchOver ? (
               <button type="button" className="poker-btn poker-btn-bet" onClick={resetMatch}>
