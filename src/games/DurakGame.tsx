@@ -152,6 +152,10 @@ const THROW_MS = 520
 const BITO_MS = 1580
 const DEAL_MS = 980
 
+function pickFirstAttacker(): 'player' | 'bot' {
+  return Math.random() < 0.5 ? 'player' : 'bot'
+}
+
 export function DurakGame({
   onHaptic,
 }: {
@@ -164,7 +168,7 @@ export function DurakGame({
   const [trump] = useState(initial.trump)
   const [trumpCard] = useState(initial.trumpCard)
   const [table, setTable] = useState<TablePair[]>([])
-  const [attacker, setAttacker] = useState<'player' | 'bot'>('player')
+  const [attacker, setAttacker] = useState<'player' | 'bot'>(() => pickFirstAttacker())
   const [status, setStatus] = useState('Раздача…')
   const [over, setOver] = useState<'win' | 'lose' | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
@@ -182,6 +186,8 @@ export function DurakGame({
   const [tableFlying, setTableFlying] = useState(false)
   const [discard, setDiscard] = useState<Card[]>([])
   const [bitoFlying, setBitoFlying] = useState(false)
+  /** After deal/reset, kick the bot’s opening attack once. */
+  const [kickoffBot, setKickoffBot] = useState(false)
   /** Stagger among newly dealt cards only (not hand index). */
   const [dealOrder, setDealOrder] = useState<Record<string, number>>(() =>
     Object.fromEntries(initial.player.map((c, i) => [c.id, i])),
@@ -193,6 +199,7 @@ export function DurakGame({
   const skipClickRef = useRef(false)
   const dealTimerRef = useRef<number | null>(null)
   const busyRef = useRef(false)
+  const openingAttackerRef = useRef(attacker)
 
   useEffect(() => {
     busyRef.current = busy
@@ -309,6 +316,7 @@ export function DurakGame({
   useEffect(() => {
     const cards = initial.player
     const ms = prefersReducedMotion() ? 40 : DEAL_MS + cards.length * 80
+    const first = openingAttackerRef.current
     const t = window.setTimeout(() => {
       setEnterMap((m) => {
         const next = { ...m }
@@ -318,7 +326,12 @@ export function DurakGame({
         return next
       })
       setDealOrder({})
-      setStatus('Ваш ход — ходите картой')
+      if (first === 'bot') {
+        setStatus('Ход бота…')
+        setKickoffBot(true)
+      } else {
+        setStatus('Ваш ход — ходите картой')
+      }
     }, ms)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -408,11 +421,12 @@ export function DurakGame({
 
   const reset = useCallback(() => {
     const next = dealDurak()
+    const first = pickFirstAttacker()
     setDeck(next.deck)
     setPlayer(next.player)
     setBot(next.bot)
     setTable([])
-    setAttacker('player')
+    setAttacker(first)
     setStatus('Раздача…')
     setOver(null)
     setSelected(null)
@@ -422,10 +436,16 @@ export function DurakGame({
     setTableFlying(false)
     setDiscard([])
     setBitoFlying(false)
+    setKickoffBot(false)
     setEnterMap(Object.fromEntries(next.player.map((c) => [c.id, 'deal' as const])))
     markDealCards(next.player)
     window.setTimeout(() => {
-      setStatus('Ваш ход — ходите картой')
+      if (first === 'bot') {
+        setStatus('Ход бота…')
+        setKickoffBot(true)
+      } else {
+        setStatus('Ваш ход — ходите картой')
+      }
     }, prefersReducedMotion() ? 40 : DEAL_MS + next.player.length * 80)
     onHaptic?.('medium')
   }, [onHaptic, markDealCards])
@@ -694,6 +714,20 @@ export function DurakGame({
     setStatus(message)
     setBusy(false)
   }
+
+  useEffect(() => {
+    if (!kickoffBot || busy || over || table.length > 0) return
+    setKickoffBot(false)
+    const atk = botAttackCard(bot)
+    if (!atk) {
+      setStatus('Ваш ход — ходите картой')
+      setAttacker('player')
+      return
+    }
+    void placeBotAttack(atk, bot, 'Ход бота — отбейтесь картой')
+    // placeBotAttack closes over latest waitThrow/state from this render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kickoffBot, busy, over, table.length, bot])
 
   const takeCards = () => {
     if (over || attacker !== 'bot' || busy || botTaking) return
