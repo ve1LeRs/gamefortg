@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChessPieceSvg } from '../components/ChessPieceSvg'
 
 type Color = 'w' | 'b'
@@ -433,20 +433,25 @@ function minimax(
   return best
 }
 
-function botMove(board: Piece[][], castle: Castle): { board: Piece[][]; castle: Castle } {
-  const moves = orderedMoves(board, false, castle)
+function botMove(board: Piece[][], castle: Castle, botWhite: boolean): { board: Piece[][]; castle: Castle } {
+  const moves = orderedMoves(board, botWhite, castle)
   if (moves.length === 0) return { board, castle }
 
   let best = moves[0]
-  let bestScore = Infinity
+  let bestScore = botWhite ? -Infinity : Infinity
   let alpha = -Infinity
   let beta = Infinity
 
   for (const m of moves) {
     const next = playMove(board, m.from, m.to, castle)
-    // Bot is black: minimize white's score
-    const sc = minimax(next.board, next.castle, BOT_DEPTH - 1, alpha, beta, true)
-    if (sc < bestScore) {
+    const sc = minimax(next.board, next.castle, BOT_DEPTH - 1, alpha, beta, !botWhite)
+    if (botWhite) {
+      if (sc > bestScore) {
+        bestScore = sc
+        best = m
+        alpha = Math.max(alpha, sc)
+      }
+    } else if (sc < bestScore) {
       bestScore = sc
       best = m
       beta = Math.min(beta, sc)
@@ -455,20 +460,36 @@ function botMove(board: Piece[][], castle: Castle): { board: Piece[][]; castle: 
   return playMove(board, best.from, best.to, castle)
 }
 
+function flipSq(sq: Sq): Sq {
+  return { r: 7 - sq.r, c: 7 - sq.c }
+}
+
+function youStatus(human: Color, board: Piece[][]): string {
+  const side = human === 'w' ? 'белые' : 'чёрные'
+  return isInCheck(board, human === 'w') ? `Шах! Ваш ход (${side}).` : `Вы — ${side}. Ваш ход`
+}
+
+function newHumanColor(): Color {
+  return Math.random() < 0.5 ? 'w' : 'b'
+}
+
 export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void }) {
+  const [human, setHuman] = useState<Color>(() => newHumanColor())
   const [board, setBoard] = useState(() => clone(START))
   const [castle, setCastle] = useState<Castle>(() => ({ ...START_CASTLE }))
   const [turn, setTurn] = useState<Color>('w')
   const [selected, setSelected] = useState<Sq | null>(null)
-  const [status, setStatus] = useState('Вы — белые. Ваш ход')
+  const [status, setStatus] = useState('Загрузка партии…')
   const [over, setOver] = useState(false)
+  const flipped = human === 'b'
+  const bot = human === 'w' ? 'b' : 'w'
+  const bootRef = useRef(false)
 
   const hints = useMemo(() => {
     if (!selected) return [] as Sq[]
     return legalMoves(board, selected, castle)
   }, [board, selected, castle])
 
-  /** Castling destinations plus matching rook squares so tapping the rook also works. */
   const hintSquares = useMemo(() => {
     if (!selected) return [] as Sq[]
     const piece = board[selected.r][selected.c]
@@ -487,8 +508,7 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     if (hints.some((h) => h.r === r && h.c === c)) return { r, c }
     const piece = board[selected.r][selected.c]
     const target = board[r][c]
-    // King selected → tap own rook to castle that side
-    if (piece?.toUpperCase() === 'K' && target === 'R' && r === selected.r) {
+    if (piece?.toUpperCase() === 'K' && target && target.toUpperCase() === 'R' && r === selected.r) {
       if (c === 7) {
         const dest = hints.find((h) => h.r === r && h.c === 6)
         if (dest) return dest
@@ -501,46 +521,76 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     return null
   }
 
-  const reset = useCallback(() => {
-    setBoard(clone(START))
-    setCastle({ ...START_CASTLE })
-    setTurn('w')
-    setSelected(null)
-    setStatus('Вы — белые. Ваш ход')
-    setOver(false)
-    onHaptic?.('medium')
-  }, [onHaptic])
-
-  const finishAfterPlayerMove = (played: { board: Piece[][]; castle: Castle }) => {
-    const botMoves = allMoves(played.board, false, played.castle)
-    if (botMoves.length === 0) {
-      setOver(true)
-      setStatus(isInCheck(played.board, false) ? 'Шах и мат! Победа.' : 'Пат. Ничья.')
-      onHaptic?.(isInCheck(played.board, false) ? 'success' : 'medium')
-      return
-    }
-
-    setStatus('Ход бота…')
-    setTurn('b')
-    setTimeout(() => {
-      const next = botMove(played.board, played.castle)
-      setBoard(next.board)
-      setCastle(next.castle)
-      const youMoves = allMoves(next.board, true, next.castle)
-      if (youMoves.length === 0) {
+  const runBotTurn = useCallback(
+    (played: { board: Piece[][]; castle: Castle }, humanColor: Color) => {
+      const botColor = humanColor === 'w' ? 'b' : 'w'
+      const botMoves = allMoves(played.board, botColor === 'w', played.castle)
+      if (botMoves.length === 0) {
         setOver(true)
-        setStatus(isInCheck(next.board, true) ? 'Мат. Поражение.' : 'Пат. Ничья.')
-        onHaptic?.(isInCheck(next.board, true) ? 'error' : 'medium')
-        setTurn('w')
+        setStatus(isInCheck(played.board, botColor === 'w') ? 'Шах и мат! Победа.' : 'Пат. Ничья.')
+        onHaptic?.(isInCheck(played.board, botColor === 'w') ? 'success' : 'medium')
         return
       }
-      setTurn('w')
-      setStatus(isInCheck(next.board, true) ? 'Шах! Ваш ход (белые).' : 'Вы — белые. Ваш ход')
-    }, 420)
-  }
 
-  const onCell = (r: number, c: number) => {
-    if (over || turn !== 'w') return
+      setStatus('Ход бота…')
+      setTurn(botColor)
+      window.setTimeout(() => {
+        const next = botMove(played.board, played.castle, botColor === 'w')
+        setBoard(next.board)
+        setCastle(next.castle)
+        const youMoves = allMoves(next.board, humanColor === 'w', next.castle)
+        if (youMoves.length === 0) {
+          setOver(true)
+          setStatus(isInCheck(next.board, humanColor === 'w') ? 'Мат. Поражение.' : 'Пат. Ничья.')
+          onHaptic?.(isInCheck(next.board, humanColor === 'w') ? 'error' : 'medium')
+          setTurn(humanColor)
+          return
+        }
+        setTurn(humanColor)
+        setStatus(youStatus(humanColor, next.board))
+      }, 420)
+    },
+    [onHaptic],
+  )
+
+  const reset = useCallback(() => {
+    const nextHuman = newHumanColor()
+    setHuman(nextHuman)
+    setBoard(clone(START))
+    setCastle({ ...START_CASTLE })
+    setSelected(null)
+    setOver(false)
+    onHaptic?.('medium')
+    if (nextHuman === 'w') {
+      setTurn('w')
+      setStatus('Вы — белые. Ваш ход')
+    } else {
+      setTurn('b')
+      setStatus('Вы — чёрные. Ход бота…')
+      window.setTimeout(() => {
+        runBotTurn({ board: clone(START), castle: { ...START_CASTLE } }, 'b')
+      }, 350)
+    }
+  }, [onHaptic, runBotTurn])
+
+  useEffect(() => {
+    if (bootRef.current) return
+    bootRef.current = true
+    if (human === 'b') {
+      setStatus('Вы — чёрные. Ход бота…')
+      setTurn('b')
+      window.setTimeout(() => {
+        runBotTurn({ board: clone(START), castle: { ...START_CASTLE } }, 'b')
+      }, 350)
+    } else {
+      setTurn('w')
+      setStatus('Вы — белые. Ваш ход')
+    }
+  }, [human, runBotTurn])
+
+  const onCellDisplay = (dr: number, dc: number) => {
+    if (over || turn !== human) return
+    const { r, c } = flipped ? flipSq({ r: dr, c: dc }) : { r: dr, c: dc }
     const p = board[r][c]
 
     if (selected) {
@@ -551,23 +601,38 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
         setCastle(played.castle)
         setSelected(null)
         onHaptic?.('light')
-        finishAfterPlayerMove(played)
+        runBotTurn(played, human)
         return
       }
     }
 
-    // Player always owns white; black is bot-only
-    if (p && isWhite(p) && turn === 'w') {
+    const mine = !!p && isWhite(p) === (human === 'w')
+    if (mine && turn === human) {
       setSelected({ r, c })
       const moves = legalMoves(board, { r, c }, castle)
-      if (p === 'K' && moves.some((m) => Math.abs(m.c - c) === 2)) {
-        setStatus('Рокировка: король на g1/c1 или нажмите ладью')
+      if (p && p.toUpperCase() === 'K' && moves.some((m) => Math.abs(m.c - c) === 2)) {
+        setStatus(human === 'w' ? 'Рокировка: король на g1/c1 или нажмите ладью' : 'Рокировка: король на g8/c8 или нажмите ладью')
       } else if (!over) {
-        setStatus(isInCheck(board, true) ? 'Шах! Ваш ход (белые).' : 'Вы — белые. Ваш ход')
+        setStatus(youStatus(human, board))
       }
       onHaptic?.('light')
     } else {
       setSelected(null)
+    }
+  }
+
+  const displayHintSquares = useMemo(() => {
+    if (!flipped) return hintSquares
+    return hintSquares.map(flipSq)
+  }, [hintSquares, flipped])
+
+  const displaySelected = selected && flipped ? flipSq(selected) : selected
+
+  const cells: { r: number; c: number; p: Piece }[] = []
+  for (let dr = 0; dr < 8; dr += 1) {
+    for (let dc = 0; dc < 8; dc += 1) {
+      const src = flipped ? flipSq({ r: dr, c: dc }) : { r: dr, c: dc }
+      cells.push({ r: dr, c: dc, p: board[src.r][src.c] })
     }
   }
 
@@ -577,29 +642,35 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
         {status}
       </p>
       <p className="chess-sides" aria-hidden>
-        <span className="chess-side chess-side-bot">Бот · чёрные</span>
-        <span className="chess-side chess-side-you">Вы · белые</span>
+        <span className={`chess-side ${bot === 'b' ? 'chess-side-bot' : 'chess-side-you'}`}>
+          Бот · {bot === 'b' ? 'чёрные' : 'белые'}
+        </span>
+        <span className={`chess-side ${human === 'w' ? 'chess-side-you' : 'chess-side-bot'}`}>
+          Вы · {human === 'w' ? 'белые' : 'чёрные'}
+        </span>
       </p>
       <div className="board-wrap">
         <div className="board chess">
-          {board.map((row, r) =>
-            row.map((p, c) => {
-              const dark = (r + c) % 2 === 1
-              const isSel = selected?.r === r && selected?.c === c
-              const isHint = hintSquares.some((h) => h.r === r && h.c === c)
-              const capture = isHint && !!p && !(selected && board[selected.r][selected.c]?.toUpperCase() === 'K' && p === 'R')
-              return (
-                <button
-                  key={`${r}-${c}`}
-                  type="button"
-                  className={`cell ${dark ? 'dark' : 'light'} ${isSel ? 'selected' : ''} ${isHint && !capture ? 'move-hint' : ''} ${capture ? 'capture-hint' : ''}`}
-                  onClick={() => onCell(r, c)}
-                >
-                  {p && <PieceGlyph piece={p} />}
-                </button>
-              )
-            }),
-          )}
+          {cells.map(({ r, c, p }) => {
+            const dark = (r + c) % 2 === 1
+            const isSel = displaySelected?.r === r && displaySelected?.c === c
+            const isHint = displayHintSquares.some((h) => h.r === r && h.c === c)
+            const src = flipped ? flipSq({ r, c }) : { r, c }
+            const boardPiece = board[src.r][src.c]
+            const selPiece = selected ? board[selected.r][selected.c] : null
+            const capture =
+              isHint && !!boardPiece && !(selPiece && selPiece.toUpperCase() === 'K' && boardPiece.toUpperCase() === 'R')
+            return (
+              <button
+                key={`${r}-${c}`}
+                type="button"
+                className={`cell ${dark ? 'dark' : 'light'} ${isSel ? 'selected' : ''} ${isHint && !capture ? 'move-hint' : ''} ${capture ? 'capture-hint' : ''}`}
+                onClick={() => onCellDisplay(r, c)}
+              >
+                {p && <PieceGlyph piece={p} />}
+              </button>
+            )
+          })}
         </div>
       </div>
       <div className="action-bar">
