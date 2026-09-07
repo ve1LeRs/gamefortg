@@ -926,7 +926,7 @@ export function DurakGame({
         >
           {discard.length > 0 && (
             <>
-              {discard.slice(-10).map((c, i) => (
+              {discard.slice(-5).map((c, i) => (
                 <span
                   key={`${c.id}-bito`}
                   className="durak-bito-card"

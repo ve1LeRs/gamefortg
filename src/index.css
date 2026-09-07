@@ -3597,13 +3597,15 @@ body.tg-webapp .game-topbar .back-btn {
 
 .durak-bito {
   position: absolute;
-  right: -36px;
+  /* Mostly off-screen — only a thin edge peeks into the field */
+  right: -58px;
   top: 50%;
-  width: 64px;
-  height: 92px;
-  transform: translateY(-48%) rotate(14deg);
+  width: 56px;
+  height: 80px;
+  transform: translateY(-48%) rotate(18deg);
   z-index: 2;
   pointer-events: none;
+  opacity: 0.72;
 }
 
 .durak-bito.is-empty {
@@ -3614,24 +3616,24 @@ body.tg-webapp .game-topbar .back-btn {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 50px;
-  height: 72px;
-  margin-left: -25px;
-  margin-top: -36px;
-  border-radius: 7px;
+  width: 44px;
+  height: 64px;
+  margin-left: -22px;
+  margin-top: -32px;
+  border-radius: 6px;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.06) 20%, transparent 20%) 0 0 / 10px 10px,
-    linear-gradient(160deg, #243a58, #101c30);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05) 20%, transparent 20%) 0 0 / 9px 9px,
+    linear-gradient(160deg, #1e3048, #0c1524);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow:
-    0 2px 2px rgba(0, 0, 0, 0.25),
-    0 8px 14px rgba(0, 0, 0, 0.35);
+    0 1px 1px rgba(0, 0, 0, 0.22),
+    0 4px 8px rgba(0, 0, 0, 0.28);
   transform: translate(var(--dx, 0), var(--dy, 0)) rotate(var(--rot, 0deg)) scale(var(--sc, 1));
   transform-origin: 50% 60%;
 }
 
 .durak-bito.has-cards .durak-bito-card:nth-last-child(1) {
-  filter: brightness(1.05);
+  filter: brightness(1.02);
 }
 
 .durak-bito.is-catching {
@@ -3640,9 +3642,9 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 @keyframes durak-bito-catch {
-  0% { transform: translateY(-48%) rotate(14deg) scale(1); }
-  50% { transform: translateY(-48%) rotate(11deg) scale(1.04); }
-  100% { transform: translateY(-48%) rotate(14deg) scale(1); }
+  0% { transform: translateY(-48%) rotate(18deg) scale(1); opacity: 0.72; }
+  50% { transform: translateY(-48%) rotate(14deg) scale(1.03); opacity: 0.88; }
+  100% { transform: translateY(-48%) rotate(18deg) scale(1); opacity: 0.72; }
 }
 
 /* Fly each pair to its measured bito target (--bito-dx / --bito-dy) */
@@ -4200,15 +4202,15 @@ body.tg-webapp .game-topbar .back-btn {
     height: 68px !important;
   }
   .durak-bito {
-    width: 56px;
-    height: 82px;
-    right: -32px;
+    width: 50px;
+    height: 72px;
+    right: -52px;
   }
   .durak-bito-card {
-    width: 46px;
-    height: 66px;
-    margin-left: -23px;
-    margin-top: -33px;
+    width: 40px;
+    height: 58px;
+    margin-left: -20px;
+    margin-top: -29px;
   }
   .durak-field {
     padding: 2px 0;

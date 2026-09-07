@@ -50,7 +50,7 @@ export function handFanY(offset: number, n: number) {
   return Math.min(maxSink, Math.max(-22, y))
 }
 
-/** Stable messy offsets for discard pile cards. */
+/** Stable messy offsets for discard pile cards — keep tight so бита only peeks. */
 export function bitoMess(seed: string, i: number) {
   let h = 0
   for (let k = 0; k < seed.length; k += 1) h = (Math.imul(h, 31) + seed.charCodeAt(k)) | 0
@@ -58,10 +58,10 @@ export function bitoMess(seed: string, i: number) {
   const b = ((h * 3 + i * 91) % 1000) / 1000
   const c = ((h * 7 + i * 13) % 1000) / 1000
   return {
-    ['--dx' as string]: `${((a - 0.5) * 26).toFixed(1)}px`,
-    ['--dy' as string]: `${((b - 0.5) * 20).toFixed(1)}px`,
-    ['--rot' as string]: `${((a - 0.5) * 64 + (c - 0.5) * 24).toFixed(1)}deg`,
-    ['--sc' as string]: `${(0.92 + c * 0.12).toFixed(3)}`,
+    ['--dx' as string]: `${((a - 0.5) * 10).toFixed(1)}px`,
+    ['--dy' as string]: `${((b - 0.5) * 8).toFixed(1)}px`,
+    ['--rot' as string]: `${((a - 0.5) * 28 + (c - 0.5) * 10).toFixed(1)}deg`,
+    ['--sc' as string]: `${(0.94 + c * 0.06).toFixed(3)}`,
     zIndex: i + 1,
   }
 }
