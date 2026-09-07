@@ -1376,6 +1376,35 @@ body.tg-webapp .game-topbar .back-btn {
   color: #f0e6d6;
 }
 
+.chess-actions {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.chess-difficulty {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.chess-diff-btn {
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(240, 230, 214, 0.78);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.chess-diff-btn.is-active {
+  color: #1a140e;
+  background: linear-gradient(180deg, #f0d9a8, #d4b07a);
+  border-color: rgba(232, 168, 56, 0.55);
+}
+
 .chess-side-you::before {
   content: '';
   display: inline-block;
