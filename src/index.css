@@ -2724,8 +2724,8 @@ body.tg-webapp .game-topbar .back-btn {
   justify-content: center;
   gap: clamp(4px, 0.8vw, 8px);
   min-height: clamp(40px, 10vh, 64px);
-  /* Sit below the bot seat so hole-card avatars never cover the board */
-  transform: translateY(26%);
+  /* Keep community cards under the bot seat, not behind it */
+  transform: translateY(32%);
   z-index: 5;
   position: relative;
 }
@@ -2751,7 +2751,7 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-pot {
   position: absolute;
-  bottom: 10%;
+  bottom: 8%;
   left: 50%;
   transform: translateX(-50%);
   display: inline-flex;
@@ -2786,14 +2786,13 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-seat-bot {
   left: 50%;
-  /* Hang above the felt so the avatar clears community cards */
-  top: -2%;
-  transform: translate(-50%, -18%);
+  top: 2%;
+  transform: translateX(-50%);
   width: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   z-index: 3;
 }
 
@@ -2807,12 +2806,16 @@ body.tg-webapp .game-topbar .back-btn {
   display: flex;
   gap: 3px;
   justify-content: center;
+  /* Tuck slightly behind the avatar, stay on-screen */
+  margin-bottom: -10px;
+  position: relative;
+  z-index: 0;
 }
 
 .poker-bot-cards .pcard,
 .poker-bot-cards .poker-hole-card {
-  width: clamp(22px, 3.6vw, 32px);
-  height: clamp(30px, 5vw, 44px);
+  width: clamp(24px, 4vw, 34px);
+  height: clamp(34px, 5.6vw, 48px);
   font-size: 9px;
   padding: 2px;
   border-radius: 4px;
@@ -2821,6 +2824,11 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-bot-cards .pcard.poker-deal-to-bot {
   animation: poker-deal-to-bot 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.poker-seat-bot .poker-seat {
+  position: relative;
+  z-index: 1;
 }
 
 .poker-seat {
@@ -3155,37 +3163,22 @@ body.tg-webapp .game-topbar .back-btn {
     min-height: 120px;
   }
   .poker-seat-bot {
-    top: -4%;
-    transform: translate(-50%, -28%);
-    gap: 0;
+    top: 1%;
+    gap: 2px;
   }
-  .poker-seat-bot .poker-seat-avatar-wrap {
-    width: 30px;
-    height: 30px;
-  }
-  .poker-seat-bot .poker-seat-avatar {
-    border-radius: 8px;
-    font-size: 12px;
-  }
-  .poker-seat-bot .poker-seat-name {
-    font-size: 9px;
-    padding: 0 5px;
-  }
-  .poker-seat-bot .poker-seat-level {
-    min-width: 14px;
-    height: 14px;
-    font-size: 7px;
+  .poker-bot-cards {
+    margin-bottom: -8px;
   }
   .poker-bot-cards .pcard,
   .poker-bot-cards .poker-hole-card {
-    width: 18px;
-    height: 26px;
+    width: clamp(22px, 3.8vw, 30px);
+    height: clamp(30px, 5.2vw, 42px);
   }
   .poker-board {
-    transform: translateY(34%);
+    transform: translateY(38%);
   }
   .poker-pot {
-    bottom: 6%;
+    bottom: 5%;
     font-size: 10px;
     padding: 2px 8px;
   }
