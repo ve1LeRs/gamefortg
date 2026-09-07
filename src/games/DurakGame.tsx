@@ -143,7 +143,8 @@ function prefersReducedMotion() {
 }
 
 const THROW_MS = 520
-const BITO_MS = 780
+/** Match CSS: fly duration 0.9s + last stagger 0.18s + settle */
+const BITO_MS = 1120
 const DEAL_MS = 980
 
 export function DurakGame({
@@ -724,10 +725,11 @@ export function DurakGame({
     const cleared = table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack]))
     setBitoFlying(true)
     if (!prefersReducedMotion()) await sleep(BITO_MS)
+    // Keep is-to-bito on until pairs unmount — dropping the class first snaps them back
     setDiscard((d) => [...d, ...cleared])
     setTable([])
-    setBitoFlying(false)
     setEnterMap({})
+    setBitoFlying(false)
     const first = attacker
     const nextAttacker = attacker === 'player' ? 'bot' : 'player'
     const drawn = drawUp(player, bot, deck, first)
@@ -813,7 +815,7 @@ export function DurakGame({
         )}
       </header>
 
-      <div ref={fieldRef} className="durak-field">
+      <div ref={fieldRef} className={`durak-field${bitoFlying ? ' is-bito-flight' : ''}${tableFlying ? ' is-take-flight' : ''}`}>
         {/* Deck hangs off the left edge; when empty only a trump suit mark remains */}
         <div
           className={`durak-deck${deck.length === 0 ? ' is-empty' : ''}`}
