@@ -3049,44 +3049,30 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .durak-hand-card .pcard-rank {
-  font-size: 18px;
-  height: 20px;
-}
-
-.durak-hand-card .pcard-suit {
-  font-size: 14px;
-  height: 16px;
-}
-
-.durak-hand-card .pcard-corner {
-  gap: 6px;
-}
-
-.durak-hand-card .suit-lg {
-  font-size: 34px;
-}
-
-/* Crowded / scrollable hands: emphasize corner rank+suit in the peek strip */
-.durak-hand.is-multi-row .durak-hand-card .pcard-rank {
-  font-size: 17px;
-  height: 19px;
+  font-size: 16px;
+  height: auto;
+  line-height: 1;
   font-weight: 800;
 }
 
-.durak-hand.is-multi-row .durak-hand-card .pcard-suit {
+.durak-hand-card .pcard-suit {
   font-size: 13px;
-  height: 15px;
+  height: auto;
+  line-height: 1;
 }
 
-.durak-hand.is-multi-row .durak-hand-card .pcard-corner {
-  gap: 3px;
+.durak-hand-card .pcard-corner {
+  gap: 2px;
+  max-width: 42%;
+  align-items: center;
 }
 
-.durak-hand.is-multi-row .durak-hand-card .suit-lg {
-  font-size: 20px;
-  opacity: 0.85;
+.durak-hand-card .suit-lg {
+  font-size: 30px;
 }
 
+/* Crowded hands: keep the left index strip readable under tight peek */
+.durak-hand[data-count='8'] .durak-hand-card .pcard-rank,
 .durak-hand[data-count='9'] .durak-hand-card .pcard-rank,
 .durak-hand[data-count='10'] .durak-hand-card .pcard-rank,
 .durak-hand[data-count='11'] .durak-hand-card .pcard-rank,
@@ -3095,8 +3081,33 @@ body.tg-webapp .game-topbar .back-btn {
 .durak-hand[data-count='14'] .durak-hand-card .pcard-rank,
 .durak-hand[data-count='15'] .durak-hand-card .pcard-rank,
 .durak-hand[data-count='16'] .durak-hand-card .pcard-rank {
-  font-size: 16px;
-  height: 18px;
+  font-size: 15px;
+  height: auto;
+}
+
+.durak-hand[data-count='8'] .durak-hand-card .pcard-suit,
+.durak-hand[data-count='9'] .durak-hand-card .pcard-suit,
+.durak-hand[data-count='10'] .durak-hand-card .pcard-suit,
+.durak-hand[data-count='11'] .durak-hand-card .pcard-suit,
+.durak-hand[data-count='12'] .durak-hand-card .pcard-suit,
+.durak-hand[data-count='13'] .durak-hand-card .pcard-suit,
+.durak-hand[data-count='14'] .durak-hand-card .pcard-suit,
+.durak-hand[data-count='15'] .durak-hand-card .pcard-suit,
+.durak-hand[data-count='16'] .durak-hand-card .pcard-suit {
+  font-size: 12px;
+  height: auto;
+}
+
+.durak-hand[data-count='8'] .durak-hand-card .pcard-corner,
+.durak-hand[data-count='9'] .durak-hand-card .pcard-corner,
+.durak-hand[data-count='10'] .durak-hand-card .pcard-corner,
+.durak-hand[data-count='11'] .durak-hand-card .pcard-corner,
+.durak-hand[data-count='12'] .durak-hand-card .pcard-corner,
+.durak-hand[data-count='13'] .durak-hand-card .pcard-corner,
+.durak-hand[data-count='14'] .durak-hand-card .pcard-corner,
+.durak-hand[data-count='15'] .durak-hand-card .pcard-corner,
+.durak-hand[data-count='16'] .durak-hand-card .pcard-corner {
+  gap: 1px;
 }
 
 .durak-hand[data-count='7'] .durak-hand-card .suit-lg,
@@ -3104,8 +3115,11 @@ body.tg-webapp .game-topbar .back-btn {
 .durak-hand[data-count='9'] .durak-hand-card .suit-lg,
 .durak-hand[data-count='10'] .durak-hand-card .suit-lg,
 .durak-hand[data-count='11'] .durak-hand-card .suit-lg,
-.durak-hand[data-count='12'] .durak-hand-card .suit-lg {
-  font-size: 26px;
+.durak-hand[data-count='12'] .durak-hand-card .suit-lg,
+.durak-hand[data-count='13'] .durak-hand-card .suit-lg,
+.durak-hand[data-count='14'] .durak-hand-card .suit-lg {
+  font-size: 24px;
+  opacity: 0.9;
 }
 
 .durak-dock {
