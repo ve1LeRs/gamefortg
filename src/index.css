@@ -2757,7 +2757,7 @@ body.tg-webapp .game-topbar .back-btn {
   100% { transform: translateY(-48%) rotate(14deg) scale(1); }
 }
 
-/* GPU-only transform/opacity — no filter (filter causes Telegram WebView jank) */
+/* Fly each pair to its measured bito target (--bito-dx / --bito-dy) */
 @keyframes durak-fly-to-bito {
   0% {
     opacity: 1;
@@ -2766,12 +2766,16 @@ body.tg-webapp .game-topbar .back-btn {
   }
   42% {
     opacity: 1;
-    transform: translate3d(52px, -10px, 0) scale(0.88) rotate(9deg);
+    transform: translate3d(
+      calc(var(--bito-dx, 120px) * 0.45),
+      calc(var(--bito-dy, 0px) * 0.45 - 12px),
+      0
+    ) scale(0.88) rotate(9deg);
     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
   100% {
     opacity: 0;
-    transform: translate3d(128px, 18px, 0) scale(0.4) rotate(22deg);
+    transform: translate3d(var(--bito-dx, 120px), var(--bito-dy, 0px), 0) scale(0.38) rotate(22deg);
   }
 }
 
