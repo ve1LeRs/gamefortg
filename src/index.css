@@ -3041,8 +3041,7 @@ body.tg-webapp .game-topbar .back-btn {
 .durak-hand-card.enter-deal {
   animation: durak-deal-in 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
   animation-delay: calc(0.12s + var(--deal-i, 0) * 0.14s);
-  /* Above settled cards while inserting so the join is obvious */
-  z-index: 70 !important;
+  /* Keep fan stacking — don't float above the whole hand during deal */
   pointer-events: none;
 }
 

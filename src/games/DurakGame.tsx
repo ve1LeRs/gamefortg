@@ -953,7 +953,6 @@ export function DurakGame({
                   // Arc: edge cards sit lower — like a natural grip
                   const fanY = Math.abs(offset) * (n <= 5 ? 3.2 : 2.2)
                   const isDrag = drag?.card.id === c.id && drag.active
-                  const dealing = enterFor(c.id, 'none') === 'deal'
                   const dealI = dealOrder[c.id] ?? 0
                   return (
                     <PlayingCard
@@ -971,7 +970,8 @@ export function DurakGame({
                         ['--rot' as string]: `${(offset * handLayout.rotStep).toFixed(2)}deg`,
                         ['--fan-y' as string]: `${fanY.toFixed(1)}px`,
                         ['--deal-i' as string]: dealI,
-                        zIndex: isDrag ? 50 : dealing ? 60 + dealI : throwingId === c.id ? 30 : i + 1,
+                        // Fan depth by hand index even while dealing (no late z-index snap)
+                        zIndex: isDrag ? 50 : throwingId === c.id ? 30 : i + 1,
                         touchAction: 'none',
                       }}
                       onClick={() => onCardClick(c)}
