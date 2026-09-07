@@ -839,6 +839,7 @@ export function SolitaireGame({
                 selected={selected?.where === 'waste'}
                 playable
                 enter="none"
+                className="sol-waste-card"
                 onClick={onWasteClick}
                 onDoubleClick={onWasteDoubleClick}
               />
