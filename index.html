@@ -81,17 +81,19 @@
           wa.setBackgroundColor('#071018')
           if (wa.setBottomBarColor) wa.setBottomBarColor('#071018')
           if (wa.disableVerticalSwipes) wa.disableVerticalSwipes()
+          // Single fullscreen request only — retries live in applyTelegramChrome.
           if (wa.requestFullscreen && (!wa.isVersionAtLeast || wa.isVersionAtLeast('8.0'))) {
-            wa.requestFullscreen()
-            setTimeout(function () {
-              try {
-                if (!wa.isFullscreen) wa.requestFullscreen()
-              } catch (e) {}
-            }, 250)
+            if (!wa.isFullscreen) wa.requestFullscreen()
           }
         } catch (e) {}
       })()
     </script>
+    <style>
+      html,
+      body {
+        background: #071018;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

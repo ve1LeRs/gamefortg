@@ -56,6 +56,8 @@ const THEME = {
   bottom: '#071018',
 } as const
 
+let chromeApplied = false
+
 export function getWebApp(): TelegramWebApp | null {
   return window.Telegram?.WebApp ?? null
 }
@@ -63,7 +65,7 @@ export function getWebApp(): TelegramWebApp | null {
 export function requestAppFullscreen(wa = getWebApp()): boolean {
   if (!wa) return false
   try {
-    wa.expand()
+    if (!wa.isExpanded) wa.expand()
   } catch {
     /* noop */
   }
@@ -83,44 +85,46 @@ export function requestAppFullscreen(wa = getWebApp()): boolean {
 export function applyTelegramChrome(wa = getWebApp()) {
   if (!wa) return
 
-  try {
-    wa.ready()
-  } catch {
-    /* noop */
-  }
-  try {
-    wa.expand()
-  } catch {
-    /* noop */
-  }
+  // Colors / expand once up front — avoid repeating fullscreen which flashes the WebView.
+  if (!chromeApplied) {
+    chromeApplied = true
+    try {
+      wa.ready()
+    } catch {
+      /* noop */
+    }
+    try {
+      wa.expand()
+    } catch {
+      /* noop */
+    }
+    try {
+      wa.setHeaderColor(THEME.header)
+    } catch {
+      /* noop */
+    }
+    try {
+      wa.setBackgroundColor(THEME.bg)
+    } catch {
+      /* noop */
+    }
+    try {
+      wa.setBottomBarColor?.(THEME.bottom)
+    } catch {
+      /* noop */
+    }
+    try {
+      wa.disableVerticalSwipes?.()
+    } catch {
+      /* noop */
+    }
 
-  try {
-    wa.setHeaderColor(THEME.header)
-  } catch {
-    /* noop */
+    // One fullscreen attempt; a single delayed retry only if it did not stick.
+    requestAppFullscreen(wa)
+    window.setTimeout(() => {
+      if (!getWebApp()?.isFullscreen) requestAppFullscreen()
+    }, 500)
   }
-  try {
-    wa.setBackgroundColor(THEME.bg)
-  } catch {
-    /* noop */
-  }
-  try {
-    wa.setBottomBarColor?.(THEME.bottom)
-  } catch {
-    /* noop */
-  }
-  try {
-    wa.disableVerticalSwipes?.()
-  } catch {
-    /* noop */
-  }
-
-  requestAppFullscreen(wa)
-
-  // Retry a few times — some clients accept fullscreen only after viewport settles
-  ;[120, 400, 1000].forEach((ms) => {
-    window.setTimeout(() => requestAppFullscreen(wa), ms)
-  })
 
   document.body.classList.add('tg-webapp')
 
@@ -147,7 +151,7 @@ export function applyTelegramChrome(wa = getWebApp()) {
     // Floating «Закрыть» sits over the WebView; if Telegram reports 0,
     // still keep a floor so the store hero never slides under it.
     const reported = Math.max(safe?.top ?? 0, content?.top ?? 0)
-    const chromeFloor = wa.isFullscreen || wa.isExpanded ? 72 : 16
+    const chromeFloor = 72
     root.style.setProperty('--tg-chrome-top', `${Math.max(reported, chromeFloor)}px`)
   }
   syncSafeArea()
@@ -157,7 +161,6 @@ export function applyTelegramChrome(wa = getWebApp()) {
     syncSafeArea()
   })
   wa.onEvent('fullscreenFailed', () => {
-    // Keep expanded max-height even if immersive fullscreen is denied
     try {
       wa.expand()
     } catch {
@@ -167,15 +170,15 @@ export function applyTelegramChrome(wa = getWebApp()) {
   })
   wa.onEvent('safeAreaChanged', syncSafeArea)
   wa.onEvent('contentSafeAreaChanged', syncSafeArea)
+  // Sync layout only — do NOT re-request fullscreen here (causes open blink/jump).
   wa.onEvent('viewportChanged', () => {
-    requestAppFullscreen(wa)
     syncFullscreenClass()
     syncSafeArea()
   })
 
   // First user gesture often unlocks fullscreen on iOS/Android Telegram
   const onFirstGesture = () => {
-    requestAppFullscreen(wa)
+    if (!getWebApp()?.isFullscreen) requestAppFullscreen()
     window.removeEventListener('touchstart', onFirstGesture)
     window.removeEventListener('pointerdown', onFirstGesture)
     window.removeEventListener('click', onFirstGesture)
