@@ -1632,6 +1632,37 @@ body.tg-webapp .app-main:not(.game-mode) {
   height: 100%;
 }
 
+/* Narrow solitaire cards: bottom corner suit collides with center pip. */
+.solitaire .pcard {
+  padding: 3px 4px;
+}
+
+.solitaire .pcard .pcard-corner-br {
+  display: none;
+}
+
+.solitaire .pcard .pcard-corner {
+  gap: 1px;
+  z-index: 2;
+}
+
+.solitaire .pcard .pcard-rank {
+  height: 12px;
+  font-size: 11px;
+}
+
+.solitaire .pcard .pcard-suit {
+  height: 11px;
+  font-size: 11px;
+}
+
+.solitaire .pcard .suit-lg {
+  /* Clear the top-left index so only one suit reads in the center */
+  inset: 22% 6% 10% 6%;
+  font-size: clamp(18px, 5.2vw, 26px);
+  opacity: 1;
+}
+
 .sol-tableau {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -1667,7 +1698,7 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .sol-col .pcard .suit-lg {
-  font-size: clamp(12px, 3.5vw, 18px);
+  font-size: clamp(16px, 4.6vw, 24px);
 }
 
 /* Overlapped face-up cards: keep only the peek strip (rank + suit) readable. */
@@ -1676,18 +1707,22 @@ body.tg-webapp .app-main:not(.game-mode) {
   display: none;
 }
 
+.sol-col .pcard.sol-buried {
+  padding-bottom: 0;
+}
+
 .sol-col .pcard.sol-buried .pcard-corner {
-  gap: 2px;
+  gap: 1px;
 }
 
 .sol-col .pcard.sol-buried .pcard-rank {
-  height: 12px;
-  font-size: 11px;
+  height: 13px;
+  font-size: 12px;
 }
 
 .sol-col .pcard.sol-buried .pcard-suit {
-  height: 11px;
-  font-size: 11px;
+  height: 12px;
+  font-size: 12px;
 }
 
 .sol-slot.sol-hint,
