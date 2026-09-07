@@ -43,12 +43,18 @@ export function GameShell({
     if (durakRoomCode) setDurakMode('online')
   }, [durakRoomCode])
 
-  // Poker plays landscape — lock when Telegram supports it.
+  // Poker prefers landscape, but must NOT lock orientation — locking freezes
+  // the current (often portrait) orientation and the table never flips.
   useEffect(() => {
     if (gameId !== 'poker') return
     const wa = getWebApp()
     try {
-      wa?.lockOrientation?.()
+      wa?.unlockOrientation?.()
+    } catch {
+      /* noop */
+    }
+    try {
+      screen.orientation?.unlock?.()
     } catch {
       /* noop */
     }
