@@ -173,7 +173,7 @@ function findHint(
     }
   }
 
-  // 3) Tableau moves that reveal a face-down card
+  // 3) Tableau moves that reveal a face-down card (skip pointless king reshuffles)
   for (let from = 0; from < 7; from += 1) {
     const col = tableau[from]
     for (let index = 0; index < col.length; index += 1) {
@@ -188,57 +188,16 @@ function findHint(
       if (!runOk) continue
       const moving = col[index]
       const reveals = index > 0 && !faceUp.has(col[index - 1].id)
+      if (!reveals) continue
       for (let to = 0; to < 7; to += 1) {
         if (to === from) continue
         const dest = tableau[to]
         if (dest.length === 0) {
           if (moving.rank !== 'K') continue
-          // Prefer emptying onto empty only if it reveals or frees a column usefully
-          if (!reveals && index !== 0) continue
           return {
             select: { where: 'tableau', col: from, index },
-            message: `Король ${moving.suit} на пустую колонку`,
+            message: `Король ${moving.suit} → пустая колонка (откроется карта)`,
           }
-        }
-        if (!canStack(moving, dest[dest.length - 1])) continue
-        if (!reveals && moving.rank !== 'K') {
-          // Still suggest if destination frees a foundation-bound card later — keep simple: any legal stack that reveals
-          continue
-        }
-        if (!reveals) continue
-        return {
-          select: { where: 'tableau', col: from, index },
-          message: `${moving.rank}${moving.suit} → колонка ${to + 1}`,
-        }
-      }
-    }
-  }
-
-  // 4) Any other legal tableau-to-tableau (including kings to empty)
-  for (let from = 0; from < 7; from += 1) {
-    const col = tableau[from]
-    for (let index = 0; index < col.length; index += 1) {
-      if (!faceUp.has(col[index].id)) continue
-      let runOk = true
-      for (let i = index; i < col.length - 1; i += 1) {
-        if (!faceUp.has(col[i].id) || !canStack(col[i + 1], col[i])) {
-          runOk = false
-          break
-        }
-      }
-      if (!runOk) continue
-      const moving = col[index]
-      for (let to = 0; to < 7; to += 1) {
-        if (to === from) continue
-        const dest = tableau[to]
-        if (dest.length === 0) {
-          if (moving.rank === 'K' && index > 0) {
-            return {
-              select: { where: 'tableau', col: from, index },
-              message: `Король ${moving.suit} на пустую колонку`,
-            }
-          }
-          continue
         }
         if (canStack(moving, dest[dest.length - 1])) {
           return {
@@ -250,7 +209,7 @@ function findHint(
     }
   }
 
-  // 5) Waste → tableau
+  // 4) Waste → tableau
   if (waste.length) {
     const card = waste[waste.length - 1]
     for (let to = 0; to < 7; to += 1) {
@@ -270,7 +229,7 @@ function findHint(
     }
   }
 
-  // 6) Draw / recycle stock
+  // 5) Draw / recycle stock — prefer this over pointless reshuffles
   if (stock.length > 0) {
     return { select: { where: 'waste', col: -1, index: -1 }, message: 'Возьмите карту из колоды' }
   }

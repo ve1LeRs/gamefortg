@@ -1740,7 +1740,7 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 /* Narrow solitaire cards: bottom corner suit collides with center pip. */
 .solitaire .pcard {
-  padding: 3px 4px;
+  padding: 4px 3px 3px;
 }
 
 .solitaire .pcard .pcard-corner-br {
@@ -1748,23 +1748,30 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .solitaire .pcard .pcard-corner {
-  gap: 1px;
+  gap: 5px;
   z-index: 2;
+  align-items: center;
 }
 
 .solitaire .pcard .pcard-rank {
-  height: 12px;
+  height: auto;
   font-size: 11px;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
 }
 
 .solitaire .pcard .pcard-suit {
-  height: 11px;
+  height: auto;
   font-size: 11px;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
 }
 
 .solitaire .pcard .suit-lg {
   /* Clear the top-left index so only one suit reads in the center */
-  inset: 22% 6% 10% 6%;
+  inset: 26% 6% 10% 6%;
   font-size: clamp(18px, 5.2vw, 26px);
   opacity: 1;
 }
@@ -1778,7 +1785,7 @@ body.tg-webapp .app-main:not(.game-mode) {
   align-items: start;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 4px 2px 8px;
+  padding: 6px 8px 10px;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -1786,10 +1793,12 @@ body.tg-webapp .app-main:not(.game-mode) {
   min-height: 80px;
   position: relative;
   min-width: 0;
+  overflow: visible;
 }
 
 .sol-col .pcard.selected {
-  transform: translateY(-4px);
+  transform: translateY(-3px);
+  outline-offset: -2px;
 }
 
 .sol-col .pcard {
@@ -1824,17 +1833,14 @@ body.tg-webapp .app-main:not(.game-mode) {
 }
 
 .sol-col .pcard.sol-buried .pcard-corner {
-  gap: 1px;
+  gap: 4px;
 }
 
-.sol-col .pcard.sol-buried .pcard-rank {
-  height: 13px;
-  font-size: 12px;
-}
-
+.sol-col .pcard.sol-buried .pcard-rank,
 .sol-col .pcard.sol-buried .pcard-suit {
-  height: 12px;
-  font-size: 12px;
+  height: auto;
+  font-size: 11px;
+  line-height: 1;
 }
 
 .sol-slot.sol-hint,
