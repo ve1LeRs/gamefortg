@@ -501,6 +501,39 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     return legalMoves(board, selected, castle)
   }, [board, selected, castle])
 
+  /** Castling destinations plus matching rook squares so tapping the rook also works. */
+  const hintSquares = useMemo(() => {
+    if (!selected) return [] as Sq[]
+    const piece = board[selected.r][selected.c]
+    if (!piece || piece.toUpperCase() !== 'K') return hints
+    const extra: Sq[] = []
+    for (const h of hints) {
+      if (Math.abs(h.c - selected.c) !== 2 || h.r !== selected.r) continue
+      if (h.c === 6) extra.push({ r: h.r, c: 7 })
+      if (h.c === 2) extra.push({ r: h.r, c: 0 })
+    }
+    return [...hints, ...extra]
+  }, [board, selected, hints])
+
+  const resolveMoveTo = (r: number, c: number): Sq | null => {
+    if (!selected) return null
+    if (hints.some((h) => h.r === r && h.c === c)) return { r, c }
+    const piece = board[selected.r][selected.c]
+    const target = board[r][c]
+    // King selected → tap own rook to castle that side
+    if (piece?.toUpperCase() === 'K' && target === 'R' && r === selected.r) {
+      if (c === 7) {
+        const dest = hints.find((h) => h.r === r && h.c === 6)
+        if (dest) return dest
+      }
+      if (c === 0) {
+        const dest = hints.find((h) => h.r === r && h.c === 2)
+        if (dest) return dest
+      }
+    }
+    return null
+  }
+
   const reset = useCallback(() => {
     setBoard(clone(START))
     setCastle({ ...START_CASTLE })
@@ -511,44 +544,47 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     onHaptic?.('medium')
   }, [onHaptic])
 
+  const finishAfterPlayerMove = (played: { board: Piece[][]; castle: Castle }) => {
+    const botMoves = allMoves(played.board, false, played.castle)
+    if (botMoves.length === 0) {
+      setOver(true)
+      setStatus(isInCheck(played.board, false) ? 'Шах и мат! Победа.' : 'Пат. Ничья.')
+      onHaptic?.(isInCheck(played.board, false) ? 'success' : 'medium')
+      return
+    }
+
+    setStatus('Ход бота…')
+    setTurn('b')
+    setTimeout(() => {
+      const next = botMove(played.board, played.castle)
+      setBoard(next.board)
+      setCastle(next.castle)
+      const youMoves = allMoves(next.board, true, next.castle)
+      if (youMoves.length === 0) {
+        setOver(true)
+        setStatus(isInCheck(next.board, true) ? 'Мат. Поражение.' : 'Пат. Ничья.')
+        onHaptic?.(isInCheck(next.board, true) ? 'error' : 'medium')
+        setTurn('w')
+        return
+      }
+      setTurn('w')
+      setStatus(isInCheck(next.board, true) ? 'Шах! Ваш ход (белые).' : 'Вы — белые. Ваш ход')
+    }, 420)
+  }
+
   const onCell = (r: number, c: number) => {
     if (over || turn !== 'w') return
     const p = board[r][c]
 
     if (selected) {
-      const can = hints.some((h) => h.r === r && h.c === c)
-      if (can) {
-        let played = playMove(board, selected, { r, c }, castle)
+      const dest = resolveMoveTo(r, c)
+      if (dest) {
+        const played = playMove(board, selected, dest, castle)
         setBoard(played.board)
         setCastle(played.castle)
         setSelected(null)
         onHaptic?.('light')
-
-        const botMoves = allMoves(played.board, false, played.castle)
-        if (botMoves.length === 0) {
-          setOver(true)
-          setStatus(isInCheck(played.board, false) ? 'Шах и мат! Победа.' : 'Пат. Ничья.')
-          onHaptic?.(isInCheck(played.board, false) ? 'success' : 'medium')
-          return
-        }
-
-        setStatus('Ход бота…')
-        setTurn('b')
-        setTimeout(() => {
-          played = botMove(played.board, played.castle)
-          setBoard(played.board)
-          setCastle(played.castle)
-          const youMoves = allMoves(played.board, true, played.castle)
-          if (youMoves.length === 0) {
-            setOver(true)
-            setStatus(isInCheck(played.board, true) ? 'Мат. Поражение.' : 'Пат. Ничья.')
-            onHaptic?.(isInCheck(played.board, true) ? 'error' : 'medium')
-            setTurn('w')
-            return
-          }
-          setTurn('w')
-          setStatus(isInCheck(played.board, true) ? 'Шах! Ваш ход (белые).' : 'Вы — белые. Ваш ход')
-        }, 420)
+        finishAfterPlayerMove(played)
         return
       }
     }
@@ -556,6 +592,12 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
     // Player always owns white; black is bot-only
     if (p && isWhite(p) && turn === 'w') {
       setSelected({ r, c })
+      const moves = legalMoves(board, { r, c }, castle)
+      if (p === 'K' && moves.some((m) => Math.abs(m.c - c) === 2)) {
+        setStatus('Рокировка: король на g1/c1 или нажмите ладью')
+      } else if (!over) {
+        setStatus(isInCheck(board, true) ? 'Шах! Ваш ход (белые).' : 'Вы — белые. Ваш ход')
+      }
       onHaptic?.('light')
     } else {
       setSelected(null)
@@ -577,8 +619,8 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
             row.map((p, c) => {
               const dark = (r + c) % 2 === 1
               const isSel = selected?.r === r && selected?.c === c
-              const isHint = hints.some((h) => h.r === r && h.c === c)
-              const capture = isHint && !!p
+              const isHint = hintSquares.some((h) => h.r === r && h.c === c)
+              const capture = isHint && !!p && !(selected && board[selected.r][selected.c]?.toUpperCase() === 'K' && p === 'R')
               return (
                 <button
                   key={`${r}-${c}`}
