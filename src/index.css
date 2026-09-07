@@ -2542,12 +2542,40 @@ body.tg-webapp .game-topbar .back-btn {
 
 .game-shell--immersive.game-shell--poker {
   --safe-top: max(env(safe-area-inset-top, 0px), var(--tg-safe-top), var(--tg-content-top), 8px);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(90, 20, 30, 0.45), transparent 70%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.015) 0 2px,
+      transparent 2px 14px
+    ),
+    linear-gradient(180deg, #221018 0%, #120c10 45%, #0a080c 100%);
 }
 
 .game-body--poker {
   padding: 0 !important;
   overflow: hidden;
   height: 100%;
+  background: inherit;
+}
+
+/* Bleed poker felt to the screen edges (no empty letterbox strips). */
+body.poker-landscape-active .app-shell {
+  padding-left: 0;
+  padding-right: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(90, 20, 30, 0.45), transparent 70%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.015) 0 2px,
+      transparent 2px 14px
+    ),
+    linear-gradient(180deg, #221018 0%, #120c10 45%, #0a080c 100%);
+}
+
+body.poker-landscape-active .app-main.game-mode {
+  padding: 0 !important;
+  background: inherit;
 }
 
 /* ——— Landscape poker table ——— */
@@ -2558,6 +2586,14 @@ body.tg-webapp .game-topbar .back-btn {
   min-height: 0;
   overflow: hidden;
   color: #f2f6fb;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(90, 20, 30, 0.45), transparent 70%),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.015) 0 2px,
+      transparent 2px 14px
+    ),
+    linear-gradient(180deg, #221018 0%, #120c10 45%, #0a080c 100%);
 }
 
 .poker-rotate-hint {
@@ -2642,16 +2678,10 @@ body.tg-webapp .game-topbar .back-btn {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: max(4px, env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px))
-    max(6px, env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px));
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(90, 20, 30, 0.45), transparent 70%),
-    repeating-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.015) 0 2px,
-      transparent 2px 14px
-    ),
-    linear-gradient(180deg, #221018 0%, #120c10 45%, #0a080c 100%);
+  padding: max(4px, env(safe-area-inset-top, 0px)) max(8px, env(safe-area-inset-right, 0px))
+    max(4px, env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+  box-sizing: border-box;
+  background: transparent;
 }
 
 .poker-status {
@@ -2756,30 +2786,144 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-pot {
   position: absolute;
-  bottom: 8%;
+  bottom: 7%;
   left: 50%;
   transform: translateX(-50%);
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(232, 168, 56, 0.35);
-  font-size: 11px;
-  font-weight: 700;
-  color: #f0d9a8;
+  gap: 2px;
+  padding: 4px 8px 3px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(232, 168, 56, 0.28);
   z-index: 5;
+  min-width: 56px;
 }
 
-.poker-pot-chip {
-  width: 12px;
-  height: 12px;
+.poker-pot-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(240, 217, 168, 0.75);
+}
+
+.poker-chip-pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  animation: poker-chip-land 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.poker-chip-pile.is-compact .poker-chip-disk {
+  width: 14px;
+  height: 14px;
+}
+
+.poker-chip-stack {
+  position: relative;
+  width: 22px;
+  height: 18px;
+}
+
+.poker-chip-pile.is-compact .poker-chip-stack {
+  width: 16px;
+  height: 14px;
+}
+
+.poker-chip-disk {
+  position: absolute;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
   border-radius: 50%;
+  bottom: calc(var(--chip-i, 0) * 3px);
+  border: 1.5px dashed rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
   background:
-    radial-gradient(circle at 35% 30%, #fff, transparent 40%),
-    conic-gradient(from 20deg, #c62828, #fff 12%, #c62828 25%, #fff 37%, #c62828 50%, #fff 62%, #c62828 75%, #fff 87%, #c62828);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), transparent 42%),
+    conic-gradient(
+      from 18deg,
+      #c62828,
+      #fff8 14%,
+      #c62828 28%,
+      #fff8 42%,
+      #c62828 56%,
+      #fff8 70%,
+      #c62828 84%,
+      #fff8
+    );
+}
+
+.poker-chip-disk--1 {
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.5), transparent 42%),
+    conic-gradient(from 18deg, #1b5e20, #fff8 14%, #1b5e20 28%, #fff8 42%, #1b5e20 56%, #fff8 70%, #1b5e20 84%, #fff8);
+}
+
+.poker-chip-disk--2 {
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.5), transparent 42%),
+    conic-gradient(from 18deg, #1565c0, #fff8 14%, #1565c0 28%, #fff8 42%, #1565c0 56%, #fff8 70%, #1565c0 84%, #fff8);
+}
+
+.poker-chip-disk--3 {
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), transparent 42%),
+    conic-gradient(from 18deg, #f9a825, #fff8 14%, #f9a825 28%, #fff8 42%, #f9a825 56%, #fff8 70%, #f9a825 84%, #fff8);
+}
+
+.poker-chip-disk--4 {
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.4), transparent 42%),
+    conic-gradient(from 18deg, #212121, #fff8 14%, #212121 28%, #fff8 42%, #212121 56%, #fff8 70%, #212121 84%, #fff8);
+}
+
+.poker-chip-pile.is-compact .poker-chip-disk {
+  margin-left: -7px;
+  bottom: calc(var(--chip-i, 0) * 2px);
+}
+
+.poker-chip-amt {
+  font-size: 10px;
+  font-weight: 800;
+  color: #f6e2b3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+  line-height: 1;
+}
+
+.poker-bet-on-table {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.poker-bet-bot {
+  left: 50%;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
+}
+
+.poker-bet-you {
+  left: calc(100% + 6px);
+  top: 30%;
+  transform: none;
+}
+
+@keyframes poker-chip-land {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Heads-up: bot top-center, you bottom-left — never the same spot. */
@@ -2795,9 +2939,9 @@ body.tg-webapp .game-topbar .back-btn {
   transform: translateX(-50%);
   width: auto;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
   z-index: 3;
 }
 
@@ -2811,10 +2955,10 @@ body.tg-webapp .game-topbar .back-btn {
   display: flex;
   gap: 3px;
   justify-content: center;
-  /* Tuck slightly behind the avatar, stay on-screen */
-  margin-bottom: -10px;
+  margin: 0;
   position: relative;
   z-index: 0;
+  overflow: visible;
 }
 
 .poker-bot-cards .pcard,
@@ -2828,7 +2972,11 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .poker-bot-cards .pcard.poker-deal-to-bot {
-  animation: poker-deal-to-bot 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: poker-deal-to-bot 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.poker-seat-bot .poker-seat-name {
+  display: none;
 }
 
 .poker-seat-bot .poker-seat {
@@ -3016,7 +3164,7 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .poker-hand .pcard.poker-deal-to-you {
-  animation: poker-deal-to-you 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: poker-deal-to-you 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .poker-actions {
@@ -3141,33 +3289,51 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 @keyframes poker-deal-to-you {
-  from {
+  0% {
     opacity: 0;
-    transform: translate3d(28px, -56px, 0) rotate(-14deg) scale(0.72);
+    transform: translate3d(42vw, -38vh, 0) rotate(-32deg) scale(0.42);
+    filter: brightness(1.25);
   }
-  to {
+  55% {
+    opacity: 1;
+    transform: translate3d(8px, -12px, 0) rotate(-6deg) scale(1.06);
+    filter: brightness(1.08);
+  }
+  100% {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
 @keyframes poker-deal-to-bot {
-  from {
+  0% {
     opacity: 0;
-    transform: translate3d(0, 36px, 0) scale(0.7);
+    transform: translate3d(0, 56px, 0) rotate(16deg) scale(0.45);
+    filter: brightness(1.2);
   }
-  to {
+  58% {
+    opacity: 1;
+    transform: translate3d(0, -6px, 0) rotate(-4deg) scale(1.05);
+    filter: brightness(1.06);
+  }
+  100% {
     opacity: 1;
     transform: none;
+    filter: none;
   }
 }
 
 @keyframes poker-deal-board {
-  from {
+  0% {
     opacity: 0;
-    transform: translate3d(0, -22px, 0) scale(0.82);
+    transform: translate3d(0, -36px, 0) scale(0.7) rotate(-8deg);
   }
-  to {
+  70% {
+    opacity: 1;
+    transform: translate3d(0, 4px, 0) scale(1.04) rotate(2deg);
+  }
+  100% {
     opacity: 1;
     transform: none;
   }
@@ -3182,10 +3348,10 @@ body.tg-webapp .game-topbar .back-btn {
   }
   .poker-seat-bot {
     top: 1%;
-    gap: 2px;
+    gap: 6px;
   }
   .poker-bot-cards {
-    margin-bottom: -8px;
+    margin: 0;
   }
   .poker-bot-cards .pcard,
   .poker-bot-cards .poker-hole-card {

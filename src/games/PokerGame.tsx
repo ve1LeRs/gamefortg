@@ -115,7 +115,46 @@ function postBlinds(playerStack: number, botStack: number) {
     stack: playerStack - pBlind,
     botStack: botStack - bBlind,
     pot: pBlind + bBlind,
+    pBlind,
+    bBlind,
   }
+}
+
+function chipCountFor(amount: number) {
+  if (amount <= 0) return 0
+  if (amount < 20) return 1
+  if (amount < 50) return 2
+  if (amount < 100) return 3
+  if (amount < 200) return 4
+  if (amount < 400) return 5
+  return 6
+}
+
+function ChipPile({
+  amount,
+  className = '',
+  compact,
+}: {
+  amount: number
+  className?: string
+  compact?: boolean
+}) {
+  if (amount <= 0) return null
+  const n = chipCountFor(amount)
+  return (
+    <div className={`poker-chip-pile${compact ? ' is-compact' : ''} ${className}`.trim()} title={formatChips(amount)}>
+      <div className="poker-chip-stack" aria-hidden>
+        {Array.from({ length: n }, (_, i) => (
+          <span
+            key={i}
+            className={`poker-chip-disk poker-chip-disk--${i % 5}`}
+            style={{ ['--chip-i' as string]: i }}
+          />
+        ))}
+      </div>
+      <span className="poker-chip-amt">{formatChips(amount)}</span>
+    </div>
+  )
 }
 
 function betSize(phase: Phase) {
@@ -315,6 +354,9 @@ export function PokerGame({
   const [pot, setPot] = useState(firstBlinds.pot)
   const [stack, setStack] = useState(firstBlinds.stack)
   const [botStack, setBotStack] = useState(firstBlinds.botStack)
+  /** Chips sitting in front of each seat this street (blinds / bets). */
+  const [playerBet, setPlayerBet] = useState(firstBlinds.pBlind)
+  const [botBet, setBotBet] = useState(firstBlinds.bBlind)
   const [showBot, setShowBot] = useState(false)
   const [status, setStatus] = useState(`Блайнды по ${BLIND}. Чек или выберите ставку.`)
   const [resultClass, setResultClass] = useState('')
@@ -378,6 +420,8 @@ export function PokerGame({
       setBotStack(botStackRef.current)
     }
     setPot(0)
+    setPlayerBet(0)
+    setBotBet(0)
   }, [])
 
   const dealNextHand = useCallback(
@@ -387,6 +431,8 @@ export function PokerGame({
         setPhase('over')
         setShowBot(false)
         setPot(0)
+        setPlayerBet(0)
+        setBotBet(0)
         setStack(Math.max(0, playerStack))
         setBotStack(Math.max(0, botChips))
         if (playerStack <= 0 && botChips <= 0) {
@@ -411,6 +457,8 @@ export function PokerGame({
       setPot(blinds.pot)
       setStack(blinds.stack)
       setBotStack(blinds.botStack)
+      setPlayerBet(blinds.pBlind)
+      setBotBet(blinds.bBlind)
       setShowBot(false)
       setResultClass('')
       setMatchOver(false)
@@ -472,6 +520,8 @@ export function PokerGame({
       const copy = [...currentDeck]
       const runout = opts?.runout
       setToCall(0)
+      setPlayerBet(0)
+      setBotBet(0)
       if (from === 'preflop') {
         copy.pop()
         const flop = [copy.pop()!, copy.pop()!, copy.pop()!]
@@ -576,6 +626,7 @@ export function PokerGame({
         const nextPot = pot + amount
         setBotStack(nextBot)
         setPot(nextPot)
+        setBotBet((b) => b + amount)
         setToCall(amount)
         setWager(clampBet(amount, amount, Math.min(stack, nextBot + amount)))
         setStatus(`Бот ставит ${formatChips(amount)}. Колл, рейз или фолд.`)
@@ -598,6 +649,7 @@ export function PokerGame({
     stackRef.current = nextStack
     setStack(nextStack)
     setPot(nextPot)
+    setPlayerBet((b) => b + amount)
     setToCall(0)
     setStatus(
       nextStack <= 0
@@ -637,6 +689,8 @@ export function PokerGame({
       setStack(nextStack)
       setBotStack(nextBot)
       setPot(nextPot)
+      setPlayerBet((b) => b + raiseTotal)
+      setBotBet((b) => b + botAdd)
       setToCall(0)
 
       const decision = botDecide({
@@ -710,6 +764,7 @@ export function PokerGame({
       setStack(stackRef.current)
       const nextPot = potNow + amount
       setPot(nextPot)
+      setPlayerBet((b) => b + amount)
       setPhase('over')
       settlePot('player', nextPot)
       setStatus(`Вы поставили ${formatChips(amount)}. Бот сбросил. Банк ваш.`)
@@ -728,6 +783,8 @@ export function PokerGame({
         setStack(nextStack)
         setBotStack(nextBot)
         setPot(nextPot)
+        setPlayerBet((b) => b + amount)
+        setBotBet((b) => b + raiseAmt)
         const need = raiseAmt - amount
         setToCall(need)
         setWager(clampBet(need, need, Math.min(nextStack, nextBot + need)))
@@ -748,6 +805,8 @@ export function PokerGame({
     setPot(nextPot)
     setStack(nextStack)
     setBotStack(nextBot)
+    setPlayerBet((b) => b + amount)
+    setBotBet((b) => b + amount)
     setStatus(
       nextStack <= 0
         ? `All-in ${formatChips(amount)}. Бот коллирует. Доигрываем…`
@@ -820,9 +879,9 @@ export function PokerGame({
                 )}
               </div>
 
-              <div className="poker-pot">
-                <span className="poker-pot-chip" />
-                <span>Банк {formatChips(pot)}</span>
+              <div className="poker-pot" key={`pot-${pot}`}>
+                <ChipPile amount={pot} />
+                <span className="poker-pot-label">Банк</span>
               </div>
             </div>
 
@@ -836,7 +895,7 @@ export function PokerGame({
                     index={i}
                     enter="none"
                     className="poker-hole-card poker-deal-to-bot"
-                    style={{ animationDelay: `${80 + i * 90}ms` }}
+                    style={{ animationDelay: `${120 + i * 110}ms` }}
                   />
                 ))}
               </div>
@@ -847,6 +906,7 @@ export function PokerGame({
                 active
                 accent="linear-gradient(145deg,#6b3a3a,#3a1515)"
               />
+              <ChipPile amount={botBet} className="poker-bet-on-table poker-bet-bot" compact />
             </div>
 
             <div className="poker-seat-slot poker-seat-you">
@@ -858,6 +918,7 @@ export function PokerGame({
                 active
                 accent="linear-gradient(145deg,#3a6ea5,#1a3358)"
               />
+              <ChipPile amount={playerBet} className="poker-bet-on-table poker-bet-you" compact />
             </div>
           </div>
 
@@ -872,7 +933,7 @@ export function PokerGame({
                     index={i}
                     enter="none"
                     className="poker-hole-card poker-deal-to-you"
-                    style={{ animationDelay: `${i * 90}ms` }}
+                    style={{ animationDelay: `${i * 110}ms` }}
                   />
                 ))}
               </div>
