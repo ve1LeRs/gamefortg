@@ -1,4 +1,4 @@
-import { GAMES, type GameMeta } from '../data/games'
+import { GAMES } from '../data/games'
 import { GameCover } from './GameCover'
 import type { TgUser } from '../hooks/useTelegram'
 
@@ -9,9 +9,6 @@ export function StorePage({
   user: TgUser | null
   onPlay: (id: string) => void
 }) {
-  const featured = GAMES.filter((g) => g.featured)
-  const rest = GAMES
-
   return (
     <div className="store-page">
       <section className="hero">
@@ -38,23 +35,11 @@ export function StorePage({
 
       <section className="section">
         <div className="section-head">
-          <h2>В центре внимания</h2>
-          <p>Бесплатно</p>
-        </div>
-        <div className="game-rail">
-          {featured.map((game) => (
-            <FeaturedTile key={game.id} game={game} onPlay={onPlay} />
-          ))}
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-head">
           <h2>Каталог</h2>
-          <p>{rest.length} игр</p>
+          <p>{GAMES.length} игр</p>
         </div>
         <div className="game-list">
-          {rest.map((game) => (
+          {GAMES.map((game) => (
             <button
               key={game.id}
               type="button"
@@ -76,21 +61,5 @@ export function StorePage({
         </div>
       </section>
     </div>
-  )
-}
-
-function FeaturedTile({ game, onPlay }: { game: GameMeta; onPlay: (id: string) => void }) {
-  return (
-    <button type="button" className="game-tile" onClick={() => onPlay(game.id)}>
-      <GameCover game={game} showTitle />
-      <div className="game-meta">
-        <p>{game.tagline}</p>
-        <div className="game-tags">
-          <span>{game.genre}</span>
-          <span>·</span>
-          <span>{game.players}</span>
-        </div>
-      </div>
-    </button>
   )
 }

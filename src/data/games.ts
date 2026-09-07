@@ -9,7 +9,6 @@ export type GameMeta = {
   accent: string
   glow: string
   cover: string
-  featured?: boolean
   free: boolean
 }
 
@@ -23,7 +22,6 @@ export const GAMES: GameMeta[] = [
     accent: '#E8A838',
     glow: 'rgba(232, 168, 56, 0.35)',
     cover: 'poker',
-    featured: true,
     free: true,
   },
   {
@@ -35,7 +33,6 @@ export const GAMES: GameMeta[] = [
     accent: '#3DDC97',
     glow: 'rgba(61, 220, 151, 0.3)',
     cover: 'durak',
-    featured: true,
     free: true,
   },
   {
