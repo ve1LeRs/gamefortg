@@ -154,30 +154,41 @@ export function GameShell({
     title: string,
     onBot: () => void,
     onOnline: () => void,
+    botHint = 'Тренировка один на один',
+    onlineHint = 'Комнаты в лобби · 1 на 1',
   ) => (
     <div className="durak-mode-pick">
-      <h2>{title}</h2>
-      <p>Выберите режим</p>
-      <button
-        type="button"
-        className="durak-btn durak-btn-primary"
-        onClick={() => {
-          onBot()
-          onHaptic?.('medium')
-        }}
-      >
-        Против бота
-      </button>
-      <button
-        type="button"
-        className="durak-btn durak-btn-bito"
-        onClick={() => {
-          onOnline()
-          onHaptic?.('medium')
-        }}
-      >
-        С другом онлайн
-      </button>
+      <div className="mode-pick-panel">
+        <p className="mode-pick-kicker">
+          Play<em>fort</em>
+        </p>
+        <h2>{title}</h2>
+        <p className="mode-pick-lead">Выберите режим</p>
+        <div className="mode-pick-actions">
+          <button
+            type="button"
+            className="mode-pick-option mode-pick-option--bot"
+            onClick={() => {
+              onBot()
+              onHaptic?.('medium')
+            }}
+          >
+            <span className="mode-pick-option-title">Против бота</span>
+            <span className="mode-pick-option-hint">{botHint}</span>
+          </button>
+          <button
+            type="button"
+            className="mode-pick-option mode-pick-option--online"
+            onClick={() => {
+              onOnline()
+              onHaptic?.('medium')
+            }}
+          >
+            <span className="mode-pick-option-title">С другом онлайн</span>
+            <span className="mode-pick-option-hint">{onlineHint}</span>
+          </button>
+        </div>
+      </div>
     </div>
   )
 

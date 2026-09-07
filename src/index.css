@@ -4341,7 +4341,15 @@ body.tg-webapp .game-topbar .back-btn {
   outline: none !important;
 }
 
-/* ---- Durak mode pick + online lobby ---- */
+/* ---- Mode pick + online lobby (Playfort menu palette) ---- */
+.game-shell--durak:has(.durak-mode-pick),
+.game-shell--durak:has(.durak-online-lobby) {
+  background:
+    radial-gradient(120% 80% at 10% -10%, rgba(232, 168, 56, 0.14), transparent 55%),
+    radial-gradient(90% 60% at 100% 0%, rgba(61, 220, 151, 0.1), transparent 50%),
+    linear-gradient(180deg, #0a141f 0%, var(--bg) 42%, #050b11 100%);
+}
+
 .durak-mode-pick,
 .durak-online-lobby {
   display: flex;
@@ -4354,26 +4362,138 @@ body.tg-webapp .game-topbar .back-btn {
   text-align: center;
 }
 
+.mode-pick-panel {
+  width: min(360px, 100%);
+  padding: 22px 18px 18px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(ellipse 80% 70% at 85% 0%, rgba(232, 168, 56, 0.18), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, rgba(61, 220, 151, 0.1), transparent 50%),
+    linear-gradient(160deg, rgba(21, 36, 51, 0.96), rgba(7, 16, 24, 0.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+.mode-pick-kicker {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: rgba(242, 246, 251, 0.72);
+}
+
+.mode-pick-kicker em {
+  font-style: normal;
+  color: var(--accent);
+}
+
 .durak-mode-pick h2,
 .durak-online-lobby h2 {
   margin: 0;
-  font-size: 28px;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 7vw, 34px);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  color: var(--text);
 }
 
+.mode-pick-lead,
 .durak-mode-pick p,
 .durak-online-lead {
-  margin: 0 0 8px;
+  margin: 6px 0 0;
   max-width: 280px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
   font-size: 14px;
   line-height: 1.4;
 }
 
+.mode-pick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 18px;
+}
+
+.mode-pick-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  text-align: left;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.mode-pick-option:active {
+  transform: scale(0.985);
+}
+
+.mode-pick-option--bot {
+  background: linear-gradient(135deg, rgba(240, 184, 74, 0.2), rgba(224, 138, 32, 0.08));
+  border-color: rgba(232, 168, 56, 0.38);
+  box-shadow: 0 8px 24px rgba(232, 168, 56, 0.12);
+}
+
+.mode-pick-option--online {
+  background: linear-gradient(135deg, rgba(61, 220, 151, 0.14), rgba(20, 80, 55, 0.12));
+  border-color: rgba(61, 220, 151, 0.32);
+}
+
+.mode-pick-option-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.mode-pick-option--bot .mode-pick-option-title {
+  color: #f6d48a;
+}
+
+.mode-pick-option--online .mode-pick-option-title {
+  color: #9af0c8;
+}
+
+.mode-pick-option-hint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
 .durak-mode-pick .durak-btn,
 .durak-online-actions .durak-btn {
-  width: min(280px, 100%);
+  width: min(320px, 100%);
+}
+
+.durak-online-lobby .durak-btn {
+  box-shadow: none;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 700;
+}
+
+.durak-online-lobby .durak-btn-primary {
+  background: linear-gradient(135deg, #f0b84a, #e08a20);
+  color: #1a1005;
+  border-color: transparent;
+  box-shadow: 0 8px 28px rgba(232, 168, 56, 0.28);
+}
+
+.durak-online-lobby .durak-btn-bito {
+  background: rgba(61, 220, 151, 0.14);
+  border-color: rgba(61, 220, 151, 0.34);
+  color: #9af0c8;
 }
 
 .durak-online-actions {
@@ -4382,6 +4502,19 @@ body.tg-webapp .game-topbar .back-btn {
   align-items: center;
   gap: 10px;
   width: 100%;
+}
+
+.durak-online-lobby h2 {
+  margin-bottom: 0;
+}
+
+.durak-online-build {
+  margin: -4px 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(61, 220, 151, 0.85);
 }
 
 .durak-online-join {
@@ -4396,19 +4529,19 @@ body.tg-webapp .game-topbar .back-btn {
   align-self: flex-start;
   font-size: 13px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--muted);
 }
 
 .durak-online-join input {
   width: 100%;
   box-sizing: border-box;
-  min-height: 64px;
-  padding: 18px 18px;
+  min-height: 56px;
+  padding: 14px 16px;
   border-radius: 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.28);
-  background: rgba(0, 0, 0, 0.38);
-  color: #fff;
-  font-size: 24px;
+  border: 1px solid var(--line);
+  background: rgba(7, 16, 24, 0.72);
+  color: var(--text);
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-align: center;
@@ -4417,8 +4550,9 @@ body.tg-webapp .game-topbar .back-btn {
 
 .durak-online-join input:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.55);
-  background: rgba(0, 0, 0, 0.48);
+  border-color: rgba(232, 168, 56, 0.55);
+  background: rgba(7, 16, 24, 0.88);
+  box-shadow: 0 0 0 3px rgba(232, 168, 56, 0.12);
 }
 
 .durak-online-join input::placeholder {
@@ -4441,9 +4575,9 @@ body.tg-webapp .game-topbar .back-btn {
   width: min(320px, 100%);
   margin: 4px 0 2px;
   padding: 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.28);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(7, 16, 24, 0.45);
   text-align: left;
 }
 
@@ -4519,15 +4653,6 @@ body.tg-webapp .game-topbar .back-btn {
   margin: 0;
   color: rgba(255, 255, 255, 0.78);
   font-size: 15px;
-}
-
-.durak-online-build {
-  margin: -4px 0 4px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(120, 220, 180, 0.85);
 }
 
 .durak-online-error {
