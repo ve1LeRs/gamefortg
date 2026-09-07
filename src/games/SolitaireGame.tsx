@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { PlayingCard } from '../components/PlayingCard'
 import {
   type Card,
@@ -277,15 +277,28 @@ export function SolitaireGame({
   const [won, setWon] = useState(false)
   const [hintPulse, setHintPulse] = useState<string | null>(null)
   const [clearing, setClearing] = useState(false)
-  const [flight, setFlight] = useState<{ card: Card; fi: number; id: number } | null>(null)
+  const [flight, setFlight] = useState<{
+    card: Card
+    fi: number
+    id: number
+    fromX: number
+    fromY: number
+    toX: number
+    toY: number
+  } | null>(null)
   const clearTimer = useRef<number | null>(null)
   const flightId = useRef(0)
   const lastTapRef = useRef<{ key: string; at: number } | null>(null)
+  const flightTimer = useRef<number | null>(null)
 
   const stopClearing = useCallback(() => {
     if (clearTimer.current != null) {
       window.clearTimeout(clearTimer.current)
       clearTimer.current = null
+    }
+    if (flightTimer.current != null) {
+      window.clearTimeout(flightTimer.current)
+      flightTimer.current = null
     }
     setClearing(false)
     setFlight(null)
@@ -365,8 +378,23 @@ export function SolitaireGame({
     return col.slice(selected.index)
   }
 
+  const slotCenter = (ariaLabel: string) => {
+    const el = document.querySelector(`[aria-label="${ariaLabel}"]`) as HTMLElement | null
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { x: r.left + r.width / 2 - 29, y: r.top + r.height / 2 - 41 }
+  }
+
+  const cardCenter = (cardId: string) => {
+    const el = document.querySelector(`[data-card-id="${cardId}"]`) as HTMLElement | null
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { x: r.left + r.width / 2 - 29, y: r.top + r.height / 2 - 41 }
+  }
+
   /** Double-tap / second tap: send one card home if any foundation accepts it. */
   const sendHome = (source: Selection): boolean => {
+    if (flight) return false
     let card: Card | undefined
     if (source.where === 'waste') {
       card = waste[waste.length - 1]
@@ -390,8 +418,15 @@ export function SolitaireGame({
     }
     if (fi < 0) return false
 
-    const newFoundations = foundations.map((p) => [...p])
-    newFoundations[fi] = [...newFoundations[fi], card]
+    const from =
+      source.where === 'waste'
+        ? slotCenter('Сброс') ?? cardCenter(card.id)
+        : cardCenter(card.id) ?? slotCenter('Сброс')
+    const to = slotCenter(`Фундамент ${fi + 1}`)
+    const fromX = from?.x ?? window.innerWidth * 0.2
+    const fromY = from?.y ?? window.innerHeight * 0.2
+    const toX = to?.x ?? window.innerWidth * 0.7
+    const toY = to?.y ?? window.innerHeight * 0.15
 
     if (source.where === 'waste') {
       setWaste((w) => w.slice(0, -1))
@@ -402,21 +437,32 @@ export function SolitaireGame({
       setFaceUp((u) => revealTop(newTab, u))
     }
 
-    setFoundations(newFoundations)
     setSelected(null)
     lastTapRef.current = null
     flightId.current += 1
-    setFlight({ card, fi, id: flightId.current })
-    window.setTimeout(() => setFlight(null), 160)
+    const id = flightId.current
+    setFlight({ card, fi, id, fromX, fromY, toX, toY })
     onHaptic?.('light')
-    checkWin(newFoundations)
+
+    if (flightTimer.current != null) window.clearTimeout(flightTimer.current)
+    flightTimer.current = window.setTimeout(() => {
+      flightTimer.current = null
+      setFoundations((prev) => {
+        const next = prev.map((p) => [...p])
+        next[fi] = [...next[fi], card!]
+        checkWin(next)
+        return next
+      })
+      setFlight(null)
+    }, 340)
+
     return true
   }
 
   const registerTap = (key: string) => {
     const now = Date.now()
     const last = lastTapRef.current
-    const isDouble = !!(last && last.key === key && now - last.at < 420)
+    const isDouble = !!(last && last.key === key && now - last.at < 700)
     lastTapRef.current = { key, at: now }
     return isDouble
   }
@@ -481,17 +527,28 @@ export function SolitaireGame({
   }
 
   const onWasteClick = () => {
-    if (!waste.length || clearing || won) return
-    const source: Selection = { where: 'waste', col: 0, index: 0 }
-    if (registerTap('waste') || selected?.where === 'waste') {
+    if (!waste.length || clearing || won || flight) return
+    const top = waste[waste.length - 1]
+    const source: Selection = { where: 'waste', col: 0, index: waste.length - 1 }
+    const tapKey = `waste:${top.id}`
+    const isDouble = registerTap(tapKey)
+    const already = selected?.where === 'waste'
+
+    // Second tap on the waste card (or native double-tap window) → home
+    if (isDouble || already) {
       if (sendHome(source)) return
-      if (selected?.where === 'waste') {
+      if (already) {
         setSelected(null)
         return
       }
     }
     setSelected(source)
     onHaptic?.('light')
+  }
+
+  const onWasteDoubleClick = () => {
+    if (!waste.length || clearing || won || flight) return
+    sendHome({ where: 'waste', col: 0, index: waste.length - 1 })
   }
 
   const onFoundationClick = (fi: number) => {
@@ -617,7 +674,18 @@ export function SolitaireGame({
       curFoundations = step.foundations
       curTableau = step.tableau
       flightId.current += 1
-      setFlight({ card: step.moved.card, fi: step.moved.fi, id: flightId.current })
+      const home = slotCenter(`Фундамент ${step.moved.fi + 1}`)
+      const cx = window.innerWidth / 2 - 29
+      const cy = window.innerHeight * 0.42 - 41
+      setFlight({
+        card: step.moved.card,
+        fi: step.moved.fi,
+        id: flightId.current,
+        fromX: cx,
+        fromY: cy + 40,
+        toX: home?.x ?? cx,
+        toY: home?.y ?? cy - 80,
+      })
       setWaste(curWaste)
       setFoundations(curFoundations)
       setTableau(curTableau)
@@ -657,7 +725,7 @@ export function SolitaireGame({
           </div>
           <div
             className={`sol-slot ${hintPulse === 'waste' ? 'sol-hint' : ''}`}
-            onClick={onWasteClick}
+            onClick={waste.length ? undefined : onWasteClick}
             onKeyDown={(e) => e.key === 'Enter' && onWasteClick()}
             role="button"
             tabIndex={0}
@@ -668,7 +736,9 @@ export function SolitaireGame({
                 card={waste[waste.length - 1]}
                 selected={selected?.where === 'waste'}
                 playable
+                enter="none"
                 onClick={onWasteClick}
+                onDoubleClick={onWasteDoubleClick}
               />
             )}
           </div>
@@ -696,7 +766,19 @@ export function SolitaireGame({
         </div>
       </div>
       {flight && (
-        <div className="sol-flight" key={flight.id} aria-hidden>
+        <div
+          className="sol-flight"
+          key={flight.id}
+          aria-hidden
+          style={
+            {
+              ['--sol-fx' as string]: `${flight.fromX}px`,
+              ['--sol-fy' as string]: `${flight.fromY}px`,
+              ['--sol-tx' as string]: `${flight.toX}px`,
+              ['--sol-ty' as string]: `${flight.toY}px`,
+            } as CSSProperties
+          }
+        >
           <PlayingCard card={flight.card} enter="none" className="sol-flight-card" />
         </div>
       )}
