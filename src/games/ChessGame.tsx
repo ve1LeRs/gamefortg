@@ -25,6 +25,7 @@ const GLYPH: Record<string, string> = {
   R: '♖',
   B: '♗',
   N: '♘',
+  // White pawn ♙ is drawn as a filled black pawn on Apple Color Emoji — use SVG instead.
   P: '♙',
   k: '♚',
   q: '♛',
@@ -32,6 +33,33 @@ const GLYPH: Record<string, string> = {
   b: '♝',
   n: '♞',
   p: '♟',
+}
+
+/** Cream-filled pawn; emoji ♙ cannot be recolored on iOS/Telegram. */
+function WhitePawnIcon() {
+  return (
+    <svg className="piece-svg" viewBox="0 0 45 45" aria-hidden>
+      <path
+        d="M22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z"
+        fill="#f3ebe0"
+        stroke="#2a1c12"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function PieceGlyph({ piece }: { piece: NonNullable<Piece> }) {
+  const white = isWhite(piece)
+  if (piece === 'P') {
+    return (
+      <span className="piece piece-w piece-svg-wrap">
+        <WhitePawnIcon />
+      </span>
+    )
+  }
+  return <span className={`piece ${white ? 'piece-w' : 'piece-b'}`}>{GLYPH[piece]}</span>
 }
 
 function clone(board: Piece[][]): Piece[][] {
@@ -558,7 +586,7 @@ export function ChessGame({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' | '
                   className={`cell ${dark ? 'dark' : 'light'} ${isSel ? 'selected' : ''} ${isHint && !capture ? 'move-hint' : ''} ${capture ? 'capture-hint' : ''}`}
                   onClick={() => onCell(r, c)}
                 >
-                  {p && <span className={`piece ${isWhite(p) ? 'piece-w' : 'piece-b'}`}>{GLYPH[p]}</span>}
+                  {p && <PieceGlyph piece={p} />}
                 </button>
               )
             }),
