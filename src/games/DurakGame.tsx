@@ -788,7 +788,7 @@ export function DurakGame({
 
   return (
     <div
-      className={`durak-table ${over ? `is-${over}` : ''}`}
+      className={`durak-table ${over ? `is-${over}` : ''}${bitoFlying ? ' is-bito-flight' : ''}${tableFlying ? ' is-take-flight' : ''}`}
       onClick={startBotAttackIfNeeded}
     >
       <header className="durak-top">
