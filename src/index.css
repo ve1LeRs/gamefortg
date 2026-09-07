@@ -4345,63 +4345,7 @@ body.tg-webapp .game-topbar .back-btn {
   z-index: 50;
 }
 
-.durak-online-hand {
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-end;
-  overflow: visible;
-  height: auto;
-  min-height: calc(var(--hand-card-h, 158px) + 24px);
-  pointer-events: none;
-  padding: 12px 12px 0;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  margin-bottom: calc(var(--hand-dock-tuck, 74px) * -1);
-}
-
-.durak-online-hand .durak-hand-row {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  width: auto;
-  max-width: 100%;
-  height: calc(var(--hand-card-h, 158px) + 8px);
-  overflow: visible;
-  pointer-events: auto;
-}
-
-.durak-online-hand .durak-hand-card {
-  width: var(--hand-card-w, 112px) !important;
-  height: var(--hand-card-h, 158px) !important;
-  flex: 0 0 auto;
-  margin-left: calc(var(--hand-step, 48px) - var(--hand-card-w, 112px));
-  border: none;
-  padding: 0;
-  transform: translate3d(0, var(--fan-y, 0px), 0) rotate(var(--rot, 0deg));
-  transform-origin: 50% 100%;
-  /* Bot mode sets touch-action:none for drag; that breaks taps in Telegram WebView. */
-  touch-action: manipulation !important;
-  pointer-events: auto !important;
-  cursor: pointer;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.durak-online-hand .durak-hand-card:first-child {
-  margin-left: 0;
-}
-
-.durak-online-hand .durak-hand-card.is-waiting {
-  opacity: 0.72;
+/* Online uses the same .durak-hand fan as solo — only mute illegal cards. */
+.durak-online .durak-hand-card.is-waiting {
   filter: saturate(0.85);
-}
-
-.durak-online-hand .durak-hand-card.playable {
-  filter: brightness(1.1);
-  transform: translate3d(0, calc(var(--fan-y, 0px) - 16px), 0) rotate(var(--rot, 0deg));
-  box-shadow:
-    0 0 0 2px rgba(120, 255, 180, 0.85),
-    0 16px 28px rgba(0, 0, 0, 0.42);
 }
