@@ -44,7 +44,7 @@ function canFoundation(card: Card, pile: Pile) {
 function cardOffset(col: Pile, index: number, faceUp: Set<string>) {
   let y = 0
   for (let i = 0; i < index; i += 1) {
-    y += faceUp.has(col[i].id) ? 22 : 13
+    y += faceUp.has(col[i].id) ? 22 : 15
   }
   return y
 }
