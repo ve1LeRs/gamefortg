@@ -2705,7 +2705,7 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-table-brand {
   position: absolute;
-  top: 18%;
+  top: 10%;
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-display);
@@ -2724,7 +2724,10 @@ body.tg-webapp .game-topbar .back-btn {
   justify-content: center;
   gap: clamp(4px, 0.8vw, 8px);
   min-height: clamp(40px, 10vh, 64px);
-  z-index: 2;
+  /* Sit below the bot seat so hole-card avatars never cover the board */
+  transform: translateY(26%);
+  z-index: 5;
+  position: relative;
 }
 
 .poker-board-empty {
@@ -2748,7 +2751,7 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-pot {
   position: absolute;
-  bottom: 16%;
+  bottom: 10%;
   left: 50%;
   transform: translateX(-50%);
   display: inline-flex;
@@ -2761,7 +2764,7 @@ body.tg-webapp .game-topbar .back-btn {
   font-size: 11px;
   font-weight: 700;
   color: #f0d9a8;
-  z-index: 2;
+  z-index: 5;
 }
 
 .poker-pot-chip {
@@ -2783,13 +2786,15 @@ body.tg-webapp .game-topbar .back-btn {
 
 .poker-seat-bot {
   left: 50%;
-  top: 0;
-  transform: translateX(-50%);
+  /* Hang above the felt so the avatar clears community cards */
+  top: -2%;
+  transform: translate(-50%, -18%);
   width: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  z-index: 3;
 }
 
 .poker-seat-you {
@@ -3148,6 +3153,41 @@ body.tg-webapp .game-topbar .back-btn {
   }
   .poker-table {
     min-height: 120px;
+  }
+  .poker-seat-bot {
+    top: -4%;
+    transform: translate(-50%, -28%);
+    gap: 0;
+  }
+  .poker-seat-bot .poker-seat-avatar-wrap {
+    width: 30px;
+    height: 30px;
+  }
+  .poker-seat-bot .poker-seat-avatar {
+    border-radius: 8px;
+    font-size: 12px;
+  }
+  .poker-seat-bot .poker-seat-name {
+    font-size: 9px;
+    padding: 0 5px;
+  }
+  .poker-seat-bot .poker-seat-level {
+    min-width: 14px;
+    height: 14px;
+    font-size: 7px;
+  }
+  .poker-bot-cards .pcard,
+  .poker-bot-cards .poker-hole-card {
+    width: 18px;
+    height: 26px;
+  }
+  .poker-board {
+    transform: translateY(34%);
+  }
+  .poker-pot {
+    bottom: 6%;
+    font-size: 10px;
+    padding: 2px 8px;
   }
   .poker-hand .pcard,
   .poker-hand .poker-hole-card {
