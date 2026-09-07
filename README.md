@@ -1,6 +1,6 @@
-# Козырь
+# Playfort
 
-Мобильный игровой хаб внутри Telegram Mini App (репозиторий `gamefortg`).
+Mobile game hub inside a Telegram Mini App (repo `gamefortg`).
 
 ## Игры
 
@@ -44,7 +44,7 @@ npm run build
 
 ## Telegram-бот
 
-1. В [@BotFather](https://t.me/BotFather) задайте имя бота: **Козырь**
+1. В [@BotFather](https://t.me/BotFather) задайте имя бота: **Playfort**
 2. Main Mini App / Menu Button URL (новый путь — сбрасывает кэш Telegram):
 
 ```text
