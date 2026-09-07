@@ -531,95 +531,93 @@ export function PokerGame({
             </div>
           </div>
 
-          <div className="poker-hand-dock" key={`hand-${dealTick}`}>
-            <span className="poker-hand-label">Ваши карты</span>
-            <div className="poker-hand">
-              {player.map((c, i) => (
-                <PlayingCard
-                  key={c.id}
-                  card={c}
-                  index={i}
-                  enter="none"
-                  className="poker-hole-card poker-deal-to-you"
-                  style={{ animationDelay: `${i * 90}ms` }}
-                />
-              ))}
+          <div className="poker-bottom">
+            <div className="poker-hand-dock" key={`hand-${dealTick}`}>
+              <span className="poker-hand-label">Ваши карты</span>
+              <div className="poker-hand">
+                {player.map((c, i) => (
+                  <PlayingCard
+                    key={c.id}
+                    card={c}
+                    index={i}
+                    enter="none"
+                    className="poker-hole-card poker-deal-to-you"
+                    style={{ animationDelay: `${i * 90}ms` }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="poker-actions">
-            {phase !== 'over' && !matchOver ? (
-              <>
-                <div className="poker-bet-panel">
-                  <span className="poker-bet-label">Размер ставки</span>
-                  <div className="poker-bet-stepper">
-                    <button
-                      type="button"
-                      className="poker-bet-nudge"
-                      aria-label="Уменьшить ставку"
-                      disabled={wager <= minWager}
-                      onClick={() => nudgeWager(-10)}
-                    >
-                      −
+            <div className="poker-actions">
+              {phase !== 'over' && !matchOver ? (
+                <>
+                  <div className="poker-bet-panel">
+                    <div className="poker-bet-stepper" aria-label="Размер ставки">
+                      <button
+                        type="button"
+                        className="poker-bet-nudge"
+                        aria-label="Уменьшить ставку"
+                        disabled={wager <= minWager}
+                        onClick={() => nudgeWager(-10)}
+                      >
+                        −
+                      </button>
+                      <span className="poker-bet-value">{formatChips(wager)}</span>
+                      <button
+                        type="button"
+                        className="poker-bet-nudge"
+                        aria-label="Увеличить ставку"
+                        disabled={wager >= maxWager}
+                        onClick={() => nudgeWager(10)}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="poker-bet-presets">
+                      <button type="button" className="poker-bet-chip" onClick={() => setWagerPreset(minWager)}>
+                        Мин
+                      </button>
+                      <button
+                        type="button"
+                        className="poker-bet-chip"
+                        onClick={() => setWagerPreset(Math.max(minWager, Math.floor(pot / 2) || minWager))}
+                      >
+                        ½ банка
+                      </button>
+                      <button
+                        type="button"
+                        className="poker-bet-chip"
+                        onClick={() => setWagerPreset(Math.max(minWager, pot || minWager))}
+                      >
+                        Банк
+                      </button>
+                      <button type="button" className="poker-bet-chip" onClick={() => setWagerPreset(maxWager)}>
+                        Макс
+                      </button>
+                    </div>
+                  </div>
+                  <div className="poker-actions-row">
+                    <button type="button" className="poker-btn poker-btn-soft" onClick={check}>
+                      Чек
                     </button>
-                    <span className="poker-bet-value">{formatChips(wager)}</span>
-                    <button
-                      type="button"
-                      className="poker-bet-nudge"
-                      aria-label="Увеличить ставку"
-                      disabled={wager >= maxWager}
-                      onClick={() => nudgeWager(10)}
-                    >
-                      +
+                    <button type="button" className="poker-btn poker-btn-bet" onClick={bet} disabled={wager <= 0}>
+                      Поставить {formatChips(wager)}
+                    </button>
+                    <button type="button" className="poker-btn poker-btn-fold" onClick={fold}>
+                      Фолд
                     </button>
                   </div>
-                  <div className="poker-bet-presets">
-                    <button type="button" className="poker-bet-chip" onClick={() => setWagerPreset(minWager)}>
-                      Мин
-                    </button>
-                    <button
-                      type="button"
-                      className="poker-bet-chip"
-                      onClick={() => setWagerPreset(Math.max(minWager, Math.floor(pot / 2) || minWager))}
-                    >
-                      ½ банка
-                    </button>
-                    <button
-                      type="button"
-                      className="poker-bet-chip"
-                      onClick={() => setWagerPreset(Math.max(minWager, pot || minWager))}
-                    >
-                      Банк
-                    </button>
-                    <button type="button" className="poker-bet-chip" onClick={() => setWagerPreset(maxWager)}>
-                      Макс
-                    </button>
-                  </div>
-                  <p className="poker-bet-meta">
-                    Стек {formatChips(stack)} · бот {formatChips(botStack)}
-                  </p>
-                </div>
-                <div className="poker-actions-row">
-                  <button type="button" className="poker-btn poker-btn-soft" onClick={check}>
-                    Чек
-                  </button>
-                  <button type="button" className="poker-btn poker-btn-bet" onClick={bet} disabled={wager <= 0}>
-                    Поставить {formatChips(wager)}
-                  </button>
-                  <button type="button" className="poker-btn poker-btn-fold" onClick={fold}>
-                    Фолд
-                  </button>
-                </div>
-              </>
-            ) : matchOver ? (
-              <button type="button" className="poker-btn poker-btn-bet" onClick={resetMatch}>
-                Новый матч
-              </button>
-            ) : (
-              <button type="button" className="poker-btn poker-btn-bet" onClick={nextHand}>
-                Новая раздача
-              </button>
-            )}
+                </>
+              ) : matchOver ? (
+                <button type="button" className="poker-btn poker-btn-bet" onClick={resetMatch}>
+                  Новый матч
+                </button>
+              ) : (
+                <button type="button" className="poker-btn poker-btn-bet" onClick={nextHand}>
+                  Новая раздача
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
