@@ -14,7 +14,7 @@
   --tg-safe-right: 0px;
   --tg-content-top: 0px;
   --tg-content-bottom: 0px;
-  --tg-chrome-top: 0px;
+  --tg-chrome-top: 72px;
   --safe-top: max(
     env(safe-area-inset-top, 0px),
     var(--tg-safe-top),
@@ -166,8 +166,8 @@ body.tg-webapp .profile-page {
   -webkit-overflow-scrolling: touch;
 }
 
-body.tg-webapp .app-main:not(.game-mode) {
-  /* Keep lobby content clear of Telegram’s floating Close */
+/* Keep lobby clear of Telegram Close from first paint (no jump when tg-webapp class lands). */
+.app-main:not(.game-mode) {
   padding-top: max(calc(var(--safe-top) + 12px), 76px);
 }
 
