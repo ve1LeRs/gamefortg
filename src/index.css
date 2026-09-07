@@ -1956,7 +1956,7 @@ body.tg-webapp .game-topbar .back-btn {
   animation: sol-hint-pulse 1.1s ease;
 }
 
-/* Overlapped face-up cards: keep only the peek strip (rank) readable + tappable. */
+/* Overlapped cards: real short strips with card radii (no clip-path — WebView cuts corners). */
 .sol-col .pcard.sol-buried .suit-lg,
 .sol-col .pcard.sol-buried .pcard-corner-br,
 .sol-col .pcard.sol-buried .pcard-suit {
@@ -1964,13 +1964,31 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .sol-col .pcard.sol-buried {
-  padding-bottom: 0;
-  /* Hit target = visible strip; round keeps card corners (no flat-cut peeks). */
-  clip-path: inset(0 0 calc(100% - 22px) 0 round 8px);
+  height: 22px;
+  max-height: 22px;
+  aspect-ratio: auto;
+  overflow: hidden;
+  padding: 3px 3px 0;
+  border-radius: 8px 8px 3px 3px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 2px 4px rgba(0, 0, 0, 0.22);
 }
 
 .sol-col .pcard.face-down:not(:last-child) {
-  clip-path: inset(0 0 calc(100% - 14px) 0 round 8px);
+  height: 15px;
+  max-height: 15px;
+  aspect-ratio: auto;
+  overflow: hidden;
+  padding: 0;
+  border-radius: 8px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 2px 4px rgba(0, 0, 0, 0.28);
+}
+
+.sol-col .pcard.face-down:not(:last-child)::after {
+  display: none;
 }
 
 .sol-col .pcard.sol-buried .pcard-corner {
