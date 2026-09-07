@@ -15,6 +15,8 @@ export type TelegramWebApp = {
   disableVerticalSwipes?: () => void
   requestFullscreen?: () => void
   exitFullscreen?: () => void
+  lockOrientation?: () => void
+  unlockOrientation?: () => void
   onEvent: (event: string, cb: (...args: unknown[]) => void) => void
   offEvent?: (event: string, cb: (...args: unknown[]) => void) => void
   BackButton?: {

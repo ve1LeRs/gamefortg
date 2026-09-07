@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PlayingCard } from '../components/PlayingCard'
 import {
   type Card,
@@ -18,6 +18,21 @@ type HandRank = {
 
 const START_STACK = 1000
 const BLIND = 15
+
+const TABLE_SEATS = [
+  { id: 'tl', name: 'Инга', level: 73, role: 'npc' as const, stackLabel: '410K' },
+  { id: 'tc', name: 'Крупье', level: 99, role: 'dealer' as const, stackLabel: '' },
+  { id: 'tr', name: 'Анюта', level: 63, role: 'npc' as const, stackLabel: '280K' },
+  { id: 'bl', name: 'Анна', level: 40, role: 'npc' as const, stackLabel: '520K' },
+  { id: 'bc', name: 'Вы', level: 12, role: 'player' as const, stackLabel: '' },
+  { id: 'br', name: 'Бот', level: 55, role: 'bot' as const, stackLabel: '' },
+]
+
+function formatChips(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
+  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`
+  return String(n)
+}
 
 function evaluate(cards: Card[]): HandRank {
   const values = cards
@@ -119,11 +134,87 @@ function betSize(phase: Phase) {
   return 80
 }
 
+function useLandscape() {
+  const [landscape, setLandscape] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(orientation: landscape)').matches : true,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape)')
+    const sync = () => setLandscape(mq.matches)
+    sync()
+    mq.addEventListener?.('change', sync)
+    window.addEventListener('resize', sync)
+    window.addEventListener('orientationchange', sync)
+    return () => {
+      mq.removeEventListener?.('change', sync)
+      window.removeEventListener('resize', sync)
+      window.removeEventListener('orientationchange', sync)
+    }
+  }, [])
+  return landscape
+}
+
+function SeatCard({
+  name,
+  level,
+  stackText,
+  bankText,
+  dealer,
+  active,
+  cards,
+  showCards,
+  accent,
+}: {
+  name: string
+  level: number
+  stackText: string
+  bankText?: string
+  dealer?: boolean
+  active?: boolean
+  cards?: Card[]
+  showCards?: boolean
+  accent?: string
+}) {
+  return (
+    <div className={`poker-seat${active ? ' is-active' : ''}`}>
+      {cards && cards.length > 0 && (
+        <div className="poker-seat-cards">
+          {cards.map((c, i) => (
+            <PlayingCard
+              key={c.id}
+              card={c}
+              faceDown={!showCards}
+              index={i}
+              enter="none"
+              className="poker-mini-card"
+            />
+          ))}
+        </div>
+      )}
+      <div className="poker-seat-name">{name}</div>
+      <div className="poker-seat-avatar-wrap">
+        {dealer && <span className="poker-dealer-btn">D</span>}
+        <div className="poker-seat-avatar" style={accent ? { background: accent } : undefined}>
+          {name.slice(0, 1)}
+        </div>
+        <span className="poker-seat-level">{level}</span>
+      </div>
+      {(stackText || bankText) && (
+        <div className="poker-seat-money">
+          {stackText && <span>{stackText}</span>}
+          {bankText && <span className="poker-seat-bank">{bankText}</span>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function PokerGame({
   onHaptic,
 }: {
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
 }) {
+  const landscape = useLandscape()
   const firstDeal = useMemo(() => dealHole(), [])
   const firstBlinds = useMemo(() => postBlinds(START_STACK, START_STACK), [])
 
@@ -140,7 +231,6 @@ export function PokerGame({
   const [resultClass, setResultClass] = useState('')
   const [matchOver, setMatchOver] = useState(false)
 
-  const totalChips = stack + botStack + pot
   const stackRef = useRef(stack)
   const botStackRef = useRef(botStack)
   stackRef.current = stack
@@ -283,7 +373,6 @@ export function PokerGame({
     let nextStack = stack
     let nextBot = botStack
 
-    // Bot occasionally bets; both put in the same amount (auto-call)
     if (Math.random() < 0.25 && phase !== 'river') {
       const amount = betSize(phase)
       if (nextStack >= amount && nextBot >= amount) {
@@ -345,59 +434,107 @@ export function PokerGame({
   }
 
   return (
-    <div className="table-area">
-      <p className={`game-status ${resultClass}`}>{status}</p>
-      <div className="felt">
-        <div className="pot-info">
-          <span>Вы: {stack}</span>
-          <span className="chip-stack">
-            <span className="chip" />
-            Банк {pot}
-          </span>
-          <span>Бот: {botStack}</span>
+    <div className={`poker-landscape${landscape ? ' is-landscape' : ' is-portrait'}`}>
+      {!landscape && (
+        <div className="poker-rotate-hint" role="status">
+          <div className="poker-rotate-icon" aria-hidden>
+            ↻
+          </div>
+          <p>Поверните телефон горизонтально</p>
+          <span>Покер рассчитан на широкий стол</span>
         </div>
-        <p className="poker-chip-audit" aria-hidden>
-          Стол {totalChips}
-        </p>
-        <div className="hand compact">
-          {bot.map((c, i) => (
-            <PlayingCard key={c.id} card={c} faceDown={!showBot} index={i} />
-          ))}
+      )}
+
+      <div className="poker-stage" aria-hidden={!landscape}>
+        <div className="poker-room">
+          <p className={`poker-status ${resultClass}`}>{status}</p>
+
+          <div className="poker-table">
+            <div className="poker-table-rail" />
+            <div className="poker-table-felt">
+              <div className="poker-table-brand">Playfort Poker</div>
+
+              <div className="poker-board">
+                {board.length === 0 ? (
+                  <span className="poker-board-empty">Общие карты</span>
+                ) : (
+                  board.map((c, i) => (
+                    <PlayingCard key={c.id} card={c} index={i} enter="none" className="poker-board-card" />
+                  ))
+                )}
+              </div>
+
+              <div className="poker-pot">
+                <span className="poker-pot-chip" />
+                <span>Банк {formatChips(pot)}</span>
+              </div>
+            </div>
+
+            {TABLE_SEATS.map((seat) => {
+              const isPlayer = seat.role === 'player'
+              const isBot = seat.role === 'bot'
+              return (
+                <div key={seat.id} className={`poker-seat-slot poker-seat-${seat.id}`}>
+                  <SeatCard
+                    name={seat.name}
+                    level={seat.level}
+                    stackText={
+                      isPlayer
+                        ? formatChips(stack)
+                        : isBot
+                          ? formatChips(botStack)
+                          : seat.stackLabel
+                    }
+                    bankText={isPlayer || isBot ? '1M' : seat.role === 'dealer' ? undefined : '1M'}
+                    dealer={isPlayer && phase !== 'over'}
+                    active={isPlayer || isBot}
+                    cards={isPlayer ? player : isBot ? bot : undefined}
+                    showCards={isPlayer ? true : isBot ? showBot : false}
+                    accent={
+                      isPlayer
+                        ? 'linear-gradient(145deg,#3a6ea5,#1a3358)'
+                        : isBot
+                          ? 'linear-gradient(145deg,#6b3a3a,#3a1515)'
+                          : seat.role === 'dealer'
+                            ? 'linear-gradient(145deg,#5a4a6a,#2a2038)'
+                            : undefined
+                    }
+                  />
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="poker-fg-chips" aria-hidden>
+            <span className="poker-fg-chip poker-fg-a" />
+            <span className="poker-fg-chip poker-fg-b" />
+            <span className="poker-fg-chip poker-fg-c" />
+          </div>
+
+          <div className="poker-actions">
+            {phase !== 'over' && !matchOver ? (
+              <>
+                <button type="button" className="poker-btn poker-btn-soft" onClick={check}>
+                  Чек
+                </button>
+                <button type="button" className="poker-btn poker-btn-bet" onClick={bet}>
+                  Ставка {betSize(phase)}
+                </button>
+                <button type="button" className="poker-btn poker-btn-fold" onClick={fold}>
+                  Фолд
+                </button>
+              </>
+            ) : matchOver ? (
+              <button type="button" className="poker-btn poker-btn-bet" onClick={resetMatch}>
+                Новый матч
+              </button>
+            ) : (
+              <button type="button" className="poker-btn poker-btn-bet" onClick={nextHand}>
+                Новая раздача
+              </button>
+            )}
+          </div>
         </div>
-        <div className="community">
-          {board.length === 0 && <span style={{ opacity: 0.5 }}>Общие карты появятся здесь</span>}
-          {board.map((c, i) => (
-            <PlayingCard key={c.id} card={c} className="compact" index={i} />
-          ))}
-        </div>
-      </div>
-      <div className="hand">
-        {player.map((c, i) => (
-          <PlayingCard key={c.id} card={c} index={i} />
-        ))}
-      </div>
-      <div className="action-bar">
-        {phase !== 'over' && !matchOver ? (
-          <>
-            <button type="button" className="btn btn-soft" onClick={check}>
-              Чек
-            </button>
-            <button type="button" className="btn btn-primary" onClick={bet}>
-              Ставка {betSize(phase)}
-            </button>
-            <button type="button" className="btn btn-danger" onClick={fold}>
-              Фолд
-            </button>
-          </>
-        ) : matchOver ? (
-          <button type="button" className="btn btn-primary" onClick={resetMatch}>
-            Новый матч
-          </button>
-        ) : (
-          <button type="button" className="btn btn-primary" onClick={nextHand}>
-            Новая раздача
-          </button>
-        )}
       </div>
     </div>
   )

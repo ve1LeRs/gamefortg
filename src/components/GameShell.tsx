@@ -22,7 +22,7 @@ export function GameShell({
   durakRoomCode?: string | null
 }) {
   const meta = getGame(gameId)
-  const immersive = gameId === 'durak'
+  const immersive = gameId === 'durak' || gameId === 'poker'
   const [durakMode, setDurakMode] = useState<DurakMode>(durakRoomCode ? 'online' : 'pick')
   const inTelegram = typeof document !== 'undefined' && document.body.classList.contains('tg-webapp')
   const onBackRef = useRef(onBack)
@@ -42,6 +42,26 @@ export function GameShell({
   useEffect(() => {
     if (durakRoomCode) setDurakMode('online')
   }, [durakRoomCode])
+
+  // Poker plays landscape — lock when Telegram supports it.
+  useEffect(() => {
+    if (gameId !== 'poker') return
+    const wa = getWebApp()
+    try {
+      wa?.lockOrientation?.()
+    } catch {
+      /* noop */
+    }
+    document.body.classList.add('poker-landscape-active')
+    return () => {
+      document.body.classList.remove('poker-landscape-active')
+      try {
+        wa?.unlockOrientation?.()
+      } catch {
+        /* noop */
+      }
+    }
+  }, [gameId])
 
   // Native Telegram BackButton — «Назад» only while a game is open.
   useEffect(() => {
@@ -99,7 +119,7 @@ export function GameShell({
 
   return (
     <div
-      className={`game-shell${gameId === 'durak' ? ' game-shell--durak' : ''}${immersive ? ' game-shell--immersive' : ''}`}
+      className={`game-shell${gameId === 'durak' ? ' game-shell--durak' : ''}${gameId === 'poker' ? ' game-shell--poker' : ''}${immersive ? ' game-shell--immersive' : ''}`}
     >
       {!immersive && (
         <header className={`game-topbar${inTelegram ? ' game-topbar--tg-back' : ''}`}>
@@ -114,7 +134,7 @@ export function GameShell({
           <h1>{meta?.title ?? 'Игра'}</h1>
         </header>
       )}
-      <div className={`game-body ${immersive ? 'game-body--felt' : ''}`}>
+      <div className={`game-body ${immersive ? 'game-body--felt' : ''}${gameId === 'poker' ? ' game-body--poker' : ''}`}>
         {gameId === 'poker' && <PokerGame onHaptic={onHaptic} />}
         {gameId === 'durak' && durakMode === 'pick' && (
           <div className="durak-mode-pick">
