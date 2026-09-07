@@ -2849,31 +2849,34 @@ body.tg-webapp .app-main:not(.game-mode) {
   align-items: center;
   width: 100%;
   max-width: 100%;
-  height: 168px;
-  /* Side inset so rotated edge cards are not clipped by overflow */
-  padding: 0 26px;
-  margin-bottom: -4px;
+  height: auto;
+  min-height: calc(var(--hand-card-h, 122px) + 20px);
+  /* Keep edge cards inside the screen; bottom clear of the dock */
+  padding: 8px 24px 12px;
+  margin-bottom: 0;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 2;
 }
 
 
 .durak-hand:not(.is-multi-row) {
-  height: 168px;
+  height: auto;
+  min-height: calc(var(--hand-card-h, 122px) + 20px);
 }
 
 .durak-hand:not(.is-multi-row) .durak-hand-row {
-  height: 100%;
+  height: calc(var(--hand-card-h, 122px) + 8px);
 }
 .durak-hand.is-multi-row {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
   height: auto;
-  min-height: 168px;
+  min-height: calc(var(--hand-card-h, 122px) + 20px);
   gap: 8px;
   overflow: visible;
-  padding: 0 22px 2px;
+  padding: 8px 24px 12px;
 }
 
 .durak-hand-row {
@@ -2883,6 +2886,8 @@ body.tg-webapp .app-main:not(.game-mode) {
   align-items: flex-end;
   height: calc(var(--hand-card-h, 122px) + 8px);
   max-width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
 }
 
 .durak-hand-row .durak-hand-card:first-child {
@@ -2920,7 +2925,7 @@ body.tg-webapp .app-main:not(.game-mode) {
   /* Guaranteed peek: step is the visible strip; rest tucks under the next card */
   margin-left: calc(var(--hand-step, 56px) - var(--hand-card-w, 86px));
   transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg));
-  transform-origin: 50% 110%;
+  transform-origin: 50% 100%;
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.38);
   /* Isolate so deal transforms cannot reshuffle paint order vs neighbors */
   isolation: isolate;
@@ -3037,7 +3042,7 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 .durak-dock {
   width: min(100%, 420px);
-  margin: 0 12px;
+  margin: 4px 12px 0;
   padding: 12px 16px 14px;
   border-radius: 18px 18px 0 0;
   background: rgba(255, 255, 255, 0.2);
@@ -3048,6 +3053,9 @@ body.tg-webapp .app-main:not(.game-mode) {
   display: flex;
   justify-content: center;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
 }
 
 .durak-dock .durak-seat {
@@ -3115,7 +3123,7 @@ body.tg-webapp .app-main:not(.game-mode) {
 
 @media (max-width: 360px) {
   .durak-hand:not(.is-multi-row) {
-    height: 156px;
+    min-height: calc(var(--hand-card-h, 110px) + 16px);
   }
   .durak-pair {
     width: 90px;
@@ -3378,13 +3386,15 @@ body.tg-webapp .app-main:not(.game-mode) {
   flex-direction: row;
   justify-content: center;
   align-items: flex-end;
-  overflow: hidden;
-  height: 158px;
+  overflow: visible;
+  height: auto;
+  min-height: calc(var(--hand-card-h, 128px) + 16px);
   pointer-events: auto;
-  padding: 0 26px;
+  padding: 8px 24px 12px;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  margin-bottom: 0;
 }
 
 .durak-online-hand .durak-hand-row {
@@ -3392,9 +3402,9 @@ body.tg-webapp .app-main:not(.game-mode) {
   display: flex;
   justify-content: center;
   align-items: flex-end;
-  width: 100%;
+  width: auto;
   max-width: 100%;
-  height: calc(var(--hand-card-h, 128px) + 18px);
+  height: calc(var(--hand-card-h, 128px) + 8px);
   overflow: visible;
   pointer-events: auto;
 }
@@ -3407,7 +3417,7 @@ body.tg-webapp .app-main:not(.game-mode) {
   border: none;
   padding: 0;
   transform: translate3d(0, 0, 0) rotate(var(--rot, 0deg));
-  transform-origin: 50% 110%;
+  transform-origin: 50% 100%;
   /* Bot mode sets touch-action:none for drag; that breaks taps in Telegram WebView. */
   touch-action: manipulation !important;
   pointer-events: auto !important;

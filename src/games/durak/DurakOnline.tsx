@@ -21,18 +21,19 @@ function inviteLink(code: string): string {
   return `${window.location.origin}${window.location.pathname}?durakRoom=${code}`
 }
 
-/** Fit online hand on screen without clipping edge cards. */
+/** Fit online hand on screen without clipping edge cards.
+ *  `viewportW` should be the content-box width (padding already excluded). */
 function onlineHandLayout(n: number, viewportW = 390) {
-  const avail = Math.max(220, Math.min(viewportW, 440) - 56)
-  let cardW = n <= 4 ? 92 : n <= 6 ? 84 : n <= 8 ? 76 : 66
-  const minPeek = n >= 10 ? 30 : 36
+  const avail = Math.max(180, Math.min(viewportW, 440) - 12)
+  let cardW = n <= 4 ? 88 : n <= 6 ? 76 : n <= 8 ? 68 : 60
+  const minPeek = n >= 10 ? 28 : 34
   let step = cardW
   if (n > 1) {
     const maxStep = (avail - cardW) / (n - 1)
     step = Math.max(minPeek, Math.min(cardW - 8, maxStep))
     const need = cardW + (n - 1) * minPeek
     if (need > avail) {
-      cardW = Math.max(52, Math.floor(avail - (n - 1) * minPeek))
+      cardW = Math.max(48, Math.floor(avail - (n - 1) * minPeek))
       step = minPeek
     }
   }
@@ -40,7 +41,8 @@ function onlineHandLayout(n: number, viewportW = 390) {
     cardW,
     cardH: Math.round(cardW * (128 / 92)),
     step: Math.round(step * 10) / 10,
-    rotStep: n <= 4 ? 1.6 : n <= 7 ? 0.9 : 0.4,
+    rotStep: n <= 4 ? 0.9 : n <= 7 ? 0.45 : 0.25,
+    fanWidth: Math.round(n <= 1 ? cardW : Math.min(avail, cardW + (n - 1) * step)),
   }
 }
 
@@ -225,7 +227,9 @@ export function DurakOnline({
   const view = room?.view
   if (room?.status === 'playing' && view) {
     const n = view.you.length
-    const hand = onlineHandLayout(n, typeof window !== 'undefined' ? window.innerWidth : 390)
+    const handW =
+      typeof window !== 'undefined' ? Math.max(200, window.innerWidth - 40) : 350
+    const hand = onlineHandLayout(n, handW)
     return (
       <div className="durak-table durak-online">
         <header className="durak-top">

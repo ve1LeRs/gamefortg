@@ -80,40 +80,38 @@ function maxAttackSlots(defenderHandSize: number, table: TablePair[]): number {
   return Math.min(6, defenderHandSize + defended)
 }
 
-/** Fit the whole hand on screen — no horizontal scroll. Large hands use 2 rows. */
+/** Fit the whole hand on screen — no horizontal scroll. Large hands use 2 rows.
+ *  `viewportW` is the hand content-box width (padding already excluded). */
 function handFanLayout(n: number, viewportW = 390) {
-  const pad = 56
-  const avail = Math.max(220, Math.min(viewportW, 440) - pad)
+  // Extra slack inside the content box for rotate/select lift overhang
+  const slack = 12
+  const avail = Math.max(180, Math.min(viewportW, 440) - slack)
   const rows = n >= 9 ? 2 : 1
   const perRow = rows === 1 ? Math.max(1, n) : Math.ceil(n / 2)
-  // Hand cards stay large vs table; shrink only enough to fit the row
-  let cardW = n <= 4 ? 98 : n <= 6 ? 90 : n <= 8 ? 80 : 70
+  let cardW = n <= 4 ? 92 : n <= 6 ? 78 : n <= 8 ? 70 : 62
   let cardH = Math.round(cardW * (138 / 98))
   let step = cardW
   if (perRow > 1) {
-    // Leave at least ~28px peek for rank+suit corner
-    const minPeek = n >= 12 ? 28 : n >= 9 ? 32 : 38
+    const minPeek = n >= 12 ? 26 : n >= 9 ? 30 : 34
     const maxStep = (avail - cardW) / (perRow - 1)
     step = Math.max(minPeek, Math.min(cardW - 8, maxStep))
-    // If still overflowing, shrink card width to fit minPeek
     const need = cardW + (perRow - 1) * minPeek
     if (need > avail) {
-      cardW = Math.max(52, Math.floor(avail - (perRow - 1) * minPeek))
+      cardW = Math.max(48, Math.floor(avail - (perRow - 1) * minPeek))
       cardH = Math.round(cardW * (138 / 98))
       step = minPeek
     } else {
-      // Recompute step with possibly adjusted intent
       step = Math.max(minPeek, Math.min(cardW - 6, (avail - cardW) / (perRow - 1)))
     }
   }
-  const rotStep = rows === 2 ? 0.35 : n <= 4 ? 1.8 : n <= 7 ? 1.0 : 0.45
+  const rotStep = rows === 2 ? 0.2 : n <= 4 ? 0.9 : n <= 7 ? 0.45 : 0.25
   const rowWidth = perRow <= 1 ? cardW : cardW + (perRow - 1) * step
   return {
     cardW: Math.round(cardW),
     cardH: Math.round(cardH),
     step: Math.round(step * 10) / 10,
     rotStep,
-    fanWidth: Math.round(rowWidth),
+    fanWidth: Math.round(Math.min(rowWidth, avail)),
     rows,
     perRow,
     scrollable: false,
@@ -183,6 +181,7 @@ export function DurakGame({
     Object.fromEntries(initial.player.map((c, i) => [c.id, i])),
   )
   const fieldRef = useRef<HTMLDivElement>(null)
+  const handRef = useRef<HTMLDivElement>(null)
   const tableCardsRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<DragState | null>(null)
   const skipClickRef = useRef(false)
@@ -235,10 +234,26 @@ export function DurakGame({
 
 
   useEffect(() => {
-    const update = () => setHandViewportW(window.innerWidth)
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+    const el = handRef.current
+    const measure = () => {
+      if (!el) {
+        setHandViewportW(Math.max(200, window.innerWidth))
+        return
+      }
+      const cs = getComputedStyle(el)
+      const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0)
+      // Content box only — fan must fit inside padding so edge cards stay visible
+      const contentW = Math.max(160, Math.floor(el.clientWidth - padX))
+      setHandViewportW(contentW)
+    }
+    measure()
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => measure()) : null
+    if (el) ro?.observe(el)
+    window.addEventListener('resize', measure)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener('resize', measure)
+    }
   }, [])
 
   /** Keep attack/defence pairs inside the play zone (away from бита/колода). */
@@ -758,7 +773,7 @@ export function DurakGame({
   const deckLayers = Math.min(5, Math.max(1, Math.ceil(deck.length / 6)))
   const playerHand = useMemo(() => sortHand(player, trump), [player, trump])
   const handLayout = useMemo(
-    () => handFanLayout(playerHand.length, Math.max(200, handViewportW - 52)),
+    () => handFanLayout(playerHand.length, handViewportW),
     [playerHand.length, handViewportW],
   )
   const statusClass = [
@@ -903,6 +918,7 @@ export function DurakGame({
 
       <footer className="durak-bottom" onClick={(e) => e.stopPropagation()}>
         <div
+          ref={handRef}
           className={`durak-hand${drag?.active ? ' is-dragging' : ''}${Object.keys(dealOrder).length ? ' is-receiving' : ''}${handLayout.rows > 1 ? ' is-multi-row' : ''}`}
           data-count={playerHand.length}
           data-rows={handLayout.rows}
@@ -921,7 +937,7 @@ export function DurakGame({
               <div
                 key={row}
                 className="durak-hand-row"
-                style={{ width: handLayout.fanWidth, zIndex: row + 1 }}
+                style={{ width: Math.min(handLayout.fanWidth, Math.max(0, handViewportW - 4)), zIndex: row + 1 }}
               >
                 {rowCards.map((c, i) => {
                   const n = rowCards.length
