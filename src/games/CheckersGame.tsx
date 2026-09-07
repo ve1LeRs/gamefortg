@@ -396,7 +396,7 @@ export function CheckersGame({
                   disabled={!!flight}
                 >
                   {cell !== 0 && (
-                    <span className={fading ? 'checker-capture-fade' : undefined}>
+                    <span className={`checker-slot${fading ? ' checker-capture-fade' : ''}`}>
                       <CheckerDisc cell={cell} />
                     </span>
                   )}
