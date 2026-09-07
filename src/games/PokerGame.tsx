@@ -131,6 +131,43 @@ function chipCountFor(amount: number) {
   return 6
 }
 
+const CHIP_COLORS = [
+  { face: '#c62828', rim: '#8e1b1b', pip: '#fff' },
+  { face: '#2e7d32', rim: '#1b5e20', pip: '#fff' },
+  { face: '#1565c0', rim: '#0d47a1', pip: '#fff' },
+  { face: '#f9a825', rim: '#c17900', pip: '#3a2500' },
+  { face: '#263238', rim: '#0d1214', pip: '#fff' },
+] as const
+
+function PokerChipSvg({ colorIndex, size, uid }: { colorIndex: number; size: number; uid: string }) {
+  const c = CHIP_COLORS[colorIndex % CHIP_COLORS.length]!
+  const shineId = `${uid}-shine-${colorIndex}`
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden className="poker-chip-svg">
+      <defs>
+        <radialGradient id={shineId} cx="32%" cy="28%" r="65%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
+          <stop offset="45%" stopColor="#ffffff" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.25" />
+        </radialGradient>
+      </defs>
+      <circle cx="20" cy="21.5" r="17.5" fill="rgba(0,0,0,0.35)" />
+      <circle cx="20" cy="20" r="17.5" fill={c.rim} />
+      <circle cx="20" cy="20" r="14.2" fill={c.face} />
+      <circle cx="20" cy="20" r="14.2" fill={`url(#${shineId})`} />
+      <circle cx="20" cy="20" r="14.2" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.2" />
+      <circle cx="20" cy="20" r="9.2" fill="none" stroke={c.pip} strokeOpacity="0.9" strokeWidth="1.6" strokeDasharray="3.2 2.4" />
+      {[0, 60, 120, 180, 240, 300].map((deg) => {
+        const rad = ((deg - 90) * Math.PI) / 180
+        const x = 20 + Math.cos(rad) * 15.2
+        const y = 20 + Math.sin(rad) * 15.2
+        return <circle key={deg} cx={x} cy={y} r="1.35" fill={c.pip} opacity="0.95" />
+      })}
+      <circle cx="20" cy="20" r="5.2" fill={c.face} stroke={c.pip} strokeOpacity="0.55" strokeWidth="1" />
+    </svg>
+  )
+}
+
 function ChipPile({
   amount,
   className = '',
@@ -142,15 +179,15 @@ function ChipPile({
 }) {
   if (amount <= 0) return null
   const n = chipCountFor(amount)
+  const size = compact ? 18 : 28
+  const uid = `pile-${amount}-${compact ? 'c' : 'f'}-${className}`
   return (
     <div className={`poker-chip-pile${compact ? ' is-compact' : ''} ${className}`.trim()} title={formatChips(amount)}>
-      <div className="poker-chip-stack" aria-hidden>
+      <div className="poker-chip-stack" aria-hidden style={{ ['--chip-n' as string]: n }}>
         {Array.from({ length: n }, (_, i) => (
-          <span
-            key={i}
-            className={`poker-chip-disk poker-chip-disk--${i % 5}`}
-            style={{ ['--chip-i' as string]: i }}
-          />
+          <span key={i} className="poker-chip-disk" style={{ ['--chip-i' as string]: i }}>
+            <PokerChipSvg colorIndex={i} size={size} uid={`${uid}-${i}`} />
+          </span>
         ))}
       </div>
       <span className="poker-chip-amt">{formatChips(amount)}</span>
@@ -880,12 +917,14 @@ export function PokerGame({
                   })
                 )}
               </div>
+            </div>
 
+            {pot > 0 ? (
               <div className="poker-pot" key={`pot-${pot}`}>
                 <ChipPile amount={pot} />
                 <span className="poker-pot-label">Банк</span>
               </div>
-            </div>
+            ) : null}
 
             <div className="poker-seat-slot poker-seat-bot">
               <div className="poker-bot-cards" key={`bot-${dealTick}`}>

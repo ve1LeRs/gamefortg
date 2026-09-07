@@ -3077,7 +3077,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-brand {
   position: absolute;
-  top: 10%;
+  top: 26%;
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-display);
@@ -3088,6 +3088,7 @@ body.poker-landscape-active .app-main.game-mode {
   color: rgba(255, 210, 160, 0.22);
   pointer-events: none;
   white-space: nowrap;
+  z-index: 1;
 }
 
 .poker-board {
@@ -3096,8 +3097,8 @@ body.poker-landscape-active .app-main.game-mode {
   justify-content: center;
   gap: clamp(4px, 0.8vw, 8px);
   min-height: clamp(40px, 10vh, 64px);
-  /* Keep community cards under the bot seat, not behind it */
-  transform: translateY(32%);
+  /* Center community cards on the felt — pot lives above at top-center */
+  transform: translateY(8%);
   z-index: 5;
   position: relative;
 }
@@ -3123,19 +3124,21 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-pot {
   position: absolute;
-  bottom: 7%;
+  top: 4%;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 4px 8px 3px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.28);
-  border: 1px solid rgba(232, 168, 56, 0.28);
-  z-index: 5;
-  min-width: 56px;
+  gap: 3px;
+  padding: 6px 10px 5px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(232, 168, 56, 0.38);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  z-index: 6;
+  min-width: 64px;
+  pointer-events: none;
 }
 
 .poker-pot-label {
@@ -3143,91 +3146,50 @@ body.poker-landscape-active .app-main.game-mode {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(240, 217, 168, 0.75);
+  color: rgba(240, 217, 168, 0.8);
 }
 
 .poker-chip-pile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   animation: poker-chip-land 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.poker-chip-pile.is-compact .poker-chip-disk {
-  width: 14px;
-  height: 14px;
 }
 
 .poker-chip-stack {
   position: relative;
-  width: 22px;
-  height: 18px;
+  width: 28px;
+  height: calc(18px + (var(--chip-n, 1) - 1) * 4px);
 }
 
 .poker-chip-pile.is-compact .poker-chip-stack {
-  width: 16px;
-  height: 14px;
+  width: 18px;
+  height: calc(12px + (var(--chip-n, 1) - 1) * 3px);
 }
 
 .poker-chip-disk {
   position: absolute;
   left: 50%;
-  width: 20px;
-  height: 20px;
-  margin-left: -10px;
-  border-radius: 50%;
-  bottom: calc(var(--chip-i, 0) * 3px);
-  border: 1.5px dashed rgba(255, 255, 255, 0.55);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), transparent 42%),
-    conic-gradient(
-      from 18deg,
-      #c62828,
-      #fff8 14%,
-      #c62828 28%,
-      #fff8 42%,
-      #c62828 56%,
-      #fff8 70%,
-      #c62828 84%,
-      #fff8
-    );
-}
-
-.poker-chip-disk--1 {
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.5), transparent 42%),
-    conic-gradient(from 18deg, #1b5e20, #fff8 14%, #1b5e20 28%, #fff8 42%, #1b5e20 56%, #fff8 70%, #1b5e20 84%, #fff8);
-}
-
-.poker-chip-disk--2 {
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.5), transparent 42%),
-    conic-gradient(from 18deg, #1565c0, #fff8 14%, #1565c0 28%, #fff8 42%, #1565c0 56%, #fff8 70%, #1565c0 84%, #fff8);
-}
-
-.poker-chip-disk--3 {
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), transparent 42%),
-    conic-gradient(from 18deg, #f9a825, #fff8 14%, #f9a825 28%, #fff8 42%, #f9a825 56%, #fff8 70%, #f9a825 84%, #fff8);
-}
-
-.poker-chip-disk--4 {
-  background:
-    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.4), transparent 42%),
-    conic-gradient(from 18deg, #212121, #fff8 14%, #212121 28%, #fff8 42%, #212121 56%, #fff8 70%, #212121 84%, #fff8);
+  bottom: calc(var(--chip-i, 0) * 4px);
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  line-height: 0;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
 }
 
 .poker-chip-pile.is-compact .poker-chip-disk {
-  margin-left: -7px;
-  bottom: calc(var(--chip-i, 0) * 2px);
+  bottom: calc(var(--chip-i, 0) * 3px);
+}
+
+.poker-chip-svg {
+  display: block;
+  shape-rendering: geometricPrecision;
 }
 
 .poker-chip-amt {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
   color: #f6e2b3;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
@@ -3241,9 +3203,10 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-bet-bot {
-  left: 50%;
-  top: calc(100% + 4px);
-  transform: translateX(-50%);
+  right: calc(100% + 4px);
+  top: 50%;
+  left: auto;
+  transform: translateY(-50%);
 }
 
 .poker-bet-you {
@@ -3263,7 +3226,7 @@ body.poker-landscape-active .app-main.game-mode {
   }
 }
 
-/* Heads-up: bot top-center, you bottom-left — never the same spot. */
+/* Heads-up: bot top-right, you bottom-left — pot takes top-center. */
 .poker-seat-slot {
   position: absolute;
   z-index: 4;
@@ -3271,9 +3234,10 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-seat-bot {
-  left: 50%;
-  top: 2%;
-  transform: translateX(-50%);
+  left: auto;
+  right: 3%;
+  top: 6%;
+  transform: none;
   width: auto;
   display: flex;
   flex-direction: row;
@@ -3684,7 +3648,8 @@ body.poker-landscape-active .app-main.game-mode {
     min-height: 120px;
   }
   .poker-seat-bot {
-    top: 1%;
+    top: 4%;
+    right: 2%;
     gap: 6px;
   }
   .poker-bot-cards {
@@ -3696,12 +3661,11 @@ body.poker-landscape-active .app-main.game-mode {
     height: clamp(30px, 5.2vw, 42px);
   }
   .poker-board {
-    transform: translateY(38%);
+    transform: translateY(6%);
   }
   .poker-pot {
-    bottom: 5%;
-    font-size: 10px;
-    padding: 2px 8px;
+    top: 2%;
+    padding: 4px 8px;
   }
   .poker-hand .pcard,
   .poker-hand .poker-hole-card {
