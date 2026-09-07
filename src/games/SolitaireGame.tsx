@@ -617,10 +617,12 @@ export function SolitaireGame({
       if (sendHome(source)) return
       if (already) {
         setSelected(null)
+        setStatus('Разложите карты по мастям')
         return
       }
     }
     setSelected(source)
+    setStatus(`${top.rank}${top.suit} выбрана — куда положить?`)
     onHaptic?.('light')
   }
 
@@ -635,7 +637,10 @@ export function SolitaireGame({
       if (tryMoveToFoundation(fi)) return
     }
     if (foundations[fi].length) {
+      const card = foundations[fi][foundations[fi].length - 1]
       setSelected({ where: 'foundation', col: fi, index: foundations[fi].length - 1 })
+      setStatus(`${card.rank}${card.suit} выбрана — куда положить?`)
+      onHaptic?.('light')
     }
   }
 
@@ -662,6 +667,7 @@ export function SolitaireGame({
       if (sendHome({ where: 'tableau', col: ti, index })) return
       if (sameSelected) {
         setSelected(null)
+        setStatus('Разложите карты по мастям')
         return
       }
     }
@@ -671,6 +677,12 @@ export function SolitaireGame({
     }
 
     setSelected({ where: 'tableau', col: ti, index })
+    const runLen = col.length - index
+    setStatus(
+      runLen > 1
+        ? `${card.rank}${card.suit} и ещё ${runLen - 1} — куда положить?`
+        : `${card.rank}${card.suit} выбрана — куда положить?`,
+    )
     onHaptic?.('light')
   }
 
