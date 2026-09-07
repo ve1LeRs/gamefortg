@@ -2926,8 +2926,8 @@ body.tg-webapp .game-topbar .back-btn {
   --hand-card-w: 112px;
   --hand-card-h: 158px;
   --hand-step: 62px;
-  /* How far the dock covers the hand — keep within dock height */
-  --hand-dock-tuck: 48px;
+  /* How far the dock covers the hand — deeper tuck under the panel */
+  --hand-dock-tuck: 74px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -3074,26 +3074,26 @@ body.tg-webapp .game-topbar .back-btn {
 }
 
 .durak-hand-card .pcard-rank {
-  font-size: 18px;
+  font-size: 24px;
   height: auto;
   line-height: 1;
   font-weight: 800;
 }
 
 .durak-hand-card .pcard-suit {
-  font-size: 14px;
+  font-size: 20px;
   height: auto;
   line-height: 1;
 }
 
 .durak-hand-card .pcard-corner {
-  gap: 2px;
-  max-width: 42%;
+  gap: 3px;
+  max-width: 48%;
   align-items: center;
 }
 
 .durak-hand-card .suit-lg {
-  font-size: 34px;
+  font-size: 44px;
 }
 
 /* Crowded hands: keep the left index strip readable under tight peek */
@@ -3106,7 +3106,7 @@ body.tg-webapp .game-topbar .back-btn {
 .durak-hand[data-count='14'] .durak-hand-card .pcard-rank,
 .durak-hand[data-count='15'] .durak-hand-card .pcard-rank,
 .durak-hand[data-count='16'] .durak-hand-card .pcard-rank {
-  font-size: 15px;
+  font-size: 20px;
   height: auto;
 }
 
@@ -3119,7 +3119,7 @@ body.tg-webapp .game-topbar .back-btn {
 .durak-hand[data-count='14'] .durak-hand-card .pcard-suit,
 .durak-hand[data-count='15'] .durak-hand-card .pcard-suit,
 .durak-hand[data-count='16'] .durak-hand-card .pcard-suit {
-  font-size: 12px;
+  font-size: 16px;
   height: auto;
 }
 
@@ -3132,7 +3132,7 @@ body.tg-webapp .game-topbar .back-btn {
 .durak-hand[data-count='14'] .durak-hand-card .pcard-corner,
 .durak-hand[data-count='15'] .durak-hand-card .pcard-corner,
 .durak-hand[data-count='16'] .durak-hand-card .pcard-corner {
-  gap: 1px;
+  gap: 2px;
 }
 
 .durak-hand[data-count='7'] .durak-hand-card .suit-lg,
@@ -3143,8 +3143,8 @@ body.tg-webapp .game-topbar .back-btn {
 .durak-hand[data-count='12'] .durak-hand-card .suit-lg,
 .durak-hand[data-count='13'] .durak-hand-card .suit-lg,
 .durak-hand[data-count='14'] .durak-hand-card .suit-lg {
-  font-size: 24px;
-  opacity: 0.9;
+  font-size: 34px;
+  opacity: 0.95;
 }
 
 .durak-dock {
@@ -3504,7 +3504,7 @@ body.tg-webapp .game-topbar .back-btn {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  margin-bottom: calc(var(--hand-dock-tuck, 56px) * -1);
+  margin-bottom: calc(var(--hand-dock-tuck, 74px) * -1);
 }
 
 .durak-online-hand .durak-hand-row {
