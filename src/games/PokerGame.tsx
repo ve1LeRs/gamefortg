@@ -240,7 +240,10 @@ function liveComboLabel(hole: Card[], board: Card[]): string {
   return hand.label
 }
 
-function dealSeats(stacks: number[]): { seats: Seat[]; deck: Card[]; pot: number } {
+function dealSeats(
+  stacks: number[],
+  dealerIdx = 0,
+): { seats: Seat[]; deck: Card[]; pot: number; dealer: number; sb: number; bb: number } {
   const deck = shuffle(makeDeck(POKER_RANKS as Rank[]))
   const seats: Seat[] = SEAT_META.map((meta, i) => ({
     name: meta.name,
@@ -252,10 +255,13 @@ function dealSeats(stacks: number[]): { seats: Seat[]; deck: Card[]; pot: number
     showCards: false,
   }))
 
-  // Human + first bot post blinds (simple fixed posts).
+  const n = seats.length
+  const dealer = ((dealerIdx % n) + n) % n
+  // Only SB + BB post — other seats correctly have no chips until they bet.
+  const sb = (dealer + 1) % n
+  const bb = (dealer + 2) % n
   let pot = 0
-  const blindSeats = [0, 1]
-  for (const idx of blindSeats) {
+  for (const idx of [sb, bb]) {
     const seat = seats[idx]!
     const blind = Math.min(BLIND, seat.stack)
     seat.stack -= blind
@@ -263,7 +269,7 @@ function dealSeats(stacks: number[]): { seats: Seat[]; deck: Card[]; pot: number
     pot += blind
   }
 
-  return { seats, deck, pot }
+  return { seats, deck, pot, dealer, sb, bb }
 }
 
 function topUpStacks(stacks: number[]): { stacks: number[]; topped: boolean[] } {
@@ -952,7 +958,7 @@ export function PokerGame({
   const savedStacks = useMemo(() => loadPokerStacks(), [])
   const firstHand = useMemo(() => {
     const stacks = [savedStacks.player, ...savedStacks.bots]
-    return dealSeats(stacks)
+    return dealSeats(stacks, 0)
   }, [savedStacks])
 
   const [deck, setDeck] = useState(firstHand.deck)
@@ -960,11 +966,17 @@ export function PokerGame({
   const [board, setBoard] = useState<Card[]>([])
   const [phase, setPhase] = useState<Phase>('preflop')
   const [pot, setPot] = useState(firstHand.pot)
-  const [status, setStatus] = useState(`Блайнды по ${BLIND}. Чек или выберите ставку.`)
+  const [status, setStatus] = useState(
+    () =>
+      `Блайнды ${firstHand.seats[firstHand.sb]!.name}/${firstHand.seats[firstHand.bb]!.name} по ${BLIND}. Чек или выберите ставку.`,
+  )
   const [resultClass, setResultClass] = useState('')
   const [dealTick, setDealTick] = useState(1)
+  const [dealerIdx, setDealerIdx] = useState(firstHand.dealer)
   const [wager, setWager] = useState(() => betSize('preflop'))
-  const [toCall, setToCall] = useState(0)
+  const [toCall, setToCall] = useState(() =>
+    Math.max(0, Math.max(...firstHand.seats.map((s) => s.streetBet)) - firstHand.seats[0]!.streetBet),
+  )
   const [freshBoardIds, setFreshBoardIds] = useState<string[]>([])
   const [progress, setProgress] = useState<PokerProgress>(() => loadPokerProgress())
   const boardLenRef = useRef(0)
@@ -1053,7 +1065,9 @@ export function PokerGame({
     (current: Seat[]) => {
       const rawStacks = current.map((s) => Math.max(0, s.stack))
       const { stacks, topped } = topUpStacks(rawStacks)
-      const hand = dealSeats(stacks)
+      const nextDealer = (dealerIdx + 1) % (BOT_COUNT + 1)
+      const hand = dealSeats(stacks, nextDealer)
+      setDealerIdx(hand.dealer)
       setDeck(hand.deck)
       applySeats(hand.seats)
       setBoard([])
@@ -1061,28 +1075,38 @@ export function PokerGame({
       setPot(hand.pot)
       setResultClass('')
       setDealTick((n) => n + 1)
-      setToCall(0)
+      const playerNeed = Math.max(
+        0,
+        Math.max(...hand.seats.map((s) => s.streetBet)) - hand.seats[0]!.streetBet,
+      )
+      setToCall(playerNeed)
       setFreshBoardIds([])
       boardLenRef.current = 0
-      setWager(betSize('preflop'))
+      setWager(playerNeed > 0 ? clampBet(playerNeed, playerNeed, hand.seats[0]!.stack) : betSize('preflop'))
       savePokerStacks(hand.seats[0]!.stack, hand.seats.slice(1).map((s) => s.stack))
+
+      const sbName = hand.seats[hand.sb]!.name
+      const bbName = hand.seats[hand.bb]!.name
+      const blindNote = `Блайнды ${sbName}/${bbName} по ${BLIND}`
 
       const toppedPlayer = topped[0]
       const toppedBots = topped.slice(1).filter(Boolean).length
       if (toppedPlayer && toppedBots > 0) {
-        setStatus(`Пополнение +${TOP_UP}. Блайнды по ${BLIND}. Ваш ход.`)
+        setStatus(`Пополнение +${TOP_UP}. ${blindNote}. Ваш ход.`)
       } else if (toppedPlayer) {
-        setStatus(`Фишки кончились — +${TOP_UP}. Блайнды по ${BLIND}. Ваш ход.`)
+        setStatus(`Фишки кончились — +${TOP_UP}. ${blindNote}. Ваш ход.`)
       } else if (toppedBots > 0) {
-        setStatus(`Боты получили +${TOP_UP}. Блайнды по ${BLIND}. Ваш ход.`)
+        setStatus(`Боты получили +${TOP_UP}. ${blindNote}. Ваш ход.`)
+      } else if (playerNeed > 0) {
+        setStatus(`${blindNote}. Колл ${formatChips(playerNeed)}, ставка или фолд.`)
       } else {
-        setStatus(`Блайнды по ${BLIND}. Ваш ход: чек, ставка или фолд.`)
+        setStatus(`${blindNote}. Чек, ставка или фолд.`)
       }
       onHaptic?.('medium')
       playPokerSound('cards')
       window.setTimeout(() => playPokerSound('chips'), 140)
     },
-    [applySeats, onHaptic],
+    [applySeats, dealerIdx, onHaptic],
   )
 
   const nextHand = useCallback(() => {
@@ -1584,7 +1608,7 @@ export function PokerGame({
                     name={seat.name}
                     level={isHuman ? playerLevel : botLevels[i - 1]!}
                     stackText={formatChips(seat.stack)}
-                    dealer={isHuman && phase !== 'over'}
+                    dealer={i === dealerIdx && phase !== 'over'}
                     active={!seat.folded}
                     accent={seat.accent}
                     xpFrac={isHuman ? playerLevelInfo.frac : undefined}
