@@ -678,57 +678,28 @@ function snapshotBotStep(
   return { seats: cloneSeats(seats), pot, line, sound }
 }
 
-/** Run bots in seat order after the player checked (toCall was 0). */
-function runBotsAfterCheck(
-  seatsIn: Seat[],
-  potIn: number,
+function botActAtSeat(
+  seats: Seat[],
+  pot: number,
   board: Card[],
   phase: Phase,
-): BotRoundResult {
-  const seats = cloneSeats(seatsIn)
-  let pot = potIn
-  let opener: string | null = null
-  let lastRaiseName: string | null = null
-  let currentMax = streetMaxBet(seats)
-  const steps: BotRoundStep[] = []
+  seatIdx: number,
+  currentMax: number,
+): {
+  pot: number
+  currentMax: number
+  raised: boolean
+  line: string
+  sound: BotRoundStep['sound']
+} {
+  const seat = seats[seatIdx]!
+  const need = Math.max(0, currentMax - seat.streetBet)
+  const sizeRef = sizingStack(seats)
 
-  for (let i = 1; i < seats.length; i += 1) {
-    const seat = seats[i]!
-    if (seat.folded || seat.stack <= 0) continue
-    if (aliveCount(seats) <= 1) break
-
-    const need = Math.max(0, currentMax - seat.streetBet)
-    const sizeRef = sizingStack(seats)
-
-    if (need === 0) {
-      const decision = botDecide({
-        facingBet: false,
-        callAmount: 0,
-        hole: seat.hole,
-        board,
-        pot,
-        botStack: seat.stack,
-        playerStack: sizeRef,
-        phase,
-      })
-      if (decision.type === 'raise') {
-        const amount = clampBet(decision.amount, Math.min(betSize(phase), seat.stack), seat.stack)
-        if (amount > 0) {
-          pot += putChips(seat, amount)
-          currentMax = Math.max(currentMax, seat.streetBet)
-          opener = seat.name
-          lastRaiseName = seat.name
-          steps.push(
-            snapshotBotStep(seats, pot, `${seat.name} ставит ${formatChips(amount)}.`, 'chips'),
-          )
-        }
-      }
-      continue
-    }
-
+  if (need === 0) {
     const decision = botDecide({
-      facingBet: true,
-      callAmount: need,
+      facingBet: false,
+      callAmount: 0,
       hole: seat.hole,
       board,
       pot,
@@ -736,88 +707,161 @@ function runBotsAfterCheck(
       playerStack: sizeRef,
       phase,
     })
+    if (decision.type === 'raise' && seat.stack > 0) {
+      const amount = clampBet(decision.amount, Math.min(betSize(phase), seat.stack), seat.stack)
+      if (amount > 0) {
+        pot += putChips(seat, amount)
+        return {
+          pot,
+          currentMax: Math.max(currentMax, seat.streetBet),
+          raised: true,
+          line: `${seat.name} ставит ${formatChips(amount)}.`,
+          sound: 'chips',
+        }
+      }
+    }
+    return {
+      pot,
+      currentMax,
+      raised: false,
+      line: `${seat.name} чек.`,
+      sound: 'check',
+    }
+  }
 
-    if (decision.type === 'fold') {
-      seat.folded = true
-      steps.push(snapshotBotStep(seats, pot, `${seat.name} сбрасывает.`, null))
+  const decision = botDecide({
+    facingBet: true,
+    callAmount: need,
+    hole: seat.hole,
+    board,
+    pot,
+    botStack: seat.stack,
+    playerStack: sizeRef,
+    phase,
+  })
+
+  if (decision.type === 'fold') {
+    seat.folded = true
+    return { pot, currentMax, raised: false, line: `${seat.name} сбрасывает.`, sound: null }
+  }
+
+  if (decision.type === 'raise' && seat.stack > need) {
+    const raiseAmt = clampBet(decision.amount, need + Math.min(10, seat.stack), seat.stack)
+    const add = Math.max(need, raiseAmt)
+    if (add > need) {
+      pot += putChips(seat, add)
+      return {
+        pot,
+        currentMax: Math.max(currentMax, seat.streetBet),
+        raised: true,
+        line: `${seat.name} рейзит до ${formatChips(seat.streetBet)}.`,
+        sound: 'chips',
+      }
+    }
+  }
+
+  pot += putChips(seat, need)
+  return {
+    pot,
+    currentMax,
+    raised: false,
+    line: `${seat.name} коллирует ${formatChips(need)}.`,
+    sound: 'chips',
+  }
+}
+
+/**
+ * Continue the betting round after the human (seat 0) has acted.
+ * Stops as soon as action returns to the player so they can answer each raise —
+ * bots must not keep re-raising among themselves past the player's turn.
+ */
+function runBotsUntilPlayerOrClose(
+  seatsIn: Seat[],
+  potIn: number,
+  board: Card[],
+  phase: Phase,
+  opts: { playerOpened: boolean },
+): BotRoundResult {
+  const seats = cloneSeats(seatsIn)
+  let pot = potIn
+  let currentMax = streetMaxBet(seats)
+  const steps: BotRoundStep[] = []
+  const n = seats.length
+  const acted = new Set<number>([0])
+  let lastRaiseName: string | null = opts.playerOpened ? seats[0]!.name : null
+  let cursor = 1
+  let guard = 0
+
+  const playerFacing = (): BotRoundResult | null => {
+    const player = seats[0]!
+    const playerNeed = Math.max(0, currentMax - player.streetBet)
+    if (playerNeed > 0 && player.stack > 0 && !player.folded) {
+      const name = lastRaiseName ?? 'Бот'
+      return {
+        seats,
+        pot,
+        toCall: Math.min(playerNeed, player.stack),
+        status: `${name} повышает. Колл ${formatChips(Math.min(playerNeed, player.stack))}, рейз или фолд.`,
+        playerWonUncontested: false,
+        allChecked: false,
+        steps,
+      }
+    }
+    return null
+  }
+
+  while (guard < 64) {
+    guard += 1
+    if (aliveCount(seats) <= 1) break
+
+    let found = -1
+    for (let step = 0; step < n; step += 1) {
+      const i = (cursor + step) % n
+      const seat = seats[i]!
+      if (seat.folded) continue
+      const need = Math.max(0, currentMax - seat.streetBet)
+      if (need > 0 && seat.stack > 0) {
+        found = i
+        break
+      }
+      if (need === 0 && seat.stack > 0 && !acted.has(i)) {
+        found = i
+        break
+      }
+    }
+
+    if (found < 0) break
+
+    // Action is on the human — hand control back so they can raise/call now.
+    if (found === 0) {
+      const facing = playerFacing()
+      if (facing) return facing
+      acted.add(0)
+      cursor = 1
       continue
     }
 
-    if (decision.type === 'raise') {
-      const raiseTo = clampBet(decision.amount, need + Math.min(10, seat.stack), seat.stack)
-      const add = Math.max(need, raiseTo)
-      if (add > need && seat.stack > need) {
-        pot += putChips(seat, add)
-        currentMax = Math.max(currentMax, seat.streetBet)
-        lastRaiseName = seat.name
-        steps.push(
-          snapshotBotStep(seats, pot, `${seat.name} рейзит до ${formatChips(seat.streetBet)}.`, 'chips'),
-        )
-        continue
-      }
+    const beforeMax = currentMax
+    const result = botActAtSeat(seats, pot, board, phase, found, currentMax)
+    pot = result.pot
+    currentMax = result.currentMax
+    // Skip quiet checks — only show bets / calls / folds / raises.
+    if (result.sound !== 'check') {
+      steps.push(snapshotBotStep(seats, pot, result.line, result.sound))
     }
 
-    // Call (or failed raise → call)
-    pot += putChips(seat, need)
-    steps.push(
-      snapshotBotStep(seats, pot, `${seat.name} коллирует ${formatChips(need)}.`, 'chips'),
-    )
-  }
-
-  // One pass for remaining bots who still need to match after late raises.
-  for (let pass = 0; pass < 3; pass += 1) {
-    let changed = false
-    currentMax = streetMaxBet(seats)
-    for (let i = 1; i < seats.length; i += 1) {
-      const seat = seats[i]!
-      if (seat.folded || seat.stack <= 0) continue
-      const need = Math.max(0, currentMax - seat.streetBet)
-      if (need <= 0) continue
-      const sizeRef = sizingStack(seats)
-      const decision = botDecide({
-        facingBet: true,
-        callAmount: need,
-        hole: seat.hole,
-        board,
-        pot,
-        botStack: seat.stack,
-        playerStack: sizeRef,
-        phase,
-      })
-      if (decision.type === 'fold') {
-        seat.folded = true
-        steps.push(snapshotBotStep(seats, pot, `${seat.name} сбрасывает.`, null))
-        changed = true
-        continue
-      }
-      if (decision.type === 'raise' && seat.stack > need) {
-        const bump = clampBet(decision.amount, need + Math.min(10, seat.stack), seat.stack)
-        pot += putChips(seat, Math.max(need, bump))
-        if (seat.streetBet > currentMax) {
-          currentMax = seat.streetBet
-          lastRaiseName = seat.name
-        }
-        steps.push(
-          snapshotBotStep(seats, pot, `${seat.name} рейзит до ${formatChips(seat.streetBet)}.`, 'chips'),
-        )
-        changed = true
-        continue
-      }
-      pot += putChips(seat, need)
-      steps.push(
-        snapshotBotStep(seats, pot, `${seat.name} коллирует ${formatChips(need)}.`, 'chips'),
-      )
-      changed = true
+    if (result.raised && currentMax > beforeMax) {
+      lastRaiseName = seats[found]!.name
+      acted.clear()
+      acted.add(found)
+    } else {
+      acted.add(found)
     }
-    if (!changed) break
+
+    cursor = found + 1
   }
 
-  const player = seats[0]!
-  currentMax = streetMaxBet(seats)
-  const playerNeed = Math.max(0, currentMax - player.streetBet)
-  const botsLeft = botsAlive(seats)
-
-  if (botsLeft.length === 0) {
+  if (botsAlive(seats).length === 0) {
     return {
       seats,
       pot,
@@ -829,40 +873,33 @@ function runBotsAfterCheck(
     }
   }
 
-  if (playerNeed > 0 && player.stack > 0) {
-    const name = lastRaiseName ?? opener ?? 'Бот'
-    return {
-      seats,
-      pot,
-      toCall: Math.min(playerNeed, player.stack),
-      status: `${name} ставит. Колл ${formatChips(Math.min(playerNeed, player.stack))}, рейз или фолд.`,
-      playerWonUncontested: false,
-      allChecked: false,
-      steps,
-    }
-  }
+  const facing = playerFacing()
+  if (facing) return facing
 
-  if (!opener && !lastRaiseName) {
-    return {
-      seats,
-      pot,
-      toCall: 0,
-      status: 'Все чекают.',
-      playerWonUncontested: false,
-      allChecked: true,
-      steps,
-    }
-  }
-
+  const anyBet = lastRaiseName != null || currentMax > 0
   return {
     seats,
     pot,
     toCall: 0,
-    status: 'Боты уравняли. Открываем дальше…',
+    status: opts.playerOpened
+      ? 'Ставка принята.'
+      : anyBet && steps.some((s) => s.sound === 'chips')
+        ? 'Боты уравняли. Открываем дальше…'
+        : 'Все чекают.',
     playerWonUncontested: false,
-    allChecked: true,
+    allChecked: !opts.playerOpened && !steps.some((s) => s.sound === 'chips'),
     steps,
   }
+}
+
+/** Run bots in seat order after the player checked (toCall was 0). */
+function runBotsAfterCheck(
+  seatsIn: Seat[],
+  potIn: number,
+  board: Card[],
+  phase: Phase,
+): BotRoundResult {
+  return runBotsUntilPlayerOrClose(seatsIn, potIn, board, phase, { playerOpened: false })
 }
 
 /** After player opens / raises — each bot faces the bet in order. */
@@ -872,177 +909,7 @@ function runBotsAfterPlayerBet(
   board: Card[],
   phase: Phase,
 ): BotRoundResult {
-  const seats = cloneSeats(seatsIn)
-  let pot = potIn
-  let lastRaiseName: string | null = null
-  let currentMax = streetMaxBet(seats)
-  const steps: BotRoundStep[] = []
-
-  for (let i = 1; i < seats.length; i += 1) {
-    const seat = seats[i]!
-    if (seat.folded) continue
-    if (aliveCount(seats) <= 1) break
-    if (seat.stack <= 0 && seat.streetBet >= currentMax) continue
-
-    const need = Math.max(0, currentMax - seat.streetBet)
-    if (need === 0 && seat.stack <= 0) continue
-
-    const sizeRef = sizingStack(seats)
-    if (need === 0) {
-      // Already matched (e.g. same blind) — may check or raise over player.
-      const decision = botDecide({
-        facingBet: false,
-        callAmount: 0,
-        hole: seat.hole,
-        board,
-        pot,
-        botStack: seat.stack,
-        playerStack: sizeRef,
-        phase,
-      })
-      if (decision.type === 'raise' && seat.stack > 0) {
-        const amount = clampBet(decision.amount, Math.min(betSize(phase), seat.stack), seat.stack)
-        if (amount > 0) {
-          pot += putChips(seat, amount)
-          currentMax = Math.max(currentMax, seat.streetBet)
-          lastRaiseName = seat.name
-          steps.push(
-            snapshotBotStep(seats, pot, `${seat.name} рейзит ${formatChips(amount)}.`, 'chips'),
-          )
-        }
-      }
-      continue
-    }
-
-    const decision = botDecide({
-      facingBet: true,
-      callAmount: need,
-      hole: seat.hole,
-      board,
-      pot,
-      botStack: seat.stack,
-      playerStack: sizeRef,
-      phase,
-    })
-
-    if (decision.type === 'fold') {
-      seat.folded = true
-      steps.push(snapshotBotStep(seats, pot, `${seat.name} сбрасывает.`, null))
-      continue
-    }
-
-    if (decision.type === 'raise' && seat.stack > need) {
-      const raiseAmt = clampBet(decision.amount, need + Math.min(10, seat.stack), seat.stack)
-      pot += putChips(seat, Math.max(need, raiseAmt))
-      if (seat.streetBet > currentMax) {
-        currentMax = seat.streetBet
-        lastRaiseName = seat.name
-      }
-      steps.push(
-        snapshotBotStep(seats, pot, `${seat.name} рейзит до ${formatChips(seat.streetBet)}.`, 'chips'),
-      )
-      continue
-    }
-
-    pot += putChips(seat, need)
-    steps.push(
-      snapshotBotStep(seats, pot, `${seat.name} коллирует ${formatChips(need)}.`, 'chips'),
-    )
-  }
-
-  // Settle leftover mismatches among bots after raises.
-  for (let pass = 0; pass < 3; pass += 1) {
-    let changed = false
-    currentMax = streetMaxBet(seats)
-    for (let i = 1; i < seats.length; i += 1) {
-      const seat = seats[i]!
-      if (seat.folded || seat.stack <= 0) continue
-      const need = Math.max(0, currentMax - seat.streetBet)
-      if (need <= 0) continue
-      const sizeRef = sizingStack(seats)
-      const decision = botDecide({
-        facingBet: true,
-        callAmount: need,
-        hole: seat.hole,
-        board,
-        pot,
-        botStack: seat.stack,
-        playerStack: sizeRef,
-        phase,
-      })
-      if (decision.type === 'fold') {
-        seat.folded = true
-        steps.push(snapshotBotStep(seats, pot, `${seat.name} сбрасывает.`, null))
-        changed = true
-        continue
-      }
-      if (decision.type === 'raise' && seat.stack > need) {
-        const bump = clampBet(decision.amount, need + Math.min(10, seat.stack), seat.stack)
-        pot += putChips(seat, Math.max(need, bump))
-        if (seat.streetBet > currentMax) {
-          currentMax = seat.streetBet
-          lastRaiseName = seat.name
-        }
-        steps.push(
-          snapshotBotStep(seats, pot, `${seat.name} рейзит до ${formatChips(seat.streetBet)}.`, 'chips'),
-        )
-        changed = true
-        continue
-      }
-      pot += putChips(seat, need)
-      steps.push(
-        snapshotBotStep(seats, pot, `${seat.name} коллирует ${formatChips(need)}.`, 'chips'),
-      )
-      changed = true
-    }
-    if (!changed) break
-  }
-
-  const player = seats[0]!
-  currentMax = streetMaxBet(seats)
-  const playerNeed = Math.max(0, currentMax - player.streetBet)
-  const botsLeft = botsAlive(seats)
-
-  if (botsLeft.length === 0) {
-    return {
-      seats,
-      pot,
-      toCall: 0,
-      status: '',
-      playerWonUncontested: true,
-      allChecked: false,
-      steps,
-    }
-  }
-
-  if (playerNeed > 0 && player.stack > 0) {
-    const name = lastRaiseName ?? 'Бот'
-    return {
-      seats,
-      pot,
-      toCall: Math.min(playerNeed, player.stack),
-      status: `${name} рейзит. Нужно ещё ${formatChips(Math.min(playerNeed, player.stack))}.`,
-      playerWonUncontested: false,
-      allChecked: false,
-      steps,
-    }
-  }
-
-  const foldedNames = seatsIn
-    .slice(1)
-    .filter((s, idx) => !s.folded && seats[idx + 1]!.folded)
-    .map((s) => s.name)
-  const foldNote = foldedNames.length ? ` ${foldedNames.join(', ')} сбросили.` : ''
-
-  return {
-    seats,
-    pot,
-    toCall: 0,
-    status: `Ставка принята.${foldNote}`,
-    playerWonUncontested: false,
-    allChecked: true,
-    steps,
-  }
+  return runBotsUntilPlayerOrClose(seatsIn, potIn, board, phase, { playerOpened: true })
 }
 
 function awardPotToWinners(seats: Seat[], potAmount: number, winnerIdxs: number[]) {
