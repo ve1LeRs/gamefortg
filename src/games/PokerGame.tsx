@@ -1973,6 +1973,31 @@ export function PokerGame({
                             />
                           ))}
                         </div>
+                        {phase !== 'over' && !allInSpectating && !revealingHands ? (
+                          <div className="poker-bet-amount-row">
+                            <div className="poker-bet-stepper" aria-label="Размер ставки">
+                              <button
+                                type="button"
+                                className="poker-bet-nudge"
+                                aria-label="Уменьшить ставку"
+                                disabled={wager <= (facingBet ? toCall : minWager)}
+                                onClick={() => nudgeWager(-10)}
+                              >
+                                −
+                              </button>
+                              <span className="poker-bet-value">{formatChips(wager)}</span>
+                              <button
+                                type="button"
+                                className="poker-bet-nudge"
+                                aria-label="Увеличить ставку"
+                                disabled={wager >= maxWager}
+                                onClick={() => nudgeWager(10)}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                       <SeatCard
                         name={seat.name}
@@ -2028,31 +2053,6 @@ export function PokerGame({
           </div>
 
           <div className="poker-bottom">
-            {phase !== 'over' && !allInSpectating && !revealingHands ? (
-              <div className="poker-bet-amount-row">
-                <div className="poker-bet-stepper" aria-label="Размер ставки">
-                  <button
-                    type="button"
-                    className="poker-bet-nudge"
-                    aria-label="Уменьшить ставку"
-                    disabled={wager <= (facingBet ? toCall : minWager)}
-                    onClick={() => nudgeWager(-10)}
-                  >
-                    −
-                  </button>
-                  <span className="poker-bet-value">{formatChips(wager)}</span>
-                  <button
-                    type="button"
-                    className="poker-bet-nudge"
-                    aria-label="Увеличить ставку"
-                    disabled={wager >= maxWager}
-                    onClick={() => nudgeWager(10)}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ) : null}
             <div className="poker-actions">
               {phase !== 'over' && allInSpectating ? (
                 <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
