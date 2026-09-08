@@ -3502,6 +3502,39 @@ body.poker-landscape-active .app-main.game-mode {
   transform: none;
 }
 
+/* Heads-up online: opponent centered at the top rail */
+.poker-seat-slot.poker-seat-online-opp {
+  left: 50%;
+  right: auto;
+  top: max(28px, 4.5%);
+  bottom: auto;
+  transform: translateX(-50%);
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  z-index: 5;
+}
+
+.poker-seat-online-opp .poker-bot-cards {
+  order: -1;
+}
+
+.poker-bet-on-table.poker-bet-online-opp {
+  left: 50%;
+  right: auto;
+  top: 24%;
+  bottom: auto;
+  transform: translateX(-50%);
+}
+
+/* Pot chips flying to the centered HU opponent */
+.poker-fly-online-opp {
+  --fly-x: 0vw;
+  --fly-y: -28vh;
+}
+
 /* Compat aliases for old heads-up class names. */
 .poker-bet-you {
   left: 50%;
