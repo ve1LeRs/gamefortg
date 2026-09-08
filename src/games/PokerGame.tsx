@@ -975,6 +975,7 @@ export function PokerGame({
   const [toCall, setToCall] = useState(0)
   const [freshBoardIds, setFreshBoardIds] = useState<string[]>([])
   const [progress, setProgress] = useState<PokerProgress>(() => loadPokerProgress())
+  const [botFlipsOpen, setBotFlipsOpen] = useState(false)
   const boardLenRef = useRef(0)
   const streetBusyRef = useRef(false)
 
@@ -1033,6 +1034,28 @@ export function PokerGame({
     }
     setWager(clampBet(betSize(phase), minWager, maxWager))
   }, [phase, minWager, maxWager, facingBet, toCall])
+
+  const botRevealKey = seats
+    .slice(1)
+    .map((s) => (s.showCards && !s.folded ? '1' : '0'))
+    .join('')
+
+  useEffect(() => {
+    if (!botRevealKey.includes('1')) {
+      setBotFlipsOpen(false)
+      return
+    }
+    setBotFlipsOpen(false)
+    playPokerSound('cards')
+    let openTimer = 0
+    const raf = window.requestAnimationFrame(() => {
+      openTimer = window.setTimeout(() => setBotFlipsOpen(true), 40)
+    })
+    return () => {
+      window.cancelAnimationFrame(raf)
+      window.clearTimeout(openTimer)
+    }
+  }, [botRevealKey, dealTick])
 
   const nudgeWager = (delta: number) => {
     const lo = facingBet ? toCall : minWager
@@ -1594,24 +1617,40 @@ export function PokerGame({
                       key={`botcards-${i}-${dealTick}`}
                     >
                       {seat.hole.map((c, ci) => (
-                        <PlayingCard
+                        <div
                           key={c.id}
-                          card={c}
-                          faceDown={!revealed}
-                          index={ci}
-                          enter="none"
-                          className={`poker-hole-card poker-deal-to-bot${
-                            revealed ? ' is-showdown-reveal' : ''
-                          }`}
+                          className={`poker-hole-flip${
+                            revealed && botFlipsOpen ? ' is-open' : ''
+                          }${revealed ? '' : ' poker-deal-flip'}`}
                           style={{
-                            animationDelay: revealed
-                              ? `${i * 70 + ci * 110}ms`
+                            ['--flip-delay' as string]: revealed
+                              ? `${i * 70 + ci * 120}ms`
                               : `${
                                   Math.round(dealTiming.gapMs * (1 + i * 0.35)) +
                                   ci * dealTiming.gapMs
                                 }ms`,
                           }}
-                        />
+                        >
+                          <div className="poker-hole-flip-inner">
+                            <div className="poker-hole-flip-back" aria-hidden={revealed}>
+                              <PlayingCard
+                                card={c}
+                                faceDown
+                                index={ci}
+                                enter="none"
+                                className="poker-hole-card"
+                              />
+                            </div>
+                            <div className="poker-hole-flip-front" aria-hidden={!revealed}>
+                              <PlayingCard
+                                card={c}
+                                index={ci}
+                                enter="none"
+                                className="poker-hole-card"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   ) : null}
