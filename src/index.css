@@ -3466,6 +3466,50 @@ body.poker-landscape-active .app-main.game-mode {
   color: rgba(255, 255, 255, 0.45);
 }
 
+.poker-live-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 6px;
+  max-width: min(220px, 42vw);
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 220, 170, 0.16);
+  line-height: 1.15;
+}
+
+.poker-live-combo {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(246, 226, 179, 0.92);
+  letter-spacing: 0.01em;
+}
+
+.poker-live-sep {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.poker-live-odds {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.poker-live-odds.is-good {
+  color: #5ee2a8;
+}
+
+.poker-live-odds.is-mid {
+  color: rgba(240, 210, 140, 0.9);
+}
+
+.poker-live-odds.is-low {
+  color: #ff9a86;
+}
+
 .poker-hand {
   display: flex;
   align-items: flex-end;

@@ -8,7 +8,7 @@ import {
   shuffle,
   rankValue,
 } from '../lib/cards'
-import { loadSettings } from '../lib/settings'
+import { loadSettings, playPokerSound, playUiSound } from '../lib/settings'
 
 type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'over'
 
@@ -98,6 +98,49 @@ function bestHand(hole: Card[], board: Card[]): HandRank {
     }
   }
   return best
+}
+
+function shuffleInPlace<T>(arr: T[]) {
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+/** Monte Carlo equity vs random opponent hole (+ random runout). */
+function estimateEquity(hole: Card[], board: Card[], trials = 160): number {
+  if (hole.length < 2) return 0.5
+  const used = new Set([...hole, ...board].map((c) => c.id))
+  const remaining = makeDeck(POKER_RANKS as Rank[]).filter((c) => !used.has(c.id))
+  if (remaining.length < 2) return 0.5
+  const needBoard = Math.max(0, 5 - board.length)
+  let wins = 0
+  let ties = 0
+  for (let t = 0; t < trials; t += 1) {
+    const pool = shuffleInPlace(remaining.slice())
+    const opp = [pool[0]!, pool[1]!]
+    const runout = needBoard > 0 ? pool.slice(2, 2 + needBoard) : []
+    const fullBoard = board.length >= 5 ? board : [...board, ...runout]
+    const p = bestHand(hole, fullBoard).score
+    const o = bestHand(opp, fullBoard).score
+    if (p > o) wins += 1
+    else if (p === o) ties += 1
+  }
+  return (wins + ties * 0.5) / trials
+}
+
+function liveComboLabel(hole: Card[], board: Card[]): string {
+  if (hole.length < 2) return '—'
+  const hand = bestHand(hole, board)
+  if (board.length === 0) {
+    if (hand.label === 'Пара') return 'Пара в руке'
+    const high = [...hole].sort(
+      (a, b) => rankValue(b.rank, POKER_RANKS) - rankValue(a.rank, POKER_RANKS),
+    )[0]!
+    return `Старшая ${high.rank}${high.suit}`
+  }
+  return hand.label
 }
 
 function dealHole() {
@@ -507,6 +550,8 @@ export function PokerGame({
       setWager(betSize('preflop'))
       setStatus(`Блайнды по ${BLIND}. Ваш ход: чек, ставка или фолд.`)
       onHaptic?.('medium')
+      playPokerSound('cards')
+      window.setTimeout(() => playPokerSound('chips'), 140)
     },
     [onHaptic],
   )
@@ -530,17 +575,21 @@ export function PokerGame({
         setStatus(`Победа! ${p.label} бьёт ${o.label}. +${potAmount}`)
         setResultClass('win')
         onHaptic?.('success')
+        playUiSound('ok')
       } else if (p.score < o.score) {
         settlePot('bot', potAmount)
         setStatus(`Поражение. У бота ${o.label}, у вас ${p.label}. −банк`)
         setResultClass('lose')
         onHaptic?.('error')
+        playUiSound('warn')
       } else {
         settlePot('tie', potAmount)
         setStatus(`Ничья: ${p.label}. Банк пополам.`)
         setResultClass('')
         onHaptic?.('medium')
+        playUiSound('tap')
       }
+      playPokerSound('card')
     },
     [onHaptic, settlePot],
   )
@@ -569,6 +618,7 @@ export function PokerGame({
         setDeck(copy)
         setPhase('flop')
         setStatus(runout ? 'All-in. Флоп…' : 'Флоп открыт. Чек, ставка или фолд.')
+        playPokerSound('cards')
       } else if (from === 'flop') {
         copy.pop()
         const card = copy.pop()!
@@ -578,6 +628,7 @@ export function PokerGame({
         setDeck(copy)
         setPhase('turn')
         setStatus(runout ? 'All-in. Тёрн…' : 'Тёрн. Чек, ставка или фолд.')
+        playPokerSound('card')
       } else if (from === 'turn') {
         copy.pop()
         const card = copy.pop()!
@@ -587,6 +638,7 @@ export function PokerGame({
         setDeck(copy)
         setPhase('river')
         setStatus(runout ? 'All-in. Ривер…' : 'Ривер. Чек, ставка или фолд.')
+        playPokerSound('card')
       } else {
         showdown(currentBoard, potAmount, playerHole, botHole)
       }
@@ -669,6 +721,7 @@ export function PokerGame({
         setWager(clampBet(amount, amount, Math.min(stack, nextBot + amount)))
         setStatus(`Бот ставит ${formatChips(amount)}. Колл, рейз или фолд.`)
         onHaptic?.('medium')
+        playPokerSound('chips')
         return
       }
     }
@@ -682,6 +735,7 @@ export function PokerGame({
     const amount = Math.min(toCall, stack)
     if (amount <= 0) return
     onHaptic?.('medium')
+    playPokerSound('chips')
     const nextStack = stack - amount
     const nextPot = pot + amount
     stackRef.current = nextStack
@@ -718,6 +772,7 @@ export function PokerGame({
         return
       }
       onHaptic?.('medium')
+      playPokerSound('chips')
       const nextStack = stack - raiseTotal
       const botAdd = raiseTotal - toCall
       const nextBot = botStack - botAdd
@@ -750,9 +805,11 @@ export function PokerGame({
           setStatus(`Бот сбросил на рейз. Вы забираете банк ${formatChips(nextPot)}.`)
           setResultClass('win')
           onHaptic?.('success')
+          playUiSound('ok')
           streetBusyRef.current = false
           return
         }
+        playPokerSound('chips')
         setStatus(
           nextStack <= 0
             ? `All-in. Бот коллирует ${formatChips(botAdd)}. Доигрываем…`
@@ -779,6 +836,7 @@ export function PokerGame({
       return
     }
     onHaptic?.('medium')
+    playPokerSound('chips')
 
     const decision = botDecide({
       facingBet: true,
@@ -808,6 +866,7 @@ export function PokerGame({
       setStatus(`Вы поставили ${formatChips(amount)}. Бот сбросил. Банк ваш.`)
       setResultClass('win')
       onHaptic?.('success')
+      playUiSound('ok')
       return
     }
 
@@ -827,6 +886,7 @@ export function PokerGame({
         setToCall(need)
         setWager(clampBet(need, need, Math.min(nextStack, nextBot + need)))
         setStatus(`Вы ${formatChips(amount)}, бот рейзит до ${formatChips(raiseAmt)}. Нужно ещё ${formatChips(need)}.`)
+        playPokerSound('chips')
         return
       }
     }
@@ -850,6 +910,7 @@ export function PokerGame({
         ? `All-in ${formatChips(amount)}. Бот коллирует. Доигрываем…`
         : `Ставка ${formatChips(amount)}. Бот коллирует.`,
     )
+    playPokerSound('chips')
 
     queueContinue(320, phase, deck, board, nextPot, player, bot, nextStack, nextBot)
   }
@@ -867,6 +928,7 @@ export function PokerGame({
     )
     setResultClass('lose')
     onHaptic?.('error')
+    playUiSound('warn')
   }
 
   // Clear deal animation marks after they play
@@ -875,6 +937,23 @@ export function PokerGame({
     const t = window.setTimeout(() => setFreshBoardIds([]), 600)
     return () => window.clearTimeout(t)
   }, [freshBoardIds])
+
+  const liveHint = useMemo(() => {
+    if (player.length < 2 || matchOver) return null
+    const combo = liveComboLabel(player, board)
+    let equity: number
+    if (phase === 'over' && showBot && bot.length >= 2) {
+      const p = bestHand(player, board).score
+      const o = bestHand(bot, board).score
+      equity = p > o ? 1 : p < o ? 0 : 0.5
+    } else {
+      equity = estimateEquity(player, board)
+    }
+    const pct = Math.round(equity * 100)
+    const tone = pct >= 58 ? 'good' : pct <= 38 ? 'low' : 'mid'
+    const exact = phase === 'over' && showBot
+    return { combo, pct, tone, exact }
+  }, [player, board, bot, phase, showBot, matchOver])
 
   return (
     <div className={`poker-landscape${landscape ? ' is-landscape' : ' is-portrait'}`}>
@@ -966,6 +1045,17 @@ export function PokerGame({
           <div className="poker-bottom">
             <div className="poker-hand-dock" key={`hand-${dealTick}`}>
               <span className="poker-hand-label">Ваши карты</span>
+              {liveHint ? (
+                <div className="poker-live-hint" aria-live="polite">
+                  <span className="poker-live-combo">{liveHint.combo}</span>
+                  <span className="poker-live-sep" aria-hidden>
+                    ·
+                  </span>
+                  <span className={`poker-live-odds is-${liveHint.tone}`}>
+                    {liveHint.exact ? `${liveHint.pct}%` : `~${liveHint.pct}%`} на победу
+                  </span>
+                </div>
+              ) : null}
               <div className="poker-hand">
                 {player.map((c, i) => (
                   <PlayingCard

@@ -118,14 +118,37 @@ export function getDisplayName(telegramName: string | undefined, settings: AppSe
   return telegramName?.trim() || 'Гость'
 }
 
+let sharedAudioCtx: AudioContext | null = null
+
+function getAudioCtx(): AudioContext | null {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    if (!Ctx) return null
+    if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+      sharedAudioCtx = new Ctx()
+    }
+    if (sharedAudioCtx.state === 'suspended') void sharedAudioCtx.resume()
+    return sharedAudioCtx
+  } catch {
+    return null
+  }
+}
+
+function noiseBuffer(ctx: AudioContext, seconds: number) {
+  const len = Math.max(1, Math.floor(ctx.sampleRate * seconds))
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate)
+  const data = buf.getChannelData(0)
+  for (let i = 0; i < len; i += 1) data[i] = Math.random() * 2 - 1
+  return buf
+}
+
 /** Soft UI blip — no asset files needed. */
 export function playUiSound(kind: 'tap' | 'ok' | 'warn' | 'deal' = 'tap') {
   try {
     const s = loadSettings()
     if (!s.sounds) return
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    if (!Ctx) return
-    const ctx = new Ctx()
+    const ctx = getAudioCtx()
+    if (!ctx) return
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.connect(gain)
@@ -139,7 +162,78 @@ export function playUiSound(kind: 'tap' | 'ok' | 'warn' | 'deal' = 'tap') {
     gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === 'deal' ? 0.12 : 0.08))
     osc.start(now)
     osc.stop(now + 0.14)
-    window.setTimeout(() => void ctx.close(), 200)
+  } catch {
+    /* noop */
+  }
+}
+
+/** Poker table FX: chip rustle / card slide — synthesized, no assets. */
+export function playPokerSound(kind: 'chips' | 'card' | 'cards') {
+  try {
+    const s = loadSettings()
+    if (!s.sounds) return
+    const ctx = getAudioCtx()
+    if (!ctx) return
+    const now = ctx.currentTime
+
+    const blip = (t: number, freq: number, dur: number, vol: number) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(freq, t)
+      osc.frequency.exponentialRampToValueAtTime(Math.max(80, freq * 0.55), t + dur)
+      gain.gain.setValueAtTime(0.0001, t)
+      gain.gain.exponentialRampToValueAtTime(vol, t + 0.004)
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(t)
+      osc.stop(t + dur + 0.02)
+    }
+
+    const rustle = (t: number, dur: number, vol: number, hp: number, lp: number) => {
+      const src = ctx.createBufferSource()
+      src.buffer = noiseBuffer(ctx, dur + 0.04)
+      const high = ctx.createBiquadFilter()
+      high.type = 'highpass'
+      high.frequency.value = hp
+      const low = ctx.createBiquadFilter()
+      low.type = 'lowpass'
+      low.frequency.setValueAtTime(lp, t)
+      low.frequency.exponentialRampToValueAtTime(Math.max(400, lp * 0.35), t + dur)
+      const gain = ctx.createGain()
+      gain.gain.setValueAtTime(0.0001, t)
+      gain.gain.exponentialRampToValueAtTime(vol, t + 0.008)
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+      src.connect(high)
+      high.connect(low)
+      low.connect(gain)
+      gain.connect(ctx.destination)
+      src.start(t)
+      src.stop(t + dur + 0.05)
+    }
+
+    if (kind === 'chips') {
+      for (let i = 0; i < 5; i += 1) {
+        const t = now + i * 0.032 + Math.random() * 0.01
+        rustle(t, 0.045, 0.045 + Math.random() * 0.02, 900, 4200)
+        blip(t + 0.004, 780 + Math.random() * 640, 0.04, 0.028)
+      }
+      return
+    }
+
+    if (kind === 'card') {
+      rustle(now, 0.09, 0.055, 1200, 5600)
+      blip(now + 0.01, 320 + Math.random() * 80, 0.07, 0.02)
+      return
+    }
+
+    // cards — short deal train
+    for (let i = 0; i < 3; i += 1) {
+      const t = now + i * 0.068
+      rustle(t, 0.075, 0.048, 1100, 5200)
+      blip(t + 0.008, 300 + i * 35, 0.055, 0.018)
+    }
   } catch {
     /* noop */
   }
