@@ -3541,8 +3541,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-s0 {
   left: 50%;
-  /* Fixed px — % of flex-growing table made the seat jump on reveal */
-  bottom: -40px;
+  /* % of table — min-height on actions keeps table height (and this seat) steady on reveal */
+  bottom: -16%;
   top: auto;
   /* Shift right a bit so cards+avatar stay centered as a pair */
   transform: translateX(calc(-50% + 28px));
@@ -3670,7 +3670,7 @@ body.poker-landscape-active .app-main.game-mode {
 /* Compat aliases for old heads-up seat classes. */
 .poker-seat-you {
   left: 50%;
-  bottom: -28px;
+  bottom: -8%;
   top: auto;
   transform: translateX(-50%);
   z-index: 6;
@@ -4615,7 +4615,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   .poker-seat-s0,
   .poker-seat-you {
     left: 50%;
-    bottom: -32px;
+    bottom: -18%;
     transform: translateX(calc(-50% + 24px));
     gap: 6px;
   }
@@ -4784,7 +4784,7 @@ body.tg-desktop .poker-table {
 }
 
 body.tg-desktop .poker-seat-s0 {
-  bottom: -36px;
+  bottom: -14%;
 }
 
 body.tg-desktop .poker-bottom {
