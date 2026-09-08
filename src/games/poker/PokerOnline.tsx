@@ -245,14 +245,14 @@ function PokerOnlineTable({
                     />
                   ))}
                 </div>
-                {view.yourTurn ? (
-                  <div className="poker-bet-amount-row">
+                {view.phase !== 'over' ? (
+                  <div className={`poker-bet-amount-row${view.yourTurn ? '' : ' is-dimmed'}`}>
                     <div className="poker-bet-stepper" aria-label="Размер ставки">
                       <button
                         type="button"
                         className="poker-bet-nudge"
                         aria-label="Уменьшить ставку"
-                        disabled={wager <= view.minBet}
+                        disabled={!view.yourTurn || wager <= view.minBet}
                         onClick={() => setWager((w) => clampWager(w - 10))}
                       >
                         −
@@ -262,7 +262,7 @@ function PokerOnlineTable({
                         type="button"
                         className="poker-bet-nudge"
                         aria-label="Увеличить ставку"
-                        disabled={wager >= view.maxBet}
+                        disabled={!view.yourTurn || wager >= view.maxBet}
                         onClick={() => setWager((w) => clampWager(w + 10))}
                       >
                         +
@@ -288,7 +288,10 @@ function PokerOnlineTable({
           </div>
 
           <div className="poker-bottom">
-            <div className="poker-actions">
+            <div
+              className={`poker-actions${view.phase !== 'over' && !view.yourTurn ? ' is-dimmed' : ''}`}
+              aria-disabled={view.phase !== 'over' && !view.yourTurn ? true : undefined}
+            >
               {view.phase === 'over' ? (
                 <div className="poker-actions-row">
                   <button type="button" className="poker-btn poker-btn-soft" onClick={onLeave}>
@@ -302,12 +305,13 @@ function PokerOnlineTable({
                     Ещё раздача
                   </button>
                 </div>
-              ) : view.yourTurn ? (
+              ) : (
                 <>
                   <div className="poker-bet-presets">
                     <button
                       type="button"
                       className="poker-bet-chip"
+                      disabled={!view.yourTurn}
                       onClick={() => setWager(clampWager(view.minBet))}
                     >
                       Мин
@@ -315,6 +319,7 @@ function PokerOnlineTable({
                     <button
                       type="button"
                       className="poker-bet-chip"
+                      disabled={!view.yourTurn}
                       onClick={() =>
                         setWager(clampWager(Math.max(view.minBet, Math.floor(view.pot / 2) || view.minBet)))
                       }
@@ -324,6 +329,7 @@ function PokerOnlineTable({
                     <button
                       type="button"
                       className="poker-bet-chip"
+                      disabled={!view.yourTurn}
                       onClick={() => setWager(clampWager(Math.max(view.minBet, view.pot || view.minBet)))}
                     >
                       Банк
@@ -331,22 +337,24 @@ function PokerOnlineTable({
                     <button
                       type="button"
                       className="poker-bet-chip"
+                      disabled={!view.yourTurn}
                       onClick={() => setWager(clampWager(view.maxBet))}
                     >
                       Макс
                     </button>
                   </div>
                   <div className="poker-actions-row">
-                    {view.canCall ? (
+                    {view.canCall || (view.toCall > 0 && !view.yourTurn) ? (
                       <button
                         type="button"
                         className="poker-btn poker-btn-soft"
+                        disabled={!view.yourTurn || !view.canCall}
                         onClick={() => send({ type: 'call' })}
                       >
                         {view.callAmount >= view.you.stack ? (
                           'All In'
                         ) : (
-                          <BetActionLabel verb="Колл" amount={view.callAmount} />
+                          <BetActionLabel verb="Колл" amount={Math.max(view.callAmount, view.toCall)} />
                         )}
                       </button>
                     ) : (
@@ -354,7 +362,7 @@ function PokerOnlineTable({
                         type="button"
                         className="poker-btn poker-btn-soft"
                         onClick={() => send({ type: 'check' })}
-                        disabled={!view.canCheck}
+                        disabled={!view.yourTurn || !view.canCheck}
                       >
                         Чек
                       </button>
@@ -362,7 +370,12 @@ function PokerOnlineTable({
                     <button
                       type="button"
                       className="poker-btn poker-btn-bet"
-                      disabled={!view.canBet || wager <= 0 || (view.toCall > 0 && wager < view.toCall)}
+                      disabled={
+                        !view.yourTurn ||
+                        !view.canBet ||
+                        wager <= 0 ||
+                        (view.toCall > 0 && wager < view.toCall)
+                      }
                       onClick={() => send({ type: 'bet', amount: clampWager(wager) })}
                     >
                       {wager >= view.you.stack && view.you.stack > 0 ? (
@@ -381,14 +394,12 @@ function PokerOnlineTable({
                       type="button"
                       className="poker-btn poker-btn-fold"
                       onClick={() => send({ type: 'fold' })}
-                      disabled={!view.canFold}
+                      disabled={!view.yourTurn || !view.canFold}
                     >
                       Сброс
                     </button>
                   </div>
                 </>
-              ) : (
-                <p className="poker-allin-wait">Ход соперника…</p>
               )}
             </div>
           </div>

@@ -1106,6 +1106,11 @@ export function PokerGame({
   const potFlightTimerRef = useRef(0)
   const boardLenRef = useRef(0)
   const streetBusyRef = useRef(false)
+  const [actionLocked, setActionLocked] = useState(false)
+  const setStreetBusy = useCallback((busy: boolean) => {
+    streetBusyRef.current = busy
+    setActionLocked(busy)
+  }, [])
   const revealTimersRef = useRef<number[]>([])
   const [flippingSeat, setFlippingSeat] = useState<number | null>(null)
   const [revealingHands, setRevealingHands] = useState(false)
@@ -1331,7 +1336,7 @@ export function PokerGame({
 
   const showdown = useCallback(
     (community: Card[], potAmount: number, seatsNow: Seat[]) => {
-      streetBusyRef.current = true
+      setStreetBusy(true)
       setToCall(0)
       setStatus('Вскрываем карты…')
 
@@ -1377,7 +1382,7 @@ export function PokerGame({
           onHaptic?.('error')
           playUiSound('warn')
         }
-        streetBusyRef.current = false
+        setStreetBusy(false)
       })
     },
     [applySeats, grantXp, onHaptic, playPotWinFx, revealBotsThen],
@@ -1465,7 +1470,7 @@ export function PokerGame({
       potNow: number,
       seatsNow: Seat[],
     ) => {
-      streetBusyRef.current = true
+      setStreetBusy(true)
       window.setTimeout(() => {
         const chipsLeft = seatsNow.filter((s) => !s.folded && s.stack > 0).length
         const runout = seatsNow[0]!.stack <= 0 || chipsLeft <= 1
@@ -1474,7 +1479,7 @@ export function PokerGame({
         } else {
           advance(phaseNow, deckNow, boardNow, potNow, seatsNow, { runout })
         }
-        streetBusyRef.current = false
+        setStreetBusy(false)
       }, delay)
     },
     [advance, showdown],
@@ -1484,7 +1489,7 @@ export function PokerGame({
     if (!allInSpectating) return
     if (streetBusyRef.current) return
     setStatus(player.stack <= 0 ? 'All-in — смотрите раздачу…' : 'All-in за столом — открываем карты…')
-    streetBusyRef.current = true
+    setStreetBusy(true)
     const phaseNow = phase
     const t = window.setTimeout(() => {
       const h = handRef.current
@@ -1493,11 +1498,11 @@ export function PokerGame({
       } else {
         advance(phaseNow, h.deck, h.board, h.pot, h.seats, { runout: true })
       }
-      streetBusyRef.current = false
+      setStreetBusy(false)
     }, 700)
     return () => {
       window.clearTimeout(t)
-      streetBusyRef.current = false
+      setStreetBusy(false)
     }
   }, [allInSpectating, phase, player.stack, advance, showdown])
 
@@ -1513,7 +1518,7 @@ export function PokerGame({
       setPot(result.pot)
 
       if (result.playerWonUncontested) {
-        streetBusyRef.current = false
+        setStreetBusy(false)
         winUncontested(
           result.seats,
           result.pot,
@@ -1534,7 +1539,7 @@ export function PokerGame({
         setStatus(result.status)
         onHaptic?.('medium')
         window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
-        streetBusyRef.current = false
+        setStreetBusy(false)
         return
       }
 
@@ -1585,7 +1590,7 @@ export function PokerGame({
     if (player.folded) return
     onHaptic?.('light')
     playPokerSound('check')
-    streetBusyRef.current = true
+    setStreetBusy(true)
 
     const result = runBotsAfterCheck(seats, pot, board, phase)
     playBotRound(result, BOT_THINK_MS, phase, deck, board, {
@@ -1640,7 +1645,7 @@ export function PokerGame({
       applySeats(next)
       setPot(potAfter)
       setToCall(0)
-      streetBusyRef.current = true
+      setStreetBusy(true)
 
       const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
       playBotRound(result, BOT_FACE_BET_MS, phase, deck, board, {
@@ -1666,7 +1671,7 @@ export function PokerGame({
     const potAfter = pot + paid
     applySeats(next)
     setPot(potAfter)
-    streetBusyRef.current = true
+    setStreetBusy(true)
 
     const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
     playBotRound(result, BOT_FACE_BET_MS, phase, deck, board, {
@@ -1680,7 +1685,7 @@ export function PokerGame({
 
   const resolveFoldShowdown = useCallback(
     (finalBoard: Card[], seatsNow: Seat[], potAmount: number, wasFacingBet: boolean) => {
-      streetBusyRef.current = true
+      setStreetBusy(true)
       setBoard(finalBoard)
       setToCall(0)
       setStatus('Вскрываем карты…')
@@ -1703,7 +1708,7 @@ export function PokerGame({
             : `Вы сбросили. Банк ${formatChips(potAmount)} уходит: ${names}${label ? ` (${label})` : ''}.${xpNote}`,
         )
         setResultClass('lose')
-        streetBusyRef.current = false
+        setStreetBusy(false)
       })
     },
     [applySeats, grantXp, playPotWinFx, revealBotsThen],
@@ -1729,7 +1734,7 @@ export function PokerGame({
     if (contenders.length <= 1) {
       const winnerIdxsLocal = contenders.length === 1 ? [contenders[0]!.i] : []
       const label = contenders.length === 1 ? contenders[0]!.s.name : ''
-      streetBusyRef.current = true
+      setStreetBusy(true)
       setToCall(0)
       setStatus('Вскрываем карты…')
       revealBotsThen(next, (revealed) => {
@@ -1747,13 +1752,13 @@ export function PokerGame({
             : `Вы сбросили. Банк ${formatChips(potSnap)} уходит: ${names}.${xpNote}`,
         )
         setResultClass('lose')
-        streetBusyRef.current = false
+        setStreetBusy(false)
       })
       return
     }
 
     // Multiway after fold — always run the board out to five cards before ranking.
-    streetBusyRef.current = true
+    setStreetBusy(true)
     applySeats(next)
     setStatus('Вы сбросили. Открываем карты до ривера…')
 
@@ -1939,7 +1944,7 @@ export function PokerGame({
               const revealed = seat.showCards && !seat.folded
               const isWinner = winnerIdxs.includes(i)
               const playerActing =
-                isHuman && phase !== 'over' && !seat.folded && !allInSpectating
+                isHuman && phase !== 'over' && !seat.folded && !allInSpectating && !actionLocked && !revealingHands
               return (
                 <div
                   key={`seat-${i}`}
@@ -1974,13 +1979,13 @@ export function PokerGame({
                           ))}
                         </div>
                         {phase !== 'over' && !allInSpectating && !revealingHands ? (
-                          <div className="poker-bet-amount-row">
+                          <div className={`poker-bet-amount-row${actionLocked ? ' is-dimmed' : ''}`}>
                             <div className="poker-bet-stepper" aria-label="Размер ставки">
                               <button
                                 type="button"
                                 className="poker-bet-nudge"
                                 aria-label="Уменьшить ставку"
-                                disabled={wager <= (facingBet ? toCall : minWager)}
+                                disabled={actionLocked || wager <= (facingBet ? toCall : minWager)}
                                 onClick={() => nudgeWager(-10)}
                               >
                                 −
@@ -1990,7 +1995,7 @@ export function PokerGame({
                                 type="button"
                                 className="poker-bet-nudge"
                                 aria-label="Увеличить ставку"
-                                disabled={wager >= maxWager}
+                                disabled={actionLocked || wager >= maxWager}
                                 onClick={() => nudgeWager(10)}
                               >
                                 +
@@ -2053,7 +2058,12 @@ export function PokerGame({
           </div>
 
           <div className="poker-bottom">
-            <div className="poker-actions">
+            <div
+              className={`poker-actions${
+                phase !== 'over' && !allInSpectating && !revealingHands && actionLocked ? ' is-dimmed' : ''
+              }`}
+              aria-disabled={actionLocked || undefined}
+            >
               {phase !== 'over' && allInSpectating ? (
                 <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
               ) : phase !== 'over' && revealingHands ? (
@@ -2064,6 +2074,7 @@ export function PokerGame({
                     <button
                       type="button"
                       className="poker-bet-chip"
+                      disabled={actionLocked}
                       onClick={() => setWagerPreset(facingBet ? toCall : minWager)}
                     >
                       Мин
@@ -2071,6 +2082,7 @@ export function PokerGame({
                     <button
                       type="button"
                       className="poker-bet-chip"
+                      disabled={actionLocked}
                       onClick={() =>
                         setWagerPreset(
                           Math.max(facingBet ? toCall : minWager, Math.floor(pot / 2) || minWager),
@@ -2082,19 +2094,30 @@ export function PokerGame({
                     <button
                       type="button"
                       className="poker-bet-chip"
+                      disabled={actionLocked}
                       onClick={() =>
                         setWagerPreset(Math.max(facingBet ? toCall : minWager, pot || minWager))
                       }
                     >
                       Банк
                     </button>
-                    <button type="button" className="poker-bet-chip" onClick={() => setWagerPreset(maxWager)}>
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      disabled={actionLocked}
+                      onClick={() => setWagerPreset(maxWager)}
+                    >
                       Макс
                     </button>
                   </div>
                   <div className="poker-actions-row">
                     {facingBet ? (
-                      <button type="button" className="poker-btn poker-btn-soft" onClick={callBet}>
+                      <button
+                        type="button"
+                        className="poker-btn poker-btn-soft"
+                        disabled={actionLocked}
+                        onClick={callBet}
+                      >
                         {toCall >= player.stack ? (
                           'All In'
                         ) : (
@@ -2102,7 +2125,12 @@ export function PokerGame({
                         )}
                       </button>
                     ) : (
-                      <button type="button" className="poker-btn poker-btn-soft" onClick={check}>
+                      <button
+                        type="button"
+                        className="poker-btn poker-btn-soft"
+                        disabled={actionLocked}
+                        onClick={check}
+                      >
                         Чек
                       </button>
                     )}
@@ -2110,7 +2138,7 @@ export function PokerGame({
                       type="button"
                       className="poker-btn poker-btn-bet"
                       onClick={bet}
-                      disabled={wager <= 0 || (facingBet && wager < toCall)}
+                      disabled={actionLocked || wager <= 0 || (facingBet && wager < toCall)}
                     >
                       {wager >= player.stack && player.stack > 0 ? (
                         'All In'
@@ -2124,7 +2152,12 @@ export function PokerGame({
                         <BetActionLabel verb="Ставка" amount={wager} />
                       )}
                     </button>
-                    <button type="button" className="poker-btn poker-btn-fold" onClick={fold}>
+                    <button
+                      type="button"
+                      className="poker-btn poker-btn-fold"
+                      disabled={actionLocked}
+                      onClick={fold}
+                    >
                       Сброс
                     </button>
                   </div>
