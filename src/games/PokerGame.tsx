@@ -9,6 +9,14 @@ import {
   rankValue,
 } from '../lib/cards'
 import { loadSettings, playPokerSound, playUiSound } from '../lib/settings'
+import {
+  awardPokerXp,
+  botDisplayLevel,
+  formatXpNote,
+  levelFromXp,
+  loadPokerProgress,
+  type PokerProgress,
+} from '../lib/pokerProgress'
 
 type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'over'
 
@@ -426,6 +434,8 @@ function SeatCard({
   dealer,
   active,
   accent,
+  xpFrac,
+  levelTitle,
 }: {
   name: string
   level: number
@@ -433,6 +443,9 @@ function SeatCard({
   dealer?: boolean
   active?: boolean
   accent?: string
+  /** 0..1 fill for XP bar under the seat (player only). */
+  xpFrac?: number
+  levelTitle?: string
 }) {
   return (
     <div className={`poker-seat${active ? ' is-active' : ''}`}>
@@ -442,11 +455,18 @@ function SeatCard({
         <div className="poker-seat-avatar" style={accent ? { background: accent } : undefined}>
           {name.slice(0, 1)}
         </div>
-        <span className="poker-seat-level">{level}</span>
+        <span className="poker-seat-level" title={levelTitle ?? `Уровень ${level}`}>
+          {level}
+        </span>
       </div>
       <div className="poker-seat-money">
         <span>{stackText}</span>
       </div>
+      {xpFrac != null ? (
+        <div className="poker-seat-xp" aria-hidden title={levelTitle}>
+          <i style={{ width: `${Math.round(Math.min(1, Math.max(0, xpFrac)) * 100)}%` }} />
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -484,6 +504,7 @@ export function PokerGame({
   const [toCall, setToCall] = useState(0)
   /** Board cards that should play the deal animation (ids). */
   const [freshBoardIds, setFreshBoardIds] = useState<string[]>([])
+  const [progress, setProgress] = useState<PokerProgress>(() => loadPokerProgress())
   const boardLenRef = useRef(0)
   /** True while a timed action → advance/showdown is pending (avoids double-deal on all-in). */
   const streetBusyRef = useRef(false)
@@ -494,6 +515,18 @@ export function PokerGame({
   stackRef.current = stack
   botStackRef.current = botStack
   handRef.current = { deck, board, pot, player, bot }
+
+  const playerLevelInfo = useMemo(() => levelFromXp(progress.xp), [progress.xp])
+  const playerLevel = playerLevelInfo.level
+  const botLevel = botDisplayLevel(playerLevel)
+  const playerLevelTitle = `Уровень ${playerLevel} · ${playerLevelInfo.intoLevel}/${playerLevelInfo.need} XP · побед ${progress.wins}`
+
+  const grantXp = useCallback((outcome: 'win' | 'lose' | 'tie', potAmount: number) => {
+    const award = awardPokerXp(outcome, potAmount)
+    setProgress(award.progress)
+    if (award.leveledUp) onHaptic?.('success')
+    return formatXpNote(award)
+  }, [onHaptic])
 
   const maxWager = Math.min(stack, botStack)
   const minWager = Math.min(betSize(phase === 'over' ? 'preflop' : phase), Math.max(0, maxWager))
@@ -604,26 +637,29 @@ export function PokerGame({
       const o = bestHand(botHole, community)
       if (p.score > o.score) {
         settlePot('player', potAmount)
-        setStatus(`Победа! ${p.label} бьёт ${o.label}. +${potAmount}`)
+        const xpNote = grantXp('win', potAmount)
+        setStatus(`Победа! ${p.label} бьёт ${o.label}. +${potAmount}${xpNote}`)
         setResultClass('win')
         onHaptic?.('success')
         playUiSound('ok')
       } else if (p.score < o.score) {
         settlePot('bot', potAmount)
-        setStatus(`Поражение. У бота ${o.label}, у вас ${p.label}. −банк`)
+        const xpNote = grantXp('lose', potAmount)
+        setStatus(`Поражение. У бота ${o.label}, у вас ${p.label}. −банк${xpNote}`)
         setResultClass('lose')
         onHaptic?.('error')
         playUiSound('warn')
       } else {
         settlePot('tie', potAmount)
-        setStatus(`Ничья: ${p.label}. Банк пополам.`)
+        const xpNote = grantXp('tie', potAmount)
+        setStatus(`Ничья: ${p.label}. Банк пополам.${xpNote}`)
         setResultClass('')
         onHaptic?.('medium')
         playUiSound('tap')
       }
       playPokerSound('card')
     },
-    [onHaptic, settlePot],
+    [grantXp, onHaptic, settlePot],
   )
 
   const advance = useCallback(
@@ -834,7 +870,8 @@ export function PokerGame({
         if (decision.type === 'fold') {
           settlePot('player', nextPot)
           setPhase('over')
-          setStatus(`Бот сбросил на рейз. Вы забираете банк ${formatChips(nextPot)}.`)
+          const xpNote = grantXp('win', nextPot)
+          setStatus(`Бот сбросил на рейз. Вы забираете банк ${formatChips(nextPot)}.${xpNote}`)
           setResultClass('win')
           onHaptic?.('success')
           playUiSound('ok')
@@ -895,7 +932,8 @@ export function PokerGame({
       setPlayerBet((b) => b + amount)
       setPhase('over')
       settlePot('player', nextPot)
-      setStatus(`Вы поставили ${formatChips(amount)}. Бот сбросил. Банк ваш.`)
+      const xpNote = grantXp('win', nextPot)
+      setStatus(`Вы поставили ${formatChips(amount)}. Бот сбросил. Банк ваш.${xpNote}`)
       setResultClass('win')
       onHaptic?.('success')
       playUiSound('ok')
@@ -953,10 +991,11 @@ export function PokerGame({
     setPhase('over')
     setToCall(0)
     settlePot('bot', pot)
+    const xpNote = grantXp('lose', pot)
     setStatus(
       facingBot
-        ? `Вы сбросили на ставку бота. Банк ${formatChips(pot)} уходит боту.`
-        : `Вы сбросили. Банк ${formatChips(pot)} уходит боту.`,
+        ? `Вы сбросили на ставку бота. Банк ${formatChips(pot)} уходит боту.${xpNote}`
+        : `Вы сбросили. Банк ${formatChips(pot)} уходит боту.${xpNote}`,
     )
     setResultClass('lose')
     onHaptic?.('error')
@@ -1051,10 +1090,11 @@ export function PokerGame({
               </div>
               <SeatCard
                 name="Бот"
-                level={55}
+                level={botLevel}
                 stackText={formatChips(botStack)}
                 active
                 accent="linear-gradient(145deg,#6b3a3a,#3a1515)"
+                levelTitle={`Уровень ${botLevel}`}
               />
               <ChipPile amount={botBet} className="poker-bet-on-table poker-bet-bot" compact />
             </div>
@@ -1062,11 +1102,13 @@ export function PokerGame({
             <div className="poker-seat-slot poker-seat-you">
               <SeatCard
                 name="Вы"
-                level={12}
+                level={playerLevel}
                 stackText={formatChips(stack)}
                 dealer={phase !== 'over'}
                 active
                 accent="linear-gradient(145deg,#3a6ea5,#1a3358)"
+                xpFrac={playerLevelInfo.frac}
+                levelTitle={playerLevelTitle}
               />
               <ChipPile amount={playerBet} className="poker-bet-on-table poker-bet-you" compact />
             </div>
