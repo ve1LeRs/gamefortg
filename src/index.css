@@ -4849,10 +4849,10 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 
 .durak-pair .durak-defence {
   position: absolute;
-  /* Far enough down-right that attack rank+suit stay fully readable */
-  top: 34px;
-  left: 30px;
-  transform: rotate(16deg);
+  /* Cover most of the attack — beat card sits firmly on top */
+  top: 16px;
+  left: 14px;
+  transform: rotate(14deg);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
   z-index: 2;
 }
@@ -4884,8 +4884,8 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 
 .durak-table-cards[data-count='1'] .durak-pair .durak-defence,
 .durak-table-cards[data-count='2'] .durak-pair .durak-defence {
-  top: 40px;
-  left: 34px;
+  top: 18px;
+  left: 16px;
 }
 
 /* 3–4 pairs: compact */
@@ -4908,9 +4908,9 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 
 .durak-table-cards[data-count='3'] .durak-pair .durak-defence,
 .durak-table-cards[data-count='4'] .durak-pair .durak-defence {
-  top: 36px;
-  left: 30px;
-  transform: rotate(14deg);
+  top: 16px;
+  left: 14px;
+  transform: rotate(13deg);
 }
 
 
@@ -4957,9 +4957,9 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 
 .durak-table-cards[data-count='5'] .durak-pair .durak-defence,
 .durak-table-cards[data-count='6'] .durak-pair .durak-defence {
-  top: 30px;
-  left: 24px;
-  transform: rotate(14deg);
+  top: 12px;
+  left: 10px;
+  transform: rotate(12deg);
 }
 
 
@@ -4978,10 +4978,12 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 }
 
 .durak-deck.is-empty {
-  left: 8px;
-  width: 36px;
-  height: 36px;
+  left: 6px;
+  width: auto;
+  height: auto;
   transform: translateY(-50%);
+  background: none;
+  box-shadow: none;
 }
 
 .durak-deck-layer {
@@ -5035,22 +5037,36 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   white-space: nowrap;
 }
 
-/* When the stock is gone, only a small trump suit mark remains */
+/* When the stock is gone, only a trump suit glyph remains (no white plate). */
 .durak-trump-suit {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  font-size: 22px;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  font-size: clamp(36px, 9vw, 52px);
   font-weight: 800;
-  color: #0b1220;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  line-height: 1;
+  color: rgba(248, 250, 255, 0.92);
+  background: none;
+  box-shadow: none;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
 }
 
 .durak-trump-suit.is-red {
-  color: #c62828;
+  color: #ff6b6b;
+}
+
+.durak-deck.is-empty {
+  left: 6px;
+  width: auto;
+  height: auto;
+  transform: translateY(-50%);
+  background: none;
+  box-shadow: none;
 }
 
 .durak-bito {
@@ -5129,6 +5145,10 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 
 .durak-table-cards.is-to-bito {
   pointer-events: none;
+  /* Avoid scaled coordinate mismatch mid-flight */
+  --table-scale: 1 !important;
+  transform: none !important;
+  margin: 0 !important;
 }
 
 .durak-table-cards.is-to-bito .durak-pair {
@@ -5162,15 +5182,104 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   padding: 10px 14px;
   border-radius: 12px;
   text-align: center;
-  font-size: 13px;
   font-weight: 700;
-  line-height: 1.35;
-  color: #1a1400;
-  background: linear-gradient(180deg, #ffe56a, #f0c420);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  font-size: 13px;
+  color: #fff4d6;
+  background: rgba(20, 12, 4, 0.82);
+  border: 1px solid rgba(232, 168, 56, 0.45);
   animation: durak-banner-in 0.35s ease both;
-  flex-shrink: 0;
-  isolation: isolate;
+}
+
+.durak-end-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 8, 16, 0.62);
+  backdrop-filter: blur(4px);
+  animation: durak-banner-in 0.35s ease both;
+}
+
+.durak-end-card {
+  width: min(320px, 92vw);
+  padding: 22px 20px 18px;
+  border-radius: 18px;
+  text-align: center;
+  background: linear-gradient(165deg, rgba(36, 48, 68, 0.96), rgba(12, 18, 30, 0.96));
+  border: 1px solid rgba(255, 220, 160, 0.28);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.durak-end-overlay.is-win .durak-end-card {
+  border-color: rgba(110, 220, 160, 0.45);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 0 28px rgba(80, 200, 140, 0.25);
+}
+
+.durak-end-overlay.is-lose .durak-end-card {
+  border-color: rgba(255, 120, 100, 0.4);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), 0 0 28px rgba(220, 80, 60, 0.22);
+}
+
+.durak-end-card strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 8vw, 40px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #f6e7c2;
+  margin-bottom: 8px;
+}
+
+.durak-end-overlay.is-win .durak-end-card strong {
+  color: #8ef0b8;
+}
+
+.durak-end-overlay.is-lose .durak-end-card strong {
+  color: #ff9a86;
+}
+
+.durak-end-card p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: rgba(240, 246, 255, 0.78);
+}
+
+.durak-end-card .durak-btn {
+  min-width: 140px;
+}
+
+.durak-banner.win,
+.durak-banner.lose {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  z-index: 70;
+  padding: 16px 28px;
+  border-radius: 16px;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 7vw, 36px);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  animation: durak-banner-in 0.35s ease both;
+  pointer-events: none;
+}
+
+.durak-banner.win {
+  color: #8ef0b8;
+  background: rgba(8, 28, 18, 0.9);
+  border: 1px solid rgba(110, 220, 160, 0.45);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.durak-banner.lose {
+  color: #ff9a86;
+  background: rgba(36, 10, 8, 0.9);
+  border: 1px solid rgba(255, 120, 100, 0.4);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes durak-banner-in {
@@ -5450,6 +5559,8 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   animation-delay: calc(0.12s + var(--deal-i, 0) * 0.14s);
   /* Keep fan stacking — don't float above the whole hand during deal */
   pointer-events: none;
+  /* Don't fight the deal keyframes with the hand transform transition */
+  transition: none !important;
 }
 
 .durak-hand-card.playable {
@@ -5643,9 +5754,9 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
     height: 72px !important;
   }
   .durak-pair .durak-defence {
-    top: 34px;
-    left: 28px;
-    transform: rotate(14deg);
+    top: 14px;
+    left: 12px;
+    transform: rotate(13deg);
   }
   .durak-table-cards[data-count='1'] .durak-pair,
   .durak-table-cards[data-count='2'] .durak-pair {
@@ -5659,8 +5770,8 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   }
   .durak-table-cards[data-count='1'] .durak-pair .durak-defence,
   .durak-table-cards[data-count='2'] .durak-pair .durak-defence {
-    top: 38px;
-    left: 32px;
+    top: 16px;
+    left: 14px;
   }
   .durak-table-cards[data-count='3'] .durak-pair,
   .durak-table-cards[data-count='4'] .durak-pair {
