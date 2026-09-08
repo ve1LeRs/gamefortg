@@ -149,14 +149,12 @@ export function SettingsPage({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' 
         <div className="settings-row">
           <div>
             <strong>Вибрация</strong>
-            <p>Тактильный отклик Telegram при ходах</p>
           </div>
           <Toggle label="Вибрация" on={settings.haptics} onChange={(haptics) => patch({ haptics })} />
         </div>
         <div className="settings-row">
           <div>
             <strong>Звуки</strong>
-            <p>Клики UI, шелест фишек и слистывание карт — без файлов, в браузере</p>
           </div>
           <Toggle
             label="Звуки"
@@ -172,7 +170,6 @@ export function SettingsPage({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' 
         </div>
         <div className="settings-block">
           <strong>Анимации</strong>
-          <p>Полёт карт, раздача, бито</p>
           <Segmented<AnimLevel>
             value={settings.animations}
             onChange={(animations) => patch({ animations })}
@@ -198,7 +195,6 @@ export function SettingsPage({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' 
         <div className="settings-row">
           <div>
             <strong>Не гасить экран</strong>
-            <p>Во время партии экран не уходит в сон (если устройство умеет)</p>
           </div>
           <Toggle label="Не гасить экран" on={settings.keepAwake} onChange={(keepAwake) => patch({ keepAwake })} />
         </div>
