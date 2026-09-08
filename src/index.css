@@ -3077,7 +3077,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-brand {
   position: absolute;
-  top: 26%;
+  top: 34%;
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-display);
@@ -3124,20 +3124,21 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-pot {
   position: absolute;
-  top: 4%;
+  /* Felt starts ~12% from table top — keep the bank on the cloth, not the rail. */
+  top: 18%;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 6px 10px 5px;
-  border-radius: 16px;
-  background: rgba(0, 0, 0, 0.38);
+  gap: 2px;
+  padding: 5px 9px 4px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(232, 168, 56, 0.38);
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
   z-index: 6;
-  min-width: 64px;
+  min-width: 58px;
   pointer-events: none;
 }
 
@@ -3202,16 +3203,18 @@ body.poker-landscape-active .app-main.game-mode {
   pointer-events: none;
 }
 
+/* Street bets sit inward on the felt, not on the wooden rail. */
 .poker-bet-bot {
-  right: calc(100% + 4px);
-  top: 50%;
-  left: auto;
-  transform: translateY(-50%);
+  left: 50%;
+  right: auto;
+  top: calc(100% + 4px);
+  transform: translateX(-50%);
 }
 
 .poker-bet-you {
-  left: calc(100% + 6px);
-  top: 30%;
+  left: calc(100% + 2px);
+  top: auto;
+  bottom: calc(100% + 4px);
   transform: none;
 }
 
@@ -3234,9 +3237,10 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-seat-bot {
+  /* Clear Telegram close/menu cluster in the top-right. */
   left: auto;
-  right: 2%;
-  top: 5%;
+  right: 11%;
+  top: 16%;
   transform: none;
   width: auto;
   display: flex;
@@ -3251,8 +3255,8 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-seat-you {
-  left: 6%;
-  bottom: 2%;
+  left: 8%;
+  bottom: 10%;
   transform: none;
 }
 
@@ -3675,9 +3679,10 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-btn {
   min-width: 0;
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 12px;
+  min-height: 44px;
+  padding: 12px 12px;
+  border-radius: 12px;
+  font-size: 13px;
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -3758,9 +3763,13 @@ body.poker-landscape-active .app-main.game-mode {
     min-height: 120px;
   }
   .poker-seat-bot {
-    top: 4%;
-    right: 2%;
+    top: 14%;
+    right: 10%;
     gap: 6px;
+  }
+  .poker-seat-you {
+    left: 7%;
+    bottom: 8%;
   }
   .poker-bot-cards {
     margin: 0;
@@ -3779,7 +3788,7 @@ body.poker-landscape-active .app-main.game-mode {
     transform: translateY(6%);
   }
   .poker-pot {
-    top: 2%;
+    top: 16%;
     padding: 4px 8px;
   }
   .poker-hand .pcard,
@@ -3797,8 +3806,9 @@ body.poker-landscape-active .app-main.game-mode {
     font-size: clamp(11px, 2vw, 14px);
   }
   .poker-btn {
-    padding: 7px 8px;
-    font-size: 11px;
+    min-height: 42px;
+    padding: 11px 10px;
+    font-size: 12px;
   }
   .poker-bet-nudge {
     width: 28px;
