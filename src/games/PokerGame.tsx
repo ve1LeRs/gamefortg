@@ -339,17 +339,33 @@ function ChipPile({
   amount,
   className = '',
   compact,
+  flat,
   maxChips,
 }: {
   amount: number
   className?: string
   compact?: boolean
+  /** Single chip + amount row — World Poker Club style street bets. */
+  flat?: boolean
   maxChips?: number
 }) {
   if (amount <= 0) return null
+  const uid = `pile-${amount}-${flat ? 'f' : compact ? 'c' : 's'}-${className}`
+  if (flat) {
+    return (
+      <div
+        className={`poker-chip-pile is-flat ${className}`.trim()}
+        title={formatChips(amount)}
+      >
+        <span className="poker-chip-disk is-flat-disk" aria-hidden>
+          <PokerChipSvg colorIndex={0} size={20} uid={`${uid}-0`} />
+        </span>
+        <span className="poker-chip-amt">{formatChips(amount)}</span>
+      </div>
+    )
+  }
   const n = chipCountFor(amount, maxChips ?? (compact ? 4 : 6))
   const size = compact ? 18 : 28
-  const uid = `pile-${amount}-${compact ? 'c' : 'f'}-${className}`
   return (
     <div
       className={`poker-chip-pile${compact ? ' is-compact' : ''} ${className}`.trim()}
@@ -1613,7 +1629,7 @@ export function PokerGame({
                   key={`bet-${i}-${seat.streetBet}`}
                   amount={seat.streetBet}
                   className={`poker-bet-on-table poker-bet-s${i}`}
-                  maxChips={5}
+                  flat
                 />
               ) : null,
             )}
@@ -1622,14 +1638,42 @@ export function PokerGame({
               const isHuman = i === 0
               const revealed = seat.showCards && !seat.folded
               const isWinner = winnerIdxs.includes(i)
+              const playerActing =
+                isHuman && phase !== 'over' && !seat.folded && !allInSpectating
               return (
                 <div
                   key={`seat-${i}`}
                   className={`poker-seat-slot poker-seat-s${i}${revealed ? ' is-revealed' : ''}${
                     seat.folded ? ' is-folded' : ''
-                  }${isWinner ? ' is-winner' : ''}`}
+                  }${isWinner ? ' is-winner' : ''}${playerActing ? ' is-acting' : ''}`}
                 >
-                  {!isHuman ? (
+                  {isHuman ? (
+                    <div className="poker-you-cards" key={`hand-${dealTick}`}>
+                      {liveHint ? (
+                        <div className="poker-live-hint" aria-live="polite">
+                          <span className="poker-live-combo">{liveHint.combo}</span>
+                          <span className="poker-live-sep" aria-hidden>
+                            ·
+                          </span>
+                          <span className={`poker-live-odds is-${liveHint.tone}`}>
+                            {liveHint.exact ? `${liveHint.pct}%` : `~${liveHint.pct}%`}
+                          </span>
+                        </div>
+                      ) : null}
+                      <div className="poker-hand">
+                        {seat.hole.map((c, ci) => (
+                          <PlayingCard
+                            key={c.id}
+                            card={c}
+                            index={ci}
+                            enter="none"
+                            className="poker-hole-card poker-deal-to-you"
+                            style={{ animationDelay: `${ci * dealTiming.gapMs}ms` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
                     <div
                       className={`poker-bot-cards${revealed ? ' is-revealed' : ''}`}
                       key={`botcards-${i}-${dealTick}`}
@@ -1650,7 +1694,7 @@ export function PokerGame({
                         />
                       ))}
                     </div>
-                  ) : null}
+                  )}
                   <SeatCard
                     name={seat.name}
                     level={isHuman ? playerLevel : botLevels[i - 1]!}
@@ -1670,33 +1714,6 @@ export function PokerGame({
           </div>
 
           <div className="poker-bottom">
-            <div className="poker-hand-dock" key={`hand-${dealTick}`}>
-              <span className="poker-hand-label">Ваши карты</span>
-              {liveHint ? (
-                <div className="poker-live-hint" aria-live="polite">
-                  <span className="poker-live-combo">{liveHint.combo}</span>
-                  <span className="poker-live-sep" aria-hidden>
-                    ·
-                  </span>
-                  <span className={`poker-live-odds is-${liveHint.tone}`}>
-                    {liveHint.exact ? `${liveHint.pct}%` : `~${liveHint.pct}%`} на победу
-                  </span>
-                </div>
-              ) : null}
-              <div className="poker-hand">
-                {player.hole.map((c, i) => (
-                  <PlayingCard
-                    key={c.id}
-                    card={c}
-                    index={i}
-                    enter="none"
-                    className="poker-hole-card poker-deal-to-you"
-                    style={{ animationDelay: `${i * dealTiming.gapMs}ms` }}
-                  />
-                ))}
-              </div>
-            </div>
-
             <div className="poker-actions">
               {phase !== 'over' && allInSpectating ? (
                 <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
