@@ -3606,7 +3606,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-bot-cards {
   display: flex;
-  gap: 3px;
+  gap: 4px;
   justify-content: center;
   margin: 0;
   position: relative;
@@ -3616,30 +3616,29 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-bot-cards.is-revealed {
-  gap: 5px;
+  gap: 6px;
 }
 
-/* Crowded 5-max: compact face-down hole cards beside each bot seat. */
+/* Match player hole-card language: readable backs / faces beside the seat. */
 .poker-bot-cards .pcard,
 .poker-bot-cards .poker-hole-card {
-  width: clamp(20px, 3.2vw, 28px);
-  height: clamp(28px, 4.4vw, 40px);
-  font-size: 8px;
-  padding: 1px;
-  border-radius: 3px;
+  width: clamp(30px, 5vw, 44px);
+  height: clamp(42px, 7vw, 62px);
+  font-size: clamp(10px, 1.6vw, 13px);
+  padding: 2px 3px;
+  border-radius: 5px;
   animation: none;
   overflow: hidden;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
 }
 
-/* Showdown: larger hole cards, readable and not under the avatar. */
 .poker-bot-cards.is-revealed .pcard,
 .poker-bot-cards.is-revealed .poker-hole-card {
-  width: clamp(34px, 5.6vw, 48px);
-  height: clamp(46px, 7.6vw, 66px);
-  font-size: clamp(10px, 1.7vw, 13px);
+  width: clamp(36px, 6vw, 52px);
+  height: clamp(50px, 8.2vw, 72px);
+  font-size: clamp(11px, 1.8vw, 14px);
   padding: 3px 4px;
-  border-radius: 5px;
+  border-radius: 6px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
 }
 
@@ -3994,10 +3993,21 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 
 .poker-seat-money {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
   font-size: 10px;
   font-weight: 700;
   color: #f0d9a8;
+}
+
+.poker-seat-chip-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: radial-gradient(circle at 32% 28%, #ffd54f, #c62828 58%, #7a1515);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 /* Hand + controls share one bottom strip so the table keeps height. */
@@ -4385,13 +4395,13 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   }
   .poker-bot-cards .pcard,
   .poker-bot-cards .poker-hole-card {
-    width: clamp(18px, 2.8vw, 24px);
-    height: clamp(24px, 3.8vw, 34px);
+    width: clamp(26px, 4.4vw, 36px);
+    height: clamp(36px, 6vw, 50px);
   }
   .poker-bot-cards.is-revealed .pcard,
   .poker-bot-cards.is-revealed .poker-hole-card {
-    width: clamp(28px, 4.8vw, 40px);
-    height: clamp(38px, 6.6vw, 54px);
+    width: clamp(30px, 5.2vw, 44px);
+    height: clamp(42px, 7.2vw, 60px);
   }
   .poker-board {
     transform: translateY(16%);

@@ -551,6 +551,7 @@ function SeatCard({
         </span>
       </div>
       <div className="poker-seat-money">
+        <span className="poker-seat-chip-dot" aria-hidden />
         <span>{stackText}</span>
       </div>
       {xpFrac != null ? (
@@ -1612,7 +1613,7 @@ export function PokerGame({
                   key={`bet-${i}-${seat.streetBet}`}
                   amount={seat.streetBet}
                   className={`poker-bet-on-table poker-bet-s${i}`}
-                  compact
+                  maxChips={5}
                 />
               ) : null,
             )}
