@@ -3541,8 +3541,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-s0 {
   left: 50%;
-  /* Hang low toward the screen edge — cards + bet stepper near bottom */
-  bottom: -26%;
+  /* Lower than the rail, but not flush with the screen edge */
+  bottom: -16%;
   top: auto;
   /* Shift right a bit so cards+avatar stay centered as a pair */
   transform: translateX(calc(-50% + 28px));
@@ -4176,7 +4176,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   gap: 8px;
   /* Keep a slim strip so cards can sit just above the screen edge */
   padding: 0 4px 2px;
-  margin-top: -36px;
+  margin-top: -20px;
   margin-bottom: 0;
   z-index: 8;
   min-height: 0;
@@ -4580,7 +4580,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   .poker-seat-s0,
   .poker-seat-you {
     left: 50%;
-    bottom: -30%;
+    bottom: -18%;
     transform: translateX(calc(-50% + 24px));
     gap: 6px;
   }
@@ -4656,7 +4656,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   }
   .poker-bottom {
     gap: 6px;
-    margin-top: -40px;
+    margin-top: -24px;
     margin-bottom: 0;
     padding-bottom: 2px;
   }
@@ -4749,13 +4749,13 @@ body.tg-desktop .poker-table {
 }
 
 body.tg-desktop .poker-seat-s0 {
-  bottom: -24%;
+  bottom: -14%;
 }
 
 body.tg-desktop .poker-bottom {
   gap: 14px;
   padding: 0 10px 6px;
-  margin-top: -44px;
+  margin-top: -24px;
   margin-bottom: 0;
   justify-content: flex-end;
 }
