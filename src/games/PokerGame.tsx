@@ -1935,70 +1935,72 @@ export function PokerGame({
           </div>
 
           <div className="poker-bottom">
+            {phase !== 'over' && !allInSpectating ? (
+              <div className="poker-bet-amount-row">
+                <div className="poker-bet-stepper" aria-label="Размер ставки">
+                  <button
+                    type="button"
+                    className="poker-bet-nudge"
+                    aria-label="Уменьшить ставку"
+                    disabled={wager <= (facingBet ? toCall : minWager)}
+                    onClick={() => nudgeWager(-10)}
+                  >
+                    −
+                  </button>
+                  <span className="poker-bet-value">{formatChips(wager)}</span>
+                  <button
+                    type="button"
+                    className="poker-bet-nudge"
+                    aria-label="Увеличить ставку"
+                    disabled={wager >= maxWager}
+                    onClick={() => nudgeWager(10)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <div className="poker-actions">
               {phase !== 'over' && allInSpectating ? (
                 <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
               ) : phase !== 'over' ? (
                 <>
-                  <div className="poker-bet-panel">
-                    <div className="poker-bet-stepper" aria-label="Размер ставки">
-                      <button
-                        type="button"
-                        className="poker-bet-nudge"
-                        aria-label="Уменьшить ставку"
-                        disabled={wager <= (facingBet ? toCall : minWager)}
-                        onClick={() => nudgeWager(-10)}
-                      >
-                        −
-                      </button>
-                      <span className="poker-bet-value">{formatChips(wager)}</span>
-                      <button
-                        type="button"
-                        className="poker-bet-nudge"
-                        aria-label="Увеличить ставку"
-                        disabled={wager >= maxWager}
-                        onClick={() => nudgeWager(10)}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <div className="poker-bet-presets">
-                      <button
-                        type="button"
-                        className="poker-bet-chip"
-                        onClick={() => setWagerPreset(facingBet ? toCall : minWager)}
-                      >
-                        Мин
-                      </button>
-                      <button
-                        type="button"
-                        className="poker-bet-chip"
-                        onClick={() =>
-                          setWagerPreset(
-                            Math.max(facingBet ? toCall : minWager, Math.floor(pot / 2) || minWager),
-                          )
-                        }
-                      >
-                        ½ банка
-                      </button>
-                      <button
-                        type="button"
-                        className="poker-bet-chip"
-                        onClick={() =>
-                          setWagerPreset(Math.max(facingBet ? toCall : minWager, pot || minWager))
-                        }
-                      >
-                        Банк
-                      </button>
-                      <button type="button" className="poker-bet-chip" onClick={() => setWagerPreset(maxWager)}>
-                        Макс
-                      </button>
-                    </div>
+                  <div className="poker-bet-presets">
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      onClick={() => setWagerPreset(facingBet ? toCall : minWager)}
+                    >
+                      Мин
+                    </button>
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      onClick={() =>
+                        setWagerPreset(
+                          Math.max(facingBet ? toCall : minWager, Math.floor(pot / 2) || minWager),
+                        )
+                      }
+                    >
+                      ½ банка
+                    </button>
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      onClick={() =>
+                        setWagerPreset(Math.max(facingBet ? toCall : minWager, pot || minWager))
+                      }
+                    >
+                      Банк
+                    </button>
+                    <button type="button" className="poker-bet-chip" onClick={() => setWagerPreset(maxWager)}>
+                      Макс
+                    </button>
                   </div>
                   <div className="poker-actions-row">
                     {facingBet ? (
                       <button type="button" className="poker-btn poker-btn-soft" onClick={callBet}>
-                        Колл {formatChips(toCall)}
+                        {toCall >= player.stack ? 'All In' : `Колл ${formatChips(toCall)}`}
                       </button>
                     ) : (
                       <button type="button" className="poker-btn poker-btn-soft" onClick={check}>
@@ -2011,11 +2013,13 @@ export function PokerGame({
                       onClick={bet}
                       disabled={wager <= 0 || (facingBet && wager < toCall)}
                     >
-                      {facingBet
-                        ? wager > toCall
-                          ? `Рейз ${formatChips(wager)}`
-                          : `Колл ${formatChips(toCall)}`
-                        : `Поставить ${formatChips(wager)}`}
+                      {wager >= player.stack && player.stack > 0
+                        ? 'All In'
+                        : facingBet
+                          ? wager > toCall
+                            ? `Рейз ${formatChips(wager)}`
+                            : `Колл ${formatChips(toCall)}`
+                          : `Поставить ${formatChips(wager)}`}
                     </button>
                     <button type="button" className="poker-btn poker-btn-fold" onClick={fold}>
                       Сброс

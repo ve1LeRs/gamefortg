@@ -4140,8 +4140,11 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   flex-direction: row;
   align-items: flex-end;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 0 6px max(4px, env(safe-area-inset-bottom, 0px));
+  gap: 8px;
+  /* Flush to the bottom edge under the table */
+  padding: 0 4px 0;
+  margin-top: -6px;
+  margin-bottom: max(-4px, calc(env(safe-area-inset-bottom, 0px) - 8px));
   z-index: 8;
   min-height: 0;
 }
@@ -4291,7 +4294,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: 3px;
   flex: 0 1 auto;
   max-width: min(440px, 58vw);
   min-width: min(260px, 48vw);
@@ -4331,20 +4334,32 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   text-overflow: ellipsis;
 }
 
-.poker-bet-panel {
+.poker-bet-presets {
   display: flex;
-  flex-direction: row;
   flex-wrap: wrap;
-  align-items: center;
   justify-content: flex-end;
-  gap: 5px 8px;
+  gap: 4px;
   width: 100%;
+}
+
+/* Amount stepper: left of Call/Raise/Fold, bottom-aligned with actions */
+.poker-bet-amount-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex: 0 0 auto;
+  margin: 0 4px 1px 0;
+  transform: translate(-18px, 4px);
 }
 
 .poker-bet-stepper {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 2px 4px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .poker-bet-nudge {
@@ -4373,13 +4388,6 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   font-weight: 800;
   color: #f0d9a8;
   font-variant-numeric: tabular-nums;
-}
-
-.poker-bet-presets {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 4px;
 }
 
 .poker-bet-chip {
@@ -4579,8 +4587,13 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
     height: clamp(56px, 8.6vw, 74px);
   }
   .poker-bottom {
-    gap: 8px;
-    padding-bottom: max(2px, env(safe-area-inset-bottom, 0px));
+    gap: 6px;
+    margin-top: -4px;
+    margin-bottom: max(-4px, calc(env(safe-area-inset-bottom, 0px) - 8px));
+    padding-bottom: 0;
+  }
+  .poker-bet-amount-row {
+    transform: translate(-14px, 2px);
   }
   .poker-actions {
     max-width: min(400px, 56vw);
