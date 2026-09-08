@@ -4349,6 +4349,12 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   transition: opacity 0.22s ease, filter 0.22s ease;
 }
 
+/* Keep layout height under hole cards during reveal / hand-over */
+.poker-bet-amount-row.is-ghost {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .poker-allin-wait {
   margin: 0;
   padding: 8px 10px;

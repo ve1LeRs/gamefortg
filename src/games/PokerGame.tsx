@@ -1978,14 +1978,29 @@ export function PokerGame({
                             />
                           ))}
                         </div>
-                        {phase !== 'over' && !allInSpectating && !revealingHands ? (
-                          <div className={`poker-bet-amount-row${actionLocked ? ' is-dimmed' : ''}`}>
+                        {seat.hole.length >= 2 ? (
+                          <div
+                            className={`poker-bet-amount-row${
+                              phase === 'over' || allInSpectating || revealingHands
+                                ? ' is-ghost'
+                                : actionLocked
+                                  ? ' is-dimmed'
+                                  : ''
+                            }`}
+                            aria-hidden={phase === 'over' || allInSpectating || revealingHands}
+                          >
                             <div className="poker-bet-stepper" aria-label="Размер ставки">
                               <button
                                 type="button"
                                 className="poker-bet-nudge"
                                 aria-label="Уменьшить ставку"
-                                disabled={actionLocked || wager <= (facingBet ? toCall : minWager)}
+                                disabled={
+                                  phase === 'over' ||
+                                  allInSpectating ||
+                                  revealingHands ||
+                                  actionLocked ||
+                                  wager <= (facingBet ? toCall : minWager)
+                                }
                                 onClick={() => nudgeWager(-10)}
                               >
                                 −
@@ -1995,7 +2010,13 @@ export function PokerGame({
                                 type="button"
                                 className="poker-bet-nudge"
                                 aria-label="Увеличить ставку"
-                                disabled={actionLocked || wager >= maxWager}
+                                disabled={
+                                  phase === 'over' ||
+                                  allInSpectating ||
+                                  revealingHands ||
+                                  actionLocked ||
+                                  wager >= maxWager
+                                }
                                 onClick={() => nudgeWager(10)}
                               >
                                 +
