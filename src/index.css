@@ -3724,30 +3724,35 @@ body.poker-landscape-active .app-main.game-mode {
   z-index: 8;
 }
 
+.poker-seat-slot.is-winner .poker-seat {
+  animation: poker-winner-seat 0.9s ease-in-out infinite alternate;
+}
+
 .poker-seat-slot.is-winner .poker-seat-avatar {
   border-color: #f6d56a;
   box-shadow:
     0 0 0 3px rgba(246, 213, 106, 0.95),
-    0 0 22px rgba(232, 168, 56, 0.75),
+    0 0 28px rgba(232, 168, 56, 0.85),
     0 8px 18px rgba(0, 0, 0, 0.45);
   animation: poker-winner-pulse 0.85s ease-in-out infinite alternate;
 }
 
 .poker-seat-slot.is-winner .poker-seat-avatar-wrap::after {
-  content: 'WIN';
+  content: 'ПОБЕДА';
   position: absolute;
   left: 50%;
-  top: -11px;
+  top: -13px;
   transform: translateX(-50%);
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #f6d56a, #c98928);
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #ffe08a, #d4a017);
   color: #2a1a05;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  line-height: 1.3;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
   z-index: 2;
   pointer-events: none;
 }
@@ -3755,6 +3760,12 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-seat-slot.is-winner .poker-seat-money {
   color: #f6d56a;
   font-weight: 800;
+  animation: poker-winner-stack 0.55s ease 0.55s both;
+}
+
+.poker-pot.is-flying-out {
+  animation: poker-pot-vanish 0.55s ease forwards;
+  pointer-events: none;
 }
 
 .poker-pot-flight {
@@ -3771,13 +3782,15 @@ body.poker-landscape-active .app-main.game-mode {
   position: absolute;
   left: 0;
   top: 0;
-  width: 14px;
-  height: 14px;
-  margin: -7px 0 0 -7px;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.45);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-  animation: poker-pot-fly 0.78s cubic-bezier(0.22, 0.8, 0.25, 1) forwards;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  animation: poker-pot-fly 0.95s cubic-bezier(0.2, 0.85, 0.25, 1) forwards;
   opacity: 0;
 }
 
@@ -3797,26 +3810,26 @@ body.poker-landscape-active .app-main.game-mode {
   background: radial-gradient(circle at 30% 28%, #90a4ae, #263238 55%, #0d1214);
 }
 
-/* Flight paths from pot (center-top) to each outside seat. */
+/* Flight paths from pot center toward each seat stack (viewport units for distance). */
 .poker-fly-to-s0 {
-  --fly-x: -34vw;
-  --fly-y: 42vh;
+  --fly-x: -30vw;
+  --fly-y: 34vh;
 }
 .poker-fly-to-s1 {
-  --fly-x: -40vw;
-  --fly-y: 12vh;
+  --fly-x: -36vw;
+  --fly-y: 10vh;
 }
 .poker-fly-to-s2 {
-  --fly-x: -28vw;
-  --fly-y: -14vh;
+  --fly-x: -26vw;
+  --fly-y: -16vh;
 }
 .poker-fly-to-s3 {
-  --fly-x: 34vw;
-  --fly-y: 42vh;
+  --fly-x: 32vw;
+  --fly-y: 34vh;
 }
 .poker-fly-to-s4 {
-  --fly-x: 40vw;
-  --fly-y: 10vh;
+  --fly-x: 36vw;
+  --fly-y: 8vh;
 }
 
 @keyframes poker-winner-pulse {
@@ -3825,30 +3838,70 @@ body.poker-landscape-active .app-main.game-mode {
     transform: scale(1);
   }
   to {
-    filter: brightness(1.12);
-    transform: scale(1.05);
+    filter: brightness(1.14);
+    transform: scale(1.06);
+  }
+}
+
+@keyframes poker-winner-seat {
+  from {
+    filter: drop-shadow(0 0 0 rgba(246, 213, 106, 0));
+  }
+  to {
+    filter: drop-shadow(0 0 12px rgba(246, 213, 106, 0.75));
+  }
+}
+
+@keyframes poker-winner-stack {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.28);
+    color: #fff3c4;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes poker-pot-vanish {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.7);
   }
 }
 
 @keyframes poker-pot-fly {
   0% {
     opacity: 0;
-    transform: translate(0, 0) scale(0.55);
+    transform: translate(0, 0) scale(0.5);
   }
-  12% {
+  10% {
     opacity: 1;
   }
-  70% {
+  72% {
     opacity: 1;
   }
   100% {
-    opacity: 0.15;
-    transform: translate(var(--fly-x, 0), var(--fly-y, 0)) scale(0.7);
+    opacity: 0;
+    transform: translate(
+        calc(var(--fly-x, 0px) + var(--chip-scatter, 0px)),
+        calc(var(--fly-y, 0px) + var(--chip-scatter, 0px))
+      )
+      scale(0.55);
   }
 }
 
 body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-avatar,
-body.settings-no-motion .poker-pot-flight-chip {
+body.settings-no-motion .poker-seat-slot.is-winner .poker-seat,
+body.settings-no-motion .poker-pot-flight-chip,
+body.settings-no-motion .poker-pot.is-flying-out,
+body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
 }

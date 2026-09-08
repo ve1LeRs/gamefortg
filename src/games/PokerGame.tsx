@@ -980,7 +980,11 @@ export function PokerGame({
   const [freshBoardIds, setFreshBoardIds] = useState<string[]>([])
   const [progress, setProgress] = useState<PokerProgress>(() => loadPokerProgress())
   const [winnerIdxs, setWinnerIdxs] = useState<number[]>([])
-  const [potFlight, setPotFlight] = useState<{ id: number; targets: number[] } | null>(null)
+  const [potFlight, setPotFlight] = useState<{
+    id: number
+    targets: number[]
+    amount: number
+  } | null>(null)
   const potFlightTimerRef = useRef(0)
   const boardLenRef = useRef(0)
   const streetBusyRef = useRef(false)
@@ -1013,12 +1017,14 @@ export function PokerGame({
     [onHaptic],
   )
 
-  const playPotWinFx = useCallback((targets: number[]) => {
+  const playPotWinFx = useCallback((targets: number[], potAmount: number) => {
     window.clearTimeout(potFlightTimerRef.current)
-    setWinnerIdxs(targets)
-    setPotFlight({ id: Date.now(), targets: targets.length ? targets : [0] })
+    const idxs = targets.length ? targets : [0]
+    setWinnerIdxs(idxs)
+    setPotFlight({ id: Date.now(), targets: idxs, amount: Math.max(0, potAmount) })
     playPokerSound('chips')
-    potFlightTimerRef.current = window.setTimeout(() => setPotFlight(null), 980)
+    window.setTimeout(() => playPokerSound('chips'), 320)
+    potFlightTimerRef.current = window.setTimeout(() => setPotFlight(null), 1200)
   }, [])
 
   const activeBotStacks = seats.slice(1).filter((s) => !s.folded).map((s) => s.stack)
@@ -1140,7 +1146,7 @@ export function PokerGame({
       setPot(0)
       setPhase('over')
       setToCall(0)
-      playPotWinFx(idxs)
+      playPotWinFx(idxs, potAmount)
 
       const playerWins = idxs.includes(0)
       const onlyPlayer = idxs.length === 1 && playerWins
@@ -1192,7 +1198,7 @@ export function PokerGame({
       setPot(0)
       setPhase('over')
       setToCall(0)
-      playPotWinFx([0])
+      playPotWinFx([0], potAmount)
       const xpNote = grantXp('win', potAmount)
       setStatus(`${msg}${xpNote}`)
       setResultClass('win')
@@ -1474,7 +1480,7 @@ export function PokerGame({
     setPot(0)
     setPhase('over')
     setToCall(0)
-    playPotWinFx(winnerIdxs)
+    playPotWinFx(winnerIdxs, pot)
     const xpNote = grantXp('lose', pot)
     const names = winnerIdxs.map((i) => next[i]!.name).join(', ')
     setStatus(
@@ -1576,16 +1582,24 @@ export function PokerGame({
                 <ChipPile amount={pot} compact maxChips={3} />
                 <span className="poker-pot-label">Банк</span>
               </div>
+            ) : potFlight ? (
+              <div className="poker-pot is-flying-out" aria-hidden>
+                <ChipPile amount={potFlight.amount} compact maxChips={3} />
+                <span className="poker-pot-label">Банк</span>
+              </div>
             ) : null}
 
             {potFlight ? (
               <div className="poker-pot-flight" aria-hidden key={potFlight.id}>
                 {potFlight.targets.flatMap((seatIdx, ti) =>
-                  [0, 1, 2, 3].map((ci) => (
+                  [0, 1, 2, 3, 4, 5].map((ci) => (
                     <span
                       key={`${seatIdx}-${ci}`}
                       className={`poker-pot-flight-chip is-c${ci % 5} poker-fly-to-s${seatIdx}`}
-                      style={{ animationDelay: `${ti * 50 + ci * 60}ms` }}
+                      style={{
+                        animationDelay: `${80 + ti * 70 + ci * 55}ms`,
+                        ['--chip-scatter' as string]: `${(ci % 3) * 6 - 6}px`,
+                      }}
                     />
                   )),
                 )}
