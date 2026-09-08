@@ -4617,11 +4617,6 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   overflow: hidden;
 }
 
-.game-body--felt:has(.durak-table.is-bito-flight),
-.game-body--felt:has(.durak-table.is-take-flight) {
-  overflow: visible;
-}
-
 .durak-table {
   --felt: #5a6d82;
   --felt-deep: #3e4f63;
@@ -4636,11 +4631,6 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
     radial-gradient(ellipse 90% 55% at 50% 42%, rgba(255, 255, 255, 0.07), transparent 60%),
     linear-gradient(180deg, #667890 0%, var(--felt) 38%, var(--felt-deep) 100%);
   color: #fff;
-}
-
-.durak-table.is-bito-flight,
-.durak-table.is-take-flight {
-  overflow: visible;
 }
 
 .durak-top {
@@ -4751,6 +4741,13 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  /* Reserve space even when faded so the deck doesn't bounce */
+  min-height: 2.4em;
+  box-sizing: border-box;
+}
+
+.durak-status.is-flight-hide {
+  visibility: hidden;
 }
 
 .durak-status.win {
@@ -4775,24 +4772,11 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   display: block;
   padding: 4px 0;
   isolation: isolate;
-  overflow: hidden;
-  contain: layout paint;
-}
-
-/* Let pairs finish their flight into бита without a hard clip tear */
-.durak-field.is-bito-flight,
-.durak-field.is-take-flight {
-  overflow: visible;
-  contain: none;
-  z-index: 5;
-}
-
-.durak-field.is-bito-flight .durak-table-zone,
-.durak-field.is-take-flight .durak-table-zone {
+  /* Always visible — toggling contain/overflow mid-flight jumps the deck (top:50%). */
   overflow: visible;
 }
 
-/* Full-width table; deck/bita hang off the sides and are clipped by .durak-field */
+/* Full-width table; deck/bita hang off the sides */
 .durak-table-zone {
   position: absolute;
   inset: 0;
@@ -4805,6 +4789,16 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   overflow: hidden;
   padding: 4px 28px;
   box-sizing: border-box;
+}
+
+.durak-field.is-bito-flight .durak-table-zone,
+.durak-field.is-take-flight .durak-table-zone {
+  overflow: visible;
+}
+
+.durak-field.is-bito-flight,
+.durak-field.is-take-flight {
+  z-index: 5;
 }
 
 .durak-table-cards {
@@ -4994,15 +4988,18 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 }
 
 
-/* Edge piles — stock barely peeks from the left with trump under it */
+/* Edge piles — pinned with fixed height + auto margins so field reflows don't bounce them */
 .durak-deck {
   position: absolute;
   /* ~10–12px of the stock stays on-screen */
   left: -54px;
-  top: 50%;
+  top: 0;
+  bottom: 0;
+  margin-top: auto;
+  margin-bottom: auto;
   width: 66px;
   height: 110px;
-  transform: translateY(-54%) rotate(-8deg);
+  transform: rotate(-8deg);
   z-index: 3;
   pointer-events: none;
   overflow: visible;
@@ -5012,6 +5009,9 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   left: 6px;
   width: auto;
   height: auto;
+  top: 50%;
+  bottom: auto;
+  margin: 0;
   transform: translateY(-50%);
   background: none;
   box-shadow: none;
@@ -5091,23 +5091,17 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   color: #ff6b6b;
 }
 
-.durak-deck.is-empty {
-  left: 6px;
-  width: auto;
-  height: auto;
-  transform: translateY(-50%);
-  background: none;
-  box-shadow: none;
-}
-
 .durak-bito {
   position: absolute;
   /* Thin edge peeks from the right — same idea as the stock on the left */
   right: -40px;
-  top: 50%;
+  top: 0;
+  bottom: 0;
+  margin-top: auto;
+  margin-bottom: auto;
   width: 56px;
   height: 80px;
-  transform: translateY(-48%) rotate(18deg);
+  transform: rotate(18deg);
   z-index: 2;
   pointer-events: none;
   opacity: 0.88;
@@ -5142,35 +5136,25 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 }
 
 .durak-bito.is-catching {
-  animation: durak-bito-catch 0.55s cubic-bezier(0.33, 0, 0.2, 1) both;
-  animation-delay: 0.55s;
+  animation: durak-bito-catch 0.45s cubic-bezier(0.33, 0, 0.2, 1) both;
+  animation-delay: 0.42s;
 }
 
 @keyframes durak-bito-catch {
-  0% { transform: translateY(-48%) rotate(18deg) scale(1); opacity: 0.88; }
-  50% { transform: translateY(-48%) rotate(14deg) scale(1.03); opacity: 1; }
-  100% { transform: translateY(-48%) rotate(18deg) scale(1); opacity: 0.88; }
+  0% { transform: rotate(18deg) scale(1); opacity: 0.88; }
+  55% { transform: rotate(14deg) scale(1.04); opacity: 1; }
+  100% { transform: rotate(18deg) scale(1); opacity: 0.88; }
 }
 
-/* Fly each pair to its measured bito target (--bito-dx / --bito-dy) */
+/* One continuous ease — mid keyframes read as a hitch in Telegram WebView */
 @keyframes durak-fly-to-bito {
   0% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
-    animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
-  42% {
-    opacity: 1;
-    transform: translate3d(
-      calc(var(--bito-dx, 120px) * 0.45),
-      calc(var(--bito-dy, 0px) * 0.45 - 12px),
-      0
-    ) scale(0.88) rotate(9deg);
-    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--bito-dx, 120px), var(--bito-dy, 0px), 0) scale(0.38) rotate(22deg);
+    transform: translate3d(var(--bito-dx, 120px), var(--bito-dy, 0px), 0) scale(0.36) rotate(20deg);
   }
 }
 
@@ -5183,7 +5167,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 }
 
 .durak-table-cards.is-to-bito .durak-pair {
-  animation: durak-fly-to-bito 0.88s forwards;
+  animation: durak-fly-to-bito 0.72s cubic-bezier(0.28, 0.1, 0.18, 1) forwards;
   transform: translateZ(0);
   will-change: transform, opacity;
   backface-visibility: hidden;
@@ -5191,11 +5175,11 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 }
 
 .durak-table-cards.is-to-bito .durak-pair:nth-child(1) { animation-delay: 0s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(2) { animation-delay: 0.035s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(3) { animation-delay: 0.07s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(4) { animation-delay: 0.105s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(5) { animation-delay: 0.14s; }
-.durak-table-cards.is-to-bito .durak-pair:nth-child(6) { animation-delay: 0.175s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(2) { animation-delay: 0.028s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(3) { animation-delay: 0.056s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(4) { animation-delay: 0.084s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(5) { animation-delay: 0.112s; }
+.durak-table-cards.is-to-bito .durak-pair:nth-child(6) { animation-delay: 0.14s; }
 
 .durak-table-cards.is-to-bito .durak-pair .durak-card {
   /* Freeze enter/throw animations so they don't fight the pair flight */
@@ -5463,8 +5447,8 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   --hand-card-w: 112px;
   --hand-card-h: 158px;
   --hand-step: 62px;
-  /* How far the dock covers the hand — deeper tuck under the panel */
-  --hand-dock-tuck: 74px;
+  /* Fraction of card height tucked under the dock — must stay < cardH or ranks vanish */
+  --hand-dock-tuck: calc(var(--hand-card-h, 158px) * 0.34);
   position: relative;
   display: flex;
   flex-direction: column;
