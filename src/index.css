@@ -1385,13 +1385,15 @@ html[data-felt='slate'] .poker-table-felt {
 html[data-deal-speed='slow'] .durak-hand-card.enter-deal,
 html[data-deal-speed='slow'] .pcard.poker-deal-to-you,
 html[data-deal-speed='slow'] .pcard.poker-deal-to-bot,
-html[data-deal-speed='slow'] .pcard.poker-deal-board {
+html[data-deal-speed='slow'] .pcard.poker-deal-board,
+html[data-deal-speed='slow'] .poker-hole-flip.poker-deal-flip {
   animation-duration: calc(var(--deal-base, 0.62s) * var(--deal-duration-scale, 1.55)) !important;
 }
 html[data-deal-speed='fast'] .durak-hand-card.enter-deal,
 html[data-deal-speed='fast'] .pcard.poker-deal-to-you,
 html[data-deal-speed='fast'] .pcard.poker-deal-to-bot,
-html[data-deal-speed='fast'] .pcard.poker-deal-board {
+html[data-deal-speed='fast'] .pcard.poker-deal-board,
+html[data-deal-speed='fast'] .poker-hole-flip.poker-deal-flip {
   animation-duration: calc(var(--deal-base, 0.62s) * var(--deal-duration-scale, 0.52)) !important;
 }
 
@@ -1448,7 +1450,9 @@ body.settings-no-motion .pcard.throwing,
 body.settings-no-motion .durak-table-cards.is-to-bito .durak-pair,
 body.settings-no-motion .poker-deal-to-you,
 body.settings-no-motion .poker-deal-to-bot,
-body.settings-no-motion .poker-deal-board {
+body.settings-no-motion .poker-deal-board,
+body.settings-no-motion .poker-hole-flip.poker-deal-flip,
+body.settings-no-motion .poker-hole-flip.is-open .poker-hole-flip-inner {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
 }
@@ -3611,13 +3615,61 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-bot-cards.is-revealed {
   gap: 5px;
+  perspective: 720px;
 }
 
-/* Crowded 5-max: compact face-down hole cards beside each bot seat. */
-.poker-bot-cards .pcard,
-.poker-bot-cards .poker-hole-card {
+.poker-hole-flip {
+  position: relative;
   width: clamp(20px, 3.2vw, 28px);
   height: clamp(28px, 4.4vw, 40px);
+  flex-shrink: 0;
+  perspective: 560px;
+  transition:
+    width 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.poker-bot-cards.is-revealed .poker-hole-flip {
+  width: clamp(34px, 5.6vw, 48px);
+  height: clamp(46px, 7.6vw, 66px);
+}
+
+.poker-hole-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+.poker-hole-flip.is-open .poker-hole-flip-inner {
+  animation: poker-hole-flip-open 0.68s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--flip-delay, 0ms);
+}
+
+.poker-hole-flip.poker-deal-flip {
+  animation: poker-deal-to-bot 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--flip-delay, 0ms);
+}
+
+.poker-hole-flip-back,
+.poker-hole-flip-front {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  pointer-events: none;
+}
+
+.poker-hole-flip-front {
+  transform: rotateY(180deg);
+}
+
+/* Crowded 5-max: cards fill the flip shell. */
+.poker-bot-cards .poker-hole-flip .pcard,
+.poker-bot-cards .poker-hole-flip .poker-hole-card {
+  width: 100%;
+  height: 100%;
   font-size: 8px;
   padding: 1px;
   border-radius: 3px;
@@ -3626,17 +3678,15 @@ body.poker-landscape-active .app-main.game-mode {
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
-/* Showdown: larger hole cards, readable and not under the avatar. */
-.poker-bot-cards.is-revealed .pcard,
-.poker-bot-cards.is-revealed .poker-hole-card {
-  width: clamp(34px, 5.6vw, 48px);
-  height: clamp(46px, 7.6vw, 66px);
+.poker-bot-cards.is-revealed .poker-hole-flip .pcard,
+.poker-bot-cards.is-revealed .poker-hole-flip .poker-hole-card {
   font-size: clamp(10px, 1.7vw, 13px);
   padding: 3px 4px;
   border-radius: 5px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
 }
 
+/* Legacy deal target (player / older markup). */
 .poker-bot-cards .pcard.poker-deal-to-bot {
   animation: poker-deal-to-bot 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -4107,6 +4157,18 @@ body.poker-landscape-active .app-main.game-mode {
   }
 }
 
+@keyframes poker-hole-flip-open {
+  0% {
+    transform: rotateY(0deg) scale(0.94);
+  }
+  42% {
+    transform: rotateY(92deg) translateY(-8px) scale(1.04);
+  }
+  100% {
+    transform: rotateY(180deg) translateY(0) scale(1);
+  }
+}
+
 @keyframes poker-deal-board {
   0% {
     opacity: 0;
@@ -4186,13 +4248,11 @@ body.poker-landscape-active .app-main.game-mode {
   .poker-bot-cards {
     margin: 0;
   }
-  .poker-bot-cards .pcard,
-  .poker-bot-cards .poker-hole-card {
+  .poker-bot-cards .poker-hole-flip {
     width: clamp(18px, 2.8vw, 24px);
     height: clamp(24px, 3.8vw, 34px);
   }
-  .poker-bot-cards.is-revealed .pcard,
-  .poker-bot-cards.is-revealed .poker-hole-card {
+  .poker-bot-cards.is-revealed .poker-hole-flip {
     width: clamp(28px, 4.8vw, 40px);
     height: clamp(38px, 6.6vw, 54px);
   }

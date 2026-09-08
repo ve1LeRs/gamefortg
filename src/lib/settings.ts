@@ -224,21 +224,6 @@ export function playPokerSound(kind: 'chips' | 'card' | 'cards' | 'check') {
       src.stop(t + dur + 0.06)
     }
 
-    const chipTick = (t: number, freq: number, vol: number) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'triangle'
-      osc.frequency.setValueAtTime(freq, t)
-      osc.frequency.exponentialRampToValueAtTime(Math.max(90, freq * 0.5), t + 0.035)
-      gain.gain.setValueAtTime(0.0001, t)
-      gain.gain.exponentialRampToValueAtTime(vol, t + 0.003)
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.04)
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.start(t)
-      osc.stop(t + 0.05)
-    }
-
     /** Soft paper/card whoosh — no tonal beep. */
     const cardSlide = (t: number) => {
       noiseBurst(t, 0.11, 0.038, { hp: 700, lp: 2800, peakAt: 0.018 })
@@ -270,10 +255,11 @@ export function playPokerSound(kind: 'chips' | 'card' | 'cards' | 'check') {
     }
 
     if (kind === 'chips') {
-      for (let i = 0; i < 5; i += 1) {
-        const t = now + i * 0.03 + Math.random() * 0.008
-        noiseBurst(t, 0.04, 0.04 + Math.random() * 0.015, { hp: 800, lp: 3800, peakAt: 0.006 })
-        chipTick(t + 0.003, 820 + Math.random() * 520, 0.022)
+      // Soft clay stack: dull body thud + short ceramic edge, spaced so clacks don't smear.
+      for (let i = 0; i < 3; i += 1) {
+        const t = now + i * 0.072 + Math.random() * 0.014
+        noiseBurst(t, 0.042, 0.04, { hp: 70, lp: 420, peakAt: 0.004 })
+        noiseBurst(t + 0.008, 0.022, 0.026, { hp: 900, lp: 3200, peakAt: 0.002 })
       }
       return
     }
