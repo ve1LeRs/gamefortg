@@ -245,14 +245,19 @@ function PokerOnlineTable({
                     />
                   ))}
                 </div>
-                {view.phase !== 'over' ? (
-                  <div className={`poker-bet-amount-row${view.yourTurn ? '' : ' is-dimmed'}`}>
+                {view.you.hole.length >= 2 ? (
+                  <div
+                    className={`poker-bet-amount-row${
+                      view.phase === 'over' ? ' is-ghost' : view.yourTurn ? '' : ' is-dimmed'
+                    }`}
+                    aria-hidden={view.phase === 'over'}
+                  >
                     <div className="poker-bet-stepper" aria-label="Размер ставки">
                       <button
                         type="button"
                         className="poker-bet-nudge"
                         aria-label="Уменьшить ставку"
-                        disabled={!view.yourTurn || wager <= view.minBet}
+                        disabled={view.phase === 'over' || !view.yourTurn || wager <= view.minBet}
                         onClick={() => setWager((w) => clampWager(w - 10))}
                       >
                         −
@@ -262,7 +267,7 @@ function PokerOnlineTable({
                         type="button"
                         className="poker-bet-nudge"
                         aria-label="Увеличить ставку"
-                        disabled={!view.yourTurn || wager >= view.maxBet}
+                        disabled={view.phase === 'over' || !view.yourTurn || wager >= view.maxBet}
                         onClick={() => setWager((w) => clampWager(w + 10))}
                       >
                         +
