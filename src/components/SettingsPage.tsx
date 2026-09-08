@@ -121,30 +121,6 @@ export function SettingsPage({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' 
       </header>
 
       <section className="settings-section">
-        <h2>Профиль за столом</h2>
-        <label className="settings-field">
-          <span>Никнейм</span>
-          <input
-            value={settings.nickname}
-            maxLength={24}
-            placeholder="Как вас зовут за столом"
-            onChange={(e) => patch({ nickname: e.target.value })}
-          />
-        </label>
-        <div className="settings-row">
-          <div>
-            <strong>Имена за столом</strong>
-            <p>Показывать «Вы» / «Бот» и ник в интерфейсе игр</p>
-          </div>
-          <Toggle
-            label="Имена за столом"
-            on={settings.showPlayerNames}
-            onChange={(showPlayerNames) => patch({ showPlayerNames })}
-          />
-        </div>
-      </section>
-
-      <section className="settings-section">
         <h2>Ощущения</h2>
         <div className="settings-row">
           <div>

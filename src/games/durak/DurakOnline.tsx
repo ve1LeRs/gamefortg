@@ -7,6 +7,7 @@ import { createSoloDurakRoom } from './localRoom'
 import { type DurakRoom, type LobbyListing, type PlayerInfo, hostDurakRoom, joinDurakRoom, watchDurakLobby } from './peerRoom'
 import type { SeatView, TablePair } from './engine'
 import { bitoMess, handFanLayout, handFanY } from './handFan'
+import { getDealTiming } from '../../lib/settings'
 
 type Mode = 'menu' | 'host' | 'join' | 'solo'
 type EnterKind = 'deal' | 'throw-player' | 'throw-bot' | 'none'
@@ -28,12 +29,18 @@ type DragState = {
 
 const BITO_MS = 1120
 const TAKE_MS = 920
-const DEAL_MS = 980
 
 const sleep = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 
 function prefersReducedMotion() {
   return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function dealWaitMs(cardCount: number, perCard = 80) {
+  if (prefersReducedMotion()) return 40
+  const { baseMs, gapMs } = getDealTiming()
+  const stagger = Math.round(gapMs * (perCard / 110))
+  return baseMs + cardCount * stagger
 }
 
 function playerFromTelegram(): PlayerInfo {
@@ -140,7 +147,7 @@ function OnlineTable({
       for (const id of joined) next[id] = 'deal'
       return next
     })
-    const ms = prefersReducedMotion() ? 40 : DEAL_MS + joined.length * 80
+    const ms = dealWaitMs(joined.length, 80)
     const t = window.setTimeout(() => {
       setEnterMap((m) => {
         const next = { ...m }

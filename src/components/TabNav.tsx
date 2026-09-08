@@ -36,7 +36,7 @@ export function TabNav({
 }) {
   return (
     <nav className="tab-nav" aria-label="Навигация">
-      {(['store', 'settings', 'profile'] as Tab[]).map((tab) => (
+      {(['store', 'profile', 'settings'] as Tab[]).map((tab) => (
         <button
           key={tab}
           type="button"
