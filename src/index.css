@@ -799,20 +799,51 @@ body.tg-webapp .profile-page {
   line-height: 1.35;
 }
 
+.profile-nick-field {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.profile-nick-field > span {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.profile-nick-field input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.28);
+  color: #f2f6fb;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.profile-nick-field input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
 .profile-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin-bottom: 22px;
+  margin-bottom: 14px;
   animation: rise 0.75s 0.05s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .profile-stat {
-  text-align: center;
-  padding: 14px 8px;
   border-radius: 16px;
+  padding: 12px 10px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.07);
+  text-align: center;
 }
 
 .profile-stat strong {
@@ -820,24 +851,119 @@ body.tg-webapp .profile-page {
   font-family: var(--font-display);
   font-size: 22px;
   font-weight: 800;
-  margin-bottom: 2px;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 4px;
 }
 
 .profile-stat span {
+  display: block;
   font-size: 11px;
-  color: var(--muted);
   font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.25;
+}
+
+.profile-favorite-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(232, 168, 56, 0.14), transparent 55%),
+    rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(232, 168, 56, 0.22);
+  animation: rise 0.75s 0.08s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.profile-favorite-card.is-empty {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.profile-favorite-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-favorite-kicker {
+  margin: 0 0 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: rgba(240, 197, 106, 0.85);
+}
+
+.profile-favorite-copy h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.profile-favorite-copy p:last-child {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.profile-favorite-art {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.profile-favorite-art .game-cover {
+  width: 100%;
+  height: 100%;
 }
 
 .profile-fav {
+  margin-bottom: 12px;
+}
+
+.profile-fav .section-head {
+  margin-bottom: 10px;
+}
+
+.profile-fav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-fav-empty {
+  margin: 0;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.profile-poker-meta {
+  margin: 0 0 10px;
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.profile-fav {
+  margin-bottom: 12px;
   animation: rise 0.8s 0.08s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .profile-fav .section-head {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .profile-fav-list {
@@ -1260,13 +1386,40 @@ html[data-deal-speed='slow'] .durak-hand-card.enter-deal,
 html[data-deal-speed='slow'] .pcard.poker-deal-to-you,
 html[data-deal-speed='slow'] .pcard.poker-deal-to-bot,
 html[data-deal-speed='slow'] .pcard.poker-deal-board {
-  animation-duration: 1.05s !important;
+  animation-duration: calc(var(--deal-base, 0.62s) * var(--deal-duration-scale, 1.55)) !important;
 }
 html[data-deal-speed='fast'] .durak-hand-card.enter-deal,
 html[data-deal-speed='fast'] .pcard.poker-deal-to-you,
 html[data-deal-speed='fast'] .pcard.poker-deal-to-bot,
 html[data-deal-speed='fast'] .pcard.poker-deal-board {
-  animation-duration: 0.34s !important;
+  animation-duration: calc(var(--deal-base, 0.62s) * var(--deal-duration-scale, 0.52)) !important;
+}
+
+html[data-deal-speed='slow'] .durak-hand-card.enter-deal {
+  --deal-base: 0.72s;
+  animation-delay: calc((0.12s + var(--deal-i, 0) * 0.14s) * var(--deal-stagger-scale, 1.45)) !important;
+}
+html[data-deal-speed='fast'] .durak-hand-card.enter-deal {
+  --deal-base: 0.72s;
+  animation-delay: calc((0.12s + var(--deal-i, 0) * 0.14s) * var(--deal-stagger-scale, 0.5)) !important;
+}
+html[data-deal-speed='slow'] .pcard.poker-deal-to-you {
+  --deal-base: 0.62s;
+}
+html[data-deal-speed='fast'] .pcard.poker-deal-to-you {
+  --deal-base: 0.62s;
+}
+html[data-deal-speed='slow'] .pcard.poker-deal-to-bot {
+  --deal-base: 0.58s;
+}
+html[data-deal-speed='fast'] .pcard.poker-deal-to-bot {
+  --deal-base: 0.58s;
+}
+html[data-deal-speed='slow'] .pcard.poker-deal-board {
+  --deal-base: 0.42s;
+}
+html[data-deal-speed='fast'] .pcard.poker-deal-board {
+  --deal-base: 0.42s;
 }
 
 html[data-large-trump='1'] .durak-trump-card {
