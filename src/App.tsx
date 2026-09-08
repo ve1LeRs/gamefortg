@@ -8,7 +8,7 @@ import { useTelegram } from './hooks/useTelegram'
 import { getWebApp } from './lib/telegram'
 import type { GameId } from './data/games'
 import { getGame } from './data/games'
-import { applySettingsToDom, loadSettings, syncWakeLock } from './lib/settings'
+import { applySettingsToDom, installAudioLifecycle, loadSettings, syncWakeLock } from './lib/settings'
 
 const PLAYS_KEY = 'gamefortg-plays'
 
@@ -32,6 +32,7 @@ export default function App() {
 
   useEffect(() => {
     applySettingsToDom(loadSettings())
+    installAudioLifecycle()
   }, [])
 
   useEffect(() => {
