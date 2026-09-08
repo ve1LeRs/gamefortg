@@ -1048,7 +1048,12 @@ export function PokerGame({
           <div className="poker-table">
             <div className="poker-table-rail" />
             <div className="poker-table-felt">
-              <div className="poker-table-brand">Playfort Poker</div>
+              <div className="poker-table-brand" aria-hidden>
+                <span className="poker-table-brand-ornament" />
+                <span className="poker-table-brand-mark">PLAYFORT</span>
+                <span className="poker-table-brand-sub">POKER CLUB</span>
+                <span className="poker-table-brand-ornament is-flip" />
+              </div>
 
               <div className="poker-board">
                 {board.length === 0
