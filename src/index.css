@@ -3720,6 +3720,139 @@ body.poker-landscape-active .app-main.game-mode {
   box-shadow: 0 0 0 2px rgba(232, 168, 56, 0.85), 0 6px 14px rgba(0, 0, 0, 0.45);
 }
 
+.poker-seat-slot.is-winner {
+  z-index: 8;
+}
+
+.poker-seat-slot.is-winner .poker-seat-avatar {
+  border-color: #f6d56a;
+  box-shadow:
+    0 0 0 3px rgba(246, 213, 106, 0.95),
+    0 0 22px rgba(232, 168, 56, 0.75),
+    0 8px 18px rgba(0, 0, 0, 0.45);
+  animation: poker-winner-pulse 0.85s ease-in-out infinite alternate;
+}
+
+.poker-seat-slot.is-winner .poker-seat-avatar-wrap::after {
+  content: 'WIN';
+  position: absolute;
+  left: 50%;
+  top: -11px;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #f6d56a, #c98928);
+  color: #2a1a05;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.poker-seat-slot.is-winner .poker-seat-money {
+  color: #f6d56a;
+  font-weight: 800;
+}
+
+.poker-pot-flight {
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  width: 0;
+  height: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.poker-pot-flight-chip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  animation: poker-pot-fly 0.78s cubic-bezier(0.22, 0.8, 0.25, 1) forwards;
+  opacity: 0;
+}
+
+.poker-pot-flight-chip.is-c0 {
+  background: radial-gradient(circle at 30% 28%, #ff8a80, #c62828 55%, #8e1b1b);
+}
+.poker-pot-flight-chip.is-c1 {
+  background: radial-gradient(circle at 30% 28%, #81c784, #2e7d32 55%, #1b5e20);
+}
+.poker-pot-flight-chip.is-c2 {
+  background: radial-gradient(circle at 30% 28%, #64b5f6, #1565c0 55%, #0d47a1);
+}
+.poker-pot-flight-chip.is-c3 {
+  background: radial-gradient(circle at 30% 28%, #ffd54f, #f9a825 55%, #c17900);
+}
+.poker-pot-flight-chip.is-c4 {
+  background: radial-gradient(circle at 30% 28%, #90a4ae, #263238 55%, #0d1214);
+}
+
+/* Flight paths from pot (center-top) to each outside seat. */
+.poker-fly-to-s0 {
+  --fly-x: -34vw;
+  --fly-y: 42vh;
+}
+.poker-fly-to-s1 {
+  --fly-x: -40vw;
+  --fly-y: 12vh;
+}
+.poker-fly-to-s2 {
+  --fly-x: -28vw;
+  --fly-y: -14vh;
+}
+.poker-fly-to-s3 {
+  --fly-x: 34vw;
+  --fly-y: 42vh;
+}
+.poker-fly-to-s4 {
+  --fly-x: 40vw;
+  --fly-y: 10vh;
+}
+
+@keyframes poker-winner-pulse {
+  from {
+    filter: brightness(1);
+    transform: scale(1);
+  }
+  to {
+    filter: brightness(1.12);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes poker-pot-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.55);
+  }
+  12% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+    transform: translate(var(--fly-x, 0), var(--fly-y, 0)) scale(0.7);
+  }
+}
+
+body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-avatar,
+body.settings-no-motion .poker-pot-flight-chip {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+}
+
 .poker-seat-name {
   padding: 1px 7px;
   border-radius: 4px;
