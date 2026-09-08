@@ -4425,6 +4425,20 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   box-shadow: 0 4px 12px rgba(160, 24, 24, 0.35);
 }
 
+.poker-next-hint {
+  margin: 0;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(246, 226, 179, 0.88);
+  border-radius: 10px;
+  border: 1px solid rgba(232, 168, 56, 0.22);
+  background: rgba(0, 0, 0, 0.28);
+  white-space: nowrap;
+}
+
 @keyframes poker-deal-to-you {
   0% {
     opacity: 0;
@@ -5007,19 +5021,16 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 }
 
 
-/* Edge piles — pinned with fixed height + auto margins so field reflows don't bounce them */
+/* Edge piles — anchored to .durak-table (fixed shell height), not the flexing field. */
 .durak-deck {
   position: absolute;
   /* ~10–12px of the stock stays on-screen */
-  left: -54px;
-  top: 0;
-  bottom: 0;
-  margin-top: auto;
-  margin-bottom: auto;
+  left: max(-54px, calc(-1 * env(safe-area-inset-left, 0px) - 40px));
+  top: 38%;
   width: 66px;
   height: 110px;
-  transform: rotate(-8deg);
-  z-index: 3;
+  transform: translateY(-50%) rotate(-8deg);
+  z-index: 6;
   pointer-events: none;
   overflow: visible;
 }
@@ -5028,9 +5039,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   left: 6px;
   width: auto;
   height: auto;
-  top: 50%;
-  bottom: auto;
-  margin: 0;
+  top: 38%;
   transform: translateY(-50%);
   background: none;
   box-shadow: none;
@@ -5113,15 +5122,12 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 .durak-bito {
   position: absolute;
   /* Thin edge peeks from the right — same idea as the stock on the left */
-  right: -40px;
-  top: 0;
-  bottom: 0;
-  margin-top: auto;
-  margin-bottom: auto;
+  right: max(-40px, calc(-1 * env(safe-area-inset-right, 0px) - 28px));
+  top: 38%;
   width: 56px;
   height: 80px;
-  transform: rotate(18deg);
-  z-index: 2;
+  transform: translateY(-50%) rotate(18deg);
+  z-index: 5;
   pointer-events: none;
   opacity: 0.88;
 }
@@ -5160,9 +5166,9 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 }
 
 @keyframes durak-bito-catch {
-  0% { transform: rotate(18deg) scale(1); opacity: 0.88; }
-  55% { transform: rotate(14deg) scale(1.04); opacity: 1; }
-  100% { transform: rotate(18deg) scale(1); opacity: 0.88; }
+  0% { transform: translateY(-50%) rotate(18deg) scale(1); opacity: 0.88; }
+  55% { transform: translateY(-50%) rotate(14deg) scale(1.04); opacity: 1; }
+  100% { transform: translateY(-50%) rotate(18deg) scale(1); opacity: 0.88; }
 }
 
 /* One continuous ease — mid keyframes read as a hitch in Telegram WebView */
@@ -5391,7 +5397,8 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   display: flex;
   justify-content: center;
   gap: 10px;
-  min-height: 48px;
+  /* Keep reserved height so the field (and table cards) don't reflow when buttons appear */
+  min-height: 52px;
   padding: 6px 16px 2px;
   flex-shrink: 0;
   isolation: isolate;

@@ -12,7 +12,7 @@ import {
   isRed,
 } from '../lib/cards'
 import { bitoMess, handFanLayout, handFanY } from './durak/handFan'
-import { getDealTiming } from '../lib/settings'
+import { getDealTiming, playPokerSound } from '../lib/settings'
 
 type TablePair = { attack: Card; defence?: Card }
 type EnterKind = 'deal' | 'throw-player' | 'throw-bot' | 'none'
@@ -329,6 +329,7 @@ export function DurakGame({
     setDeck(deckNow)
     if (dealt.length > 0) {
       markDealCards(dealt)
+      playPokerSound(dealt.length > 1 ? 'cards' : 'card')
       setStatus(dealt.length === 1 ? 'Добор — карта в руку' : `Добор — ${dealt.length} в руку`)
     }
     return { playerNow, botNow, deckNow }
@@ -359,6 +360,7 @@ export function DurakGame({
   }
 
   const waitThrow = async (...ids: string[]) => {
+    if (ids.length) playPokerSound(ids.length > 1 ? 'cards' : 'card')
     if (!prefersReducedMotion()) await sleep(THROW_MS)
     if (ids.length === 0) return
     setEnterMap((m) => {
@@ -402,6 +404,7 @@ export function DurakGame({
       }
     }, dealWaitMs(next.player.length, 80))
     onHaptic?.('medium')
+    playPokerSound('cards')
   }, [onHaptic, markDealCards])
 
   const slotsLeft = (defenderHand: number, tbl: TablePair[]) =>
@@ -429,6 +432,7 @@ export function DurakGame({
       setPlayer(newPlayer)
       setEnterMap((m) => ({ ...m, [card.id]: 'none' }))
       setTable(nextTable)
+      playPokerSound('card')
     } else {
       setPlayer(newPlayer)
       setEnterMap((m) => ({ ...m, [card.id]: 'throw-player' }))
@@ -476,6 +480,7 @@ export function DurakGame({
     setStatus('Бот забирает карты со стола…')
     onHaptic?.('medium')
     setTableFlying(true)
+    playPokerSound('cards')
     if (!prefersReducedMotion()) await sleep(920)
     const taken = [
       ...bot,
@@ -698,6 +703,7 @@ export function DurakGame({
     const joined = taken.filter((c) => !player.some((p) => p.id === c.id))
     markDealCards(joined)
     if (joined.length > 0) {
+      playPokerSound(joined.length > 1 ? 'cards' : 'card')
       setStatus(joined.length === 1 ? 'Карта вошла в руку' : `${joined.length} карты вошли в руку`)
     }
     onHaptic?.('medium')
@@ -753,6 +759,7 @@ export function DurakGame({
     }
     setBitoAim(Object.keys(aim).length ? aim : null)
     setBitoFlying(true)
+    playPokerSound('cards')
     if (!prefersReducedMotion()) await sleep(BITO_MS)
     // Keep is-to-bito on until pairs unmount — dropping the class first snaps them back
     setDiscard((d) => [...d, ...cleared])
@@ -864,30 +871,49 @@ export function DurakGame({
         </p>
       </header>
 
-      <div ref={fieldRef} className={`durak-field${bitoFlying ? ' is-bito-flight' : ''}${tableFlying ? ' is-take-flight' : ''}`}>
-        {/* Deck hangs off the left edge; when empty only a trump suit mark remains */}
-        <div
-          className={`durak-deck${deck.length === 0 ? ' is-empty' : ''}`}
-          aria-label={deck.length > 0 ? `Колода: ${deck.length}` : `Козырь ${trump}`}
-        >
-          {deck.length > 0 ? (
-            <>
-              <PlayingCard card={trumpCard} rankStyle="ru" className="durak-trump-card" enter="none" />
-              {Array.from({ length: deckLayers }).map((_, i) => (
-                <span key={i} className="durak-deck-layer" style={{ ['--i' as string]: i }} />
-              ))}
-              <span className="durak-deck-count">{deck.length}</span>
-            </>
-          ) : (
-            <span
-              className={`durak-trump-suit${isRed(trump) ? ' is-red' : ''}`}
-              aria-hidden
-            >
-              {trump}
-            </span>
-          )}
-        </div>
+      {/* Deck/bita are pinned to the table shell — not the flexing field — so they don't bounce. */}
+      <div
+        className={`durak-deck${deck.length === 0 ? ' is-empty' : ''}`}
+        aria-label={deck.length > 0 ? `Колода: ${deck.length}` : `Козырь ${trump}`}
+      >
+        {deck.length > 0 ? (
+          <>
+            <PlayingCard card={trumpCard} rankStyle="ru" className="durak-trump-card" enter="none" />
+            {Array.from({ length: deckLayers }).map((_, i) => (
+              <span key={i} className="durak-deck-layer" style={{ ['--i' as string]: i }} />
+            ))}
+            <span className="durak-deck-count">{deck.length}</span>
+          </>
+        ) : (
+          <span
+            className={`durak-trump-suit${isRed(trump) ? ' is-red' : ''}`}
+            aria-hidden
+          >
+            {trump}
+          </span>
+        )}
+      </div>
 
+      <div
+        ref={bitoPileRef}
+        className={`durak-bito${discard.length ? ' has-cards' : ' is-empty'}${bitoFlying ? ' is-catching' : ''}`}
+        aria-label={discard.length ? `Бита: ${discard.length}` : 'Бита пуста'}
+      >
+        {discard.length > 0 && (
+          <>
+            {discard.slice(-5).map((c, i) => (
+              <span
+                key={`${c.id}-bito`}
+                className="durak-bito-card"
+                style={bitoMess(c.id, i)}
+                aria-hidden
+              />
+            ))}
+          </>
+        )}
+      </div>
+
+      <div ref={fieldRef} className={`durak-field${bitoFlying ? ' is-bito-flight' : ''}${tableFlying ? ' is-take-flight' : ''}`}>
         <div className="durak-table-zone">
           <div
             ref={tableCardsRef}
@@ -928,26 +954,6 @@ export function DurakGame({
               )
             })}
           </div>
-        </div>
-
-        {/* Bita hangs off the right edge — barely visible, like classic mobile Durak */}
-        <div
-          ref={bitoPileRef}
-          className={`durak-bito${discard.length ? ' has-cards' : ' is-empty'}${bitoFlying ? ' is-catching' : ''}`}
-          aria-label={discard.length ? `Бита: ${discard.length}` : 'Бита пуста'}
-        >
-          {discard.length > 0 && (
-            <>
-              {discard.slice(-5).map((c, i) => (
-                <span
-                  key={`${c.id}-bito`}
-                  className="durak-bito-card"
-                  style={bitoMess(c.id, i)}
-                  aria-hidden
-                />
-              ))}
-            </>
-          )}
         </div>
       </div>
 

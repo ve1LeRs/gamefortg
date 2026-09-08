@@ -1216,9 +1216,29 @@ export function PokerGame({
     [applySeats, dealerIdx, onHaptic],
   )
 
-  const nextHand = useCallback(() => {
-    dealNextHand(seatsRef.current)
-  }, [dealNextHand])
+  const [nextHandIn, setNextHandIn] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (phase !== 'over') {
+      setNextHandIn(null)
+      return
+    }
+    setNextHandIn(5)
+    const started = Date.now()
+    const tick = window.setInterval(() => {
+      const left = Math.max(0, 5 - Math.floor((Date.now() - started) / 1000))
+      setNextHandIn(left)
+    }, 250)
+    const t = window.setTimeout(() => {
+      window.clearInterval(tick)
+      setNextHandIn(null)
+      dealNextHand(seatsRef.current)
+    }, 5000)
+    return () => {
+      window.clearInterval(tick)
+      window.clearTimeout(t)
+    }
+  }, [phase, dealNextHand])
 
   const showdown = useCallback(
     (community: Card[], potAmount: number, seatsNow: Seat[]) => {
@@ -2007,9 +2027,11 @@ export function PokerGame({
                   </div>
                 </>
               ) : (
-                <button type="button" className="poker-btn poker-btn-bet" onClick={nextHand}>
-                  Новая раздача
-                </button>
+                <p className="poker-next-hint" aria-live="polite">
+                  {nextHandIn != null && nextHandIn > 0
+                    ? `Новая раздача через ${nextHandIn}…`
+                    : 'Новая раздача…'}
+                </p>
               )}
             </div>
           </div>
