@@ -10,7 +10,7 @@ import {
   isRed,
   rankValue,
 } from '../lib/cards'
-import { loadSettings } from '../lib/settings'
+import { loadSettings, playPokerSound } from '../lib/settings'
 
 type Pile = Card[]
 type Selection = { where: 'waste' | 'tableau' | 'foundation'; col: number; index: number }
@@ -139,7 +139,7 @@ function applyHomeMove(
   return { waste: wasteNext, foundations: foundationsNext, tableau: tableauNext }
 }
 
-type Hint = { select: Selection; message: string; pulse?: string }
+type Hint = { select: Selection; message: string; pulse?: string; transfer?: { from: number; to: number } }
 
 function allTableauFaceUp(tableau: Pile[], faceUp: Set<string>): boolean {
   for (const col of tableau) {
@@ -190,6 +190,45 @@ function drawCycleHasPlay(
   return false
 }
 
+/** Non-revealing tableau→tableau is useful only if it frees a face-up card for home (or a new play). */
+function tableauTransferHelps(
+  from: number,
+  index: number,
+  to: number,
+  tableau: Pile[],
+  foundations: Pile[],
+  faceUp: Set<string>,
+): boolean {
+  const col = tableau[from]
+  if (index <= 0) return false
+  const under = col[index - 1]
+  if (!faceUp.has(under.id)) return true // face-down reveal handled elsewhere; treat as helpful
+
+  for (let f = 0; f < 4; f += 1) {
+    if (canFoundation(under, foundations[f])) return true
+  }
+
+  // Simulate the move and see if `under` can land somewhere that isn't just the reverse pile.
+  const moving = col.slice(index)
+  const next = tableau.map((p, i) => {
+    if (i === from) return p.slice(0, index)
+    if (i === to) return [...p, ...moving]
+    return [...p]
+  })
+  for (let dest = 0; dest < 7; dest += 1) {
+    if (dest === from) continue
+    const pile = next[dest]
+    if (pile.length === 0) {
+      if (under.rank === 'K') return true
+      continue
+    }
+    // Don't count stacking back onto the cards we just moved (dest === to with under on moving[0]).
+    if (dest === to) continue
+    if (canStack(under, pile[pile.length - 1])) return true
+  }
+  return false
+}
+
 function findHint(
   stock: Card[],
   waste: Card[],
@@ -197,6 +236,7 @@ function findHint(
   tableau: Pile[],
   faceUp: Set<string>,
   canClear = false,
+  avoidTransfer: { from: number; to: number } | null = null,
 ): Hint | null {
   // Endgame: all open → collect, don't shuffle kings
   if (canClear) {
@@ -251,18 +291,22 @@ function findHint(
       if (!reveals) continue
       for (let to = 0; to < 7; to += 1) {
         if (to === from) continue
+        if (avoidTransfer && avoidTransfer.from === from && avoidTransfer.to === to) continue
+        if (avoidTransfer && avoidTransfer.from === to && avoidTransfer.to === from) continue
         const dest = tableau[to]
         if (dest.length === 0) {
           if (moving.rank !== 'K') continue
           return {
             select: { where: 'tableau', col: from, index },
             message: `Король ${moving.suit} → пустая колонка (откроется карта)`,
+            transfer: { from, to },
           }
         }
         if (canStack(moving, dest[dest.length - 1])) {
           return {
             select: { where: 'tableau', col: from, index },
             message: `${moving.rank}${moving.suit} → колонка ${to + 1}`,
+            transfer: { from, to },
           }
         }
       }
@@ -291,7 +335,17 @@ function findHint(
     }
   }
 
-  // 5) Other legal tableau builds — no pointless king parking on empty
+  // 5) Draw / recycle before shuffling open columns back and forth
+  if (drawCycleHasPlay(stock, waste, foundations, tableau, faceUpAll)) {
+    if (stock.length > 0) {
+      return { select: { where: 'waste', col: -1, index: -1 }, message: 'Возьмите карту из колоды', pulse: 'stock' }
+    }
+    if (waste.length > 0) {
+      return { select: { where: 'waste', col: -1, index: -1 }, message: 'Переверните колоду', pulse: 'stock' }
+    }
+  }
+
+  // 6) Other tableau builds — only when they free a face-up card that can go home / elsewhere
   for (let from = 0; from < 7; from += 1) {
     const col = tableau[from]
     for (let index = 0; index < col.length; index += 1) {
@@ -307,10 +361,10 @@ function findHint(
       const moving = col[index]
       for (let to = 0; to < 7; to += 1) {
         if (to === from) continue
+        if (avoidTransfer && avoidTransfer.from === from && avoidTransfer.to === to) continue
+        if (avoidTransfer && avoidTransfer.from === to && avoidTransfer.to === from) continue
         const dest = tableau[to]
         if (dest.length === 0) {
-          // Only move a king onto empty if it frees a face-up card that can be played.
-          // Whole-column reshuffles (index === 0) and “flip buried” moves are handled in step 3.
           if (moving.rank !== 'K' || index === 0) continue
           const under = col[index - 1]
           if (!faceUp.has(under.id)) continue
@@ -318,27 +372,18 @@ function findHint(
           return {
             select: { where: 'tableau', col: from, index },
             message: `Король ${moving.suit} → пустая (освободит ${under.rank}${under.suit})`,
+            transfer: { from, to },
           }
         }
-        if (canStack(moving, dest[dest.length - 1])) {
-          return {
-            select: { where: 'tableau', col: from, index },
-            message: `${moving.rank}${moving.suit} → колонка ${to + 1}`,
-          }
+        if (!canStack(moving, dest[dest.length - 1])) continue
+        if (!tableauTransferHelps(from, index, to, tableau, foundations, faceUp)) continue
+        return {
+          select: { where: 'tableau', col: from, index },
+          message: `${moving.rank}${moving.suit} → колонка ${to + 1}`,
+          transfer: { from, to },
         }
       }
     }
-  }
-
-  // 6) Draw / recycle — only if some card in the cycle can actually be played
-  if (!drawCycleHasPlay(stock, waste, foundations, tableau, faceUpAll)) {
-    return null
-  }
-  if (stock.length > 0) {
-    return { select: { where: 'waste', col: -1, index: -1 }, message: 'Возьмите карту из колоды', pulse: 'stock' }
-  }
-  if (waste.length > 0) {
-    return { select: { where: 'waste', col: -1, index: -1 }, message: 'Переверните колоду', pulse: 'stock' }
   }
 
   return null
@@ -361,6 +406,7 @@ export function SolitaireGame({
   const [hintPulse, setHintPulse] = useState<string | null>(null)
   const [clearing, setClearing] = useState(false)
   const lastHintKey = useRef<string | null>(null)
+  const lastHintTransfer = useRef<{ from: number; to: number } | null>(null)
   const [flight, setFlight] = useState<{
     card: Card
     fi: number
@@ -421,7 +467,10 @@ export function SolitaireGame({
     setStatus('Разложите карты по мастям')
     setWon(false)
     setHintPulse(null)
+    lastHintKey.current = null
+    lastHintTransfer.current = null
     onHaptic?.('medium')
+    playPokerSound('cards')
   }, [onHaptic, stopClearing])
 
   const checkWin = (f: Pile[]) => {
@@ -447,6 +496,7 @@ export function SolitaireGame({
       setStock([...waste].reverse())
       setWaste([])
       setSelected(null)
+      playPokerSound('cards')
       return
     }
     const nextStock = [...stock]
@@ -455,6 +505,7 @@ export function SolitaireGame({
     setWaste((w) => [...w, card])
     setFaceUp((u) => new Set(u).add(card.id))
     setSelected(null)
+    playPokerSound('card')
   }
 
   const getSelectedCards = (): Card[] | null => {
@@ -535,6 +586,7 @@ export function SolitaireGame({
     const id = flightId.current
     setFlight({ card, fi, id, fromX, fromY, toX, toY })
     onHaptic?.('light')
+    playPokerSound('card')
 
     if (flightTimer.current != null) window.clearTimeout(flightTimer.current)
     flightTimer.current = window.setTimeout(() => {
@@ -582,6 +634,7 @@ export function SolitaireGame({
     setFoundations(newFoundations)
     setSelected(null)
     onHaptic?.('light')
+    playPokerSound('card')
     checkWin(newFoundations)
     return true
   }
@@ -615,6 +668,7 @@ export function SolitaireGame({
     setFaceUp((u) => revealTop(newTab, u))
     setSelected(null)
     onHaptic?.('light')
+    playPokerSound(cards.length > 1 ? 'cards' : 'card')
     return true
   }
 
@@ -631,12 +685,10 @@ export function SolitaireGame({
       if (sendHome(source)) return
       if (already) {
         setSelected(null)
-        setStatus('Разложите карты по мастям')
         return
       }
     }
     setSelected(source)
-    setStatus(`${top.rank}${top.suit} выбрана — куда положить?`)
     onHaptic?.('light')
   }
 
@@ -651,9 +703,7 @@ export function SolitaireGame({
       if (tryMoveToFoundation(fi)) return
     }
     if (foundations[fi].length) {
-      const card = foundations[fi][foundations[fi].length - 1]
       setSelected({ where: 'foundation', col: fi, index: foundations[fi].length - 1 })
-      setStatus(`${card.rank}${card.suit} выбрана — куда положить?`)
       onHaptic?.('light')
     }
   }
@@ -681,7 +731,6 @@ export function SolitaireGame({
       if (sendHome({ where: 'tableau', col: ti, index })) return
       if (sameSelected) {
         setSelected(null)
-        setStatus('Разложите карты по мастям')
         return
       }
     }
@@ -691,12 +740,6 @@ export function SolitaireGame({
     }
 
     setSelected({ where: 'tableau', col: ti, index })
-    const runLen = col.length - index
-    setStatus(
-      runLen > 1
-        ? `${card.rank}${card.suit} и ещё ${runLen - 1} — куда положить?`
-        : `${card.rank}${card.suit} выбрана — куда положить?`,
-    )
     onHaptic?.('light')
   }
 
@@ -704,17 +747,7 @@ export function SolitaireGame({
     if (selected) tryMoveToTableau(ti)
   }
 
-  const showHint = () => {
-    if (won || clearing) return
-    const hint = findHint(stock, waste, foundations, tableau, faceUp, offerAutoClear)
-    if (!hint) {
-      lastHintKey.current = null
-      setSelected(null)
-      setHintPulse(null)
-      setStatus('Ходов не видно — новая раздача')
-      onHaptic?.('error')
-      return
-    }
+  const applyHint = (hint: Hint) => {
     const key = `${hint.pulse ?? hint.select.where}:${hint.select.col}:${hint.select.index}:${hint.message}:${stock.length}:${waste.length}`
     // Same stock/recycle tip again — don't spam the status line; just re-pulse.
     if (hint.pulse === 'stock' && lastHintKey.current === key) {
@@ -724,6 +757,7 @@ export function SolitaireGame({
       return
     }
     lastHintKey.current = key
+    lastHintTransfer.current = hint.transfer ?? null
     setStatus(hint.message)
     onHaptic?.('medium')
     if (hint.select.col < 0) {
@@ -741,6 +775,35 @@ export function SolitaireGame({
           : `f-${hint.select.col}`
     setHintPulse(pulseKey)
     window.setTimeout(() => setHintPulse(null), 1200)
+  }
+
+  const showHint = () => {
+    if (won || clearing) return
+    const hint = findHint(
+      stock,
+      waste,
+      foundations,
+      tableau,
+      faceUp,
+      offerAutoClear,
+      lastHintTransfer.current,
+    )
+    if (!hint) {
+      // Retry without avoid-filter in case the only move was the reverse we skipped.
+      const again = findHint(stock, waste, foundations, tableau, faceUp, offerAutoClear, null)
+      if (!again) {
+        lastHintKey.current = null
+        lastHintTransfer.current = null
+        setSelected(null)
+        setHintPulse(null)
+        setStatus('Ходов не видно — новая раздача')
+        onHaptic?.('error')
+        return
+      }
+      applyHint(again)
+      return
+    }
+    applyHint(hint)
   }
 
   const autoClearOnce = useCallback(
@@ -806,6 +869,7 @@ export function SolitaireGame({
       setFoundations(curFoundations)
       setTableau(curTableau)
       onHaptic?.('light')
+      playPokerSound('card')
 
       if (curFoundations.every((p) => p.length === 13)) {
         clearTimer.current = window.setTimeout(() => {
