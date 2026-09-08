@@ -108,8 +108,26 @@ export function applySettingsToDom(s: AppSettings) {
   root.dataset.largeTrump = s.largeTrump ? '1' : '0'
   root.dataset.tableEffects = s.tableEffects ? '1' : '0'
   root.dataset.highlightHints = s.highlightHints ? '1' : '0'
+  const timing = dealTimingFor(s.dealSpeed)
+  root.style.setProperty('--deal-duration-scale', String(timing.durationScale))
+  root.style.setProperty('--deal-stagger-scale', String(timing.staggerScale))
   body.classList.toggle('settings-reduce-motion', s.animations !== 'full')
   body.classList.toggle('settings-no-motion', s.animations === 'off')
+}
+
+/** Timing used by deal animations (CSS) and JS wait windows. */
+export function dealTimingFor(speed: DealSpeed = loadSettings().dealSpeed) {
+  if (speed === 'slow') {
+    return { durationScale: 1.55, staggerScale: 1.45, baseMs: 1450, gapMs: 160, boardGapMs: 110 }
+  }
+  if (speed === 'fast') {
+    return { durationScale: 0.52, staggerScale: 0.5, baseMs: 480, gapMs: 50, boardGapMs: 35 }
+  }
+  return { durationScale: 1, staggerScale: 1, baseMs: 980, gapMs: 110, boardGapMs: 70 }
+}
+
+export function getDealTiming() {
+  return dealTimingFor(loadSettings().dealSpeed)
 }
 
 export function getDisplayName(telegramName: string | undefined, settings: AppSettings) {

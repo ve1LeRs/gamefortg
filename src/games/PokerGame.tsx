@@ -8,7 +8,7 @@ import {
   shuffle,
   rankValue,
 } from '../lib/cards'
-import { loadSettings, playPokerSound, playUiSound } from '../lib/settings'
+import { loadSettings, playPokerSound, playUiSound, getDealTiming } from '../lib/settings'
 import {
   awardPokerXp,
   botDisplayLevel,
@@ -1005,7 +1005,8 @@ export function PokerGame({
   // Clear deal animation marks after they play
   useEffect(() => {
     if (freshBoardIds.length === 0) return
-    const t = window.setTimeout(() => setFreshBoardIds([]), 600)
+    const { baseMs } = getDealTiming()
+    const t = window.setTimeout(() => setFreshBoardIds([]), Math.max(280, Math.round(baseMs * 0.55)))
     return () => window.clearTimeout(t)
   }, [freshBoardIds])
 
@@ -1025,6 +1026,8 @@ export function PokerGame({
     const exact = phase === 'over' && showBot
     return { combo, pct, tone, exact }
   }, [player, board, bot, phase, showBot])
+
+  const dealTiming = useMemo(() => getDealTiming(), [dealTick])
 
   return (
     <div className={`poker-landscape${landscape ? ' is-landscape' : ' is-portrait'}`}>
@@ -1060,7 +1063,11 @@ export function PokerGame({
                           index={i}
                           enter="none"
                           className={`poker-board-card${isFresh ? ' poker-deal-board' : ''}`}
-                          style={isFresh ? { animationDelay: `${freshIndex * 70}ms` } : undefined}
+                          style={
+                            isFresh
+                              ? { animationDelay: `${freshIndex * dealTiming.boardGapMs}ms` }
+                              : undefined
+                          }
                         />
                       )
                     })}
@@ -1084,7 +1091,7 @@ export function PokerGame({
                     index={i}
                     enter="none"
                     className="poker-hole-card poker-deal-to-bot"
-                    style={{ animationDelay: `${120 + i * 110}ms` }}
+                    style={{ animationDelay: `${Math.round(dealTiming.gapMs * 1.1) + i * dealTiming.gapMs}ms` }}
                   />
                 ))}
               </div>
@@ -1136,7 +1143,7 @@ export function PokerGame({
                     index={i}
                     enter="none"
                     className="poker-hole-card poker-deal-to-you"
-                    style={{ animationDelay: `${i * 110}ms` }}
+                    style={{ animationDelay: `${i * dealTiming.gapMs}ms` }}
                   />
                 ))}
               </div>

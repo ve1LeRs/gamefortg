@@ -12,6 +12,7 @@ import {
   isRed,
 } from '../lib/cards'
 import { bitoMess, handFanLayout, handFanY } from './durak/handFan'
+import { getDealTiming } from '../lib/settings'
 
 type TablePair = { attack: Card; defence?: Card }
 type EnterKind = 'deal' | 'throw-player' | 'throw-bot' | 'none'
@@ -90,7 +91,13 @@ function prefersReducedMotion() {
 const THROW_MS = 520
 /** Match CSS: fly 0.88s + last stagger 0.175s + settle */
 const BITO_MS = 1120
-const DEAL_MS = 980
+
+function dealWaitMs(cardCount: number, perCard = 80) {
+  if (prefersReducedMotion()) return 40
+  const { baseMs, gapMs } = getDealTiming()
+  const stagger = Math.round(gapMs * (perCard / 110))
+  return baseMs + cardCount * stagger
+}
 
 function pickFirstAttacker(): 'player' | 'bot' {
   return Math.random() < 0.5 ? 'player' : 'bot'
@@ -169,7 +176,7 @@ export function DurakGame({
       return next
     })
     if (dealTimerRef.current) window.clearTimeout(dealTimerRef.current)
-    const ms = prefersReducedMotion() ? 40 : DEAL_MS + cards.length * 140
+    const ms = dealWaitMs(cards.length, 140)
     dealTimerRef.current = window.setTimeout(() => {
       setEnterMap((m) => {
         const next = { ...m }
@@ -257,7 +264,7 @@ export function DurakGame({
 
   useEffect(() => {
     const cards = initial.player
-    const ms = prefersReducedMotion() ? 40 : DEAL_MS + cards.length * 80
+    const ms = dealWaitMs(cards.length, 80)
     const first = openingAttackerRef.current
     const t = window.setTimeout(() => {
       setEnterMap((m) => {
@@ -389,7 +396,7 @@ export function DurakGame({
       } else {
         setStatus('Ваш ход — ходите картой')
       }
-    }, prefersReducedMotion() ? 40 : DEAL_MS + next.player.length * 80)
+    }, dealWaitMs(next.player.length, 80))
     onHaptic?.('medium')
   }, [onHaptic, markDealCards])
 
