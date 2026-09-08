@@ -3542,7 +3542,7 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-seat-s0 {
   left: 50%;
   /* % of table — min-height on actions keeps table height (and this seat) steady on reveal */
-  bottom: -16%;
+  bottom: -19%;
   top: auto;
   /* Shift right a bit so cards+avatar stay centered as a pair */
   transform: translateX(calc(-50% + 28px));
@@ -4615,7 +4615,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   .poker-seat-s0,
   .poker-seat-you {
     left: 50%;
-    bottom: -18%;
+    bottom: -21%;
     transform: translateX(calc(-50% + 24px));
     gap: 6px;
   }
@@ -4784,7 +4784,7 @@ body.tg-desktop .poker-table {
 }
 
 body.tg-desktop .poker-seat-s0 {
-  bottom: -14%;
+  bottom: -17%;
 }
 
 body.tg-desktop .poker-bottom {
