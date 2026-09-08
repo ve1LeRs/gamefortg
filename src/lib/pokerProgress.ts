@@ -23,10 +23,12 @@ export type XpAward = {
 
 const DEFAULT_PROGRESS: PokerProgress = { xp: 0, hands: 0, wins: 0 }
 
-/** XP required to advance from `level` → `level + 1`. */
+/** XP required to advance from `level` → `level + 1` — grows faster each rank. */
 export function xpToNextLevel(level: number) {
   const lv = Math.max(1, Math.min(99, Math.floor(level)))
-  return 35 + (lv - 1) * 15
+  const step = lv - 1
+  // L1→2: 55 · L5→6: ~235 · L10→11: ~715 · L20→21: ~2620
+  return Math.round(55 + 24 * step + 7 * step * step)
 }
 
 export function levelFromXp(totalXp: number): LevelInfo {
