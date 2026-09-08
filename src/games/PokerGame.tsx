@@ -194,14 +194,15 @@ function postBlinds(playerStack: number, botStack: number) {
   }
 }
 
-function chipCountFor(amount: number) {
+function chipCountFor(amount: number, maxChips = 6) {
   if (amount <= 0) return 0
-  if (amount < 20) return 1
-  if (amount < 50) return 2
-  if (amount < 100) return 3
-  if (amount < 200) return 4
-  if (amount < 400) return 5
-  return 6
+  let n = 1
+  if (amount >= 20) n = 2
+  if (amount >= 50) n = 3
+  if (amount >= 100) n = 4
+  if (amount >= 200) n = 5
+  if (amount >= 400) n = 6
+  return Math.min(n, maxChips)
 }
 
 const CHIP_COLORS = [
@@ -245,13 +246,15 @@ function ChipPile({
   amount,
   className = '',
   compact,
+  maxChips,
 }: {
   amount: number
   className?: string
   compact?: boolean
+  maxChips?: number
 }) {
   if (amount <= 0) return null
-  const n = chipCountFor(amount)
+  const n = chipCountFor(amount, maxChips ?? (compact ? 4 : 6))
   const size = compact ? 18 : 28
   const uid = `pile-${amount}-${compact ? 'c' : 'f'}-${className}`
   return (
@@ -1006,30 +1009,28 @@ export function PokerGame({
               <div className="poker-table-brand">Playfort Poker</div>
 
               <div className="poker-board">
-                {board.length === 0 ? (
-                  <span className="poker-board-empty">Общие карты</span>
-                ) : (
-                  board.map((c, i) => {
-                    const isFresh = freshBoardIds.includes(c.id)
-                    const freshIndex = isFresh ? freshBoardIds.indexOf(c.id) : 0
-                    return (
-                      <PlayingCard
-                        key={c.id}
-                        card={c}
-                        index={i}
-                        enter="none"
-                        className={`poker-board-card${isFresh ? ' poker-deal-board' : ''}`}
-                        style={isFresh ? { animationDelay: `${freshIndex * 70}ms` } : undefined}
-                      />
-                    )
-                  })
-                )}
+                {board.length === 0
+                  ? null
+                  : board.map((c, i) => {
+                      const isFresh = freshBoardIds.includes(c.id)
+                      const freshIndex = isFresh ? freshBoardIds.indexOf(c.id) : 0
+                      return (
+                        <PlayingCard
+                          key={c.id}
+                          card={c}
+                          index={i}
+                          enter="none"
+                          className={`poker-board-card${isFresh ? ' poker-deal-board' : ''}`}
+                          style={isFresh ? { animationDelay: `${freshIndex * 70}ms` } : undefined}
+                        />
+                      )
+                    })}
               </div>
             </div>
 
             {pot > 0 ? (
               <div className="poker-pot" key={`pot-${pot}`}>
-                <ChipPile amount={pot} />
+                <ChipPile amount={pot} compact maxChips={3} />
                 <span className="poker-pot-label">Банк</span>
               </div>
             ) : null}
@@ -1172,7 +1173,7 @@ export function PokerGame({
                         : `Поставить ${formatChips(wager)}`}
                     </button>
                     <button type="button" className="poker-btn poker-btn-fold" onClick={fold}>
-                      Фолд
+                      Сброс
                     </button>
                   </div>
                 </>

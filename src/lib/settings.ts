@@ -176,63 +176,78 @@ export function playPokerSound(kind: 'chips' | 'card' | 'cards') {
     if (!ctx) return
     const now = ctx.currentTime
 
-    const blip = (t: number, freq: number, dur: number, vol: number) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'triangle'
-      osc.frequency.setValueAtTime(freq, t)
-      osc.frequency.exponentialRampToValueAtTime(Math.max(80, freq * 0.55), t + dur)
-      gain.gain.setValueAtTime(0.0001, t)
-      gain.gain.exponentialRampToValueAtTime(vol, t + 0.004)
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + dur)
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      osc.start(t)
-      osc.stop(t + dur + 0.02)
-    }
-
-    const rustle = (t: number, dur: number, vol: number, hp: number, lp: number) => {
+    const noiseBurst = (
+      t: number,
+      dur: number,
+      vol: number,
+      opts: { hp: number; lp: number; peakAt?: number },
+    ) => {
       const src = ctx.createBufferSource()
-      src.buffer = noiseBuffer(ctx, dur + 0.04)
+      src.buffer = noiseBuffer(ctx, dur + 0.05)
       const high = ctx.createBiquadFilter()
       high.type = 'highpass'
-      high.frequency.value = hp
+      high.frequency.value = opts.hp
+      high.Q.value = 0.7
       const low = ctx.createBiquadFilter()
       low.type = 'lowpass'
-      low.frequency.setValueAtTime(lp, t)
-      low.frequency.exponentialRampToValueAtTime(Math.max(400, lp * 0.35), t + dur)
+      low.frequency.setValueAtTime(opts.lp, t)
+      low.frequency.exponentialRampToValueAtTime(Math.max(280, opts.lp * 0.45), t + dur)
+      low.Q.value = 0.8
       const gain = ctx.createGain()
+      const peak = t + (opts.peakAt ?? 0.012)
       gain.gain.setValueAtTime(0.0001, t)
-      gain.gain.exponentialRampToValueAtTime(vol, t + 0.008)
+      gain.gain.exponentialRampToValueAtTime(vol, peak)
       gain.gain.exponentialRampToValueAtTime(0.0001, t + dur)
       src.connect(high)
       high.connect(low)
       low.connect(gain)
       gain.connect(ctx.destination)
       src.start(t)
-      src.stop(t + dur + 0.05)
+      src.stop(t + dur + 0.06)
+    }
+
+    const chipTick = (t: number, freq: number, vol: number) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'triangle'
+      osc.frequency.setValueAtTime(freq, t)
+      osc.frequency.exponentialRampToValueAtTime(Math.max(90, freq * 0.5), t + 0.035)
+      gain.gain.setValueAtTime(0.0001, t)
+      gain.gain.exponentialRampToValueAtTime(vol, t + 0.003)
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.04)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(t)
+      osc.stop(t + 0.05)
+    }
+
+    /** Soft paper/card whoosh — no tonal beep. */
+    const cardSlide = (t: number) => {
+      // Air/friction of the slide
+      noiseBurst(t, 0.11, 0.038, { hp: 700, lp: 2800, peakAt: 0.018 })
+      // Quieter mid scrape
+      noiseBurst(t + 0.01, 0.07, 0.022, { hp: 1400, lp: 4500, peakAt: 0.01 })
+      // Soft felt land thump
+      noiseBurst(t + 0.06, 0.055, 0.03, { hp: 120, lp: 520, peakAt: 0.008 })
     }
 
     if (kind === 'chips') {
       for (let i = 0; i < 5; i += 1) {
-        const t = now + i * 0.032 + Math.random() * 0.01
-        rustle(t, 0.045, 0.045 + Math.random() * 0.02, 900, 4200)
-        blip(t + 0.004, 780 + Math.random() * 640, 0.04, 0.028)
+        const t = now + i * 0.03 + Math.random() * 0.008
+        noiseBurst(t, 0.04, 0.04 + Math.random() * 0.015, { hp: 800, lp: 3800, peakAt: 0.006 })
+        chipTick(t + 0.003, 820 + Math.random() * 520, 0.022)
       }
       return
     }
 
     if (kind === 'card') {
-      rustle(now, 0.09, 0.055, 1200, 5600)
-      blip(now + 0.01, 320 + Math.random() * 80, 0.07, 0.02)
+      cardSlide(now)
       return
     }
 
-    // cards — short deal train
+    // cards — staggered deal, slightly varied timing
     for (let i = 0; i < 3; i += 1) {
-      const t = now + i * 0.068
-      rustle(t, 0.075, 0.048, 1100, 5200)
-      blip(t + 0.008, 300 + i * 35, 0.055, 0.018)
+      cardSlide(now + i * 0.078 + Math.random() * 0.01)
     }
   } catch {
     /* noop */
