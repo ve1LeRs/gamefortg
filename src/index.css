@@ -3573,7 +3573,7 @@ body.poker-landscape-active .app-main.game-mode {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   margin: 0 0 2px;
   pointer-events: none;
   flex: 0 0 auto;
@@ -4403,15 +4403,16 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   width: 100%;
 }
 
-/* Amount stepper: further left toward hole cards, lower toward screen edge */
+/* Amount stepper sits under the player's hole cards */
 .poker-bet-amount-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   align-items: center;
   flex: 0 0 auto;
-  margin: 0 auto 0 0;
-  transform: translate(-52px, 12px);
+  margin: 2px 0 0;
+  transform: none;
   z-index: 9;
+  pointer-events: auto;
 }
 
 .poker-bet-stepper {
@@ -4657,9 +4658,6 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
     margin-bottom: max(-4px, calc(env(safe-area-inset-bottom, 0px) - 8px));
     padding-bottom: 0;
   }
-  .poker-bet-amount-row {
-    transform: translate(-58px, 14px);
-  }
   .poker-actions {
     max-width: min(520px, 68vw);
     min-width: min(260px, 50vw);
@@ -4756,10 +4754,6 @@ body.tg-desktop .poker-bottom {
   justify-content: flex-end;
 }
 
-body.tg-desktop .poker-bet-amount-row {
-  transform: translate(-68px, 16px);
-}
-
 body.tg-desktop .poker-actions,
 body.tg-desktop .poker-bottom .poker-actions {
   max-width: min(680px, 56vw);
@@ -4840,11 +4834,6 @@ body.tg-desktop .poker-board .poker-hole-card {
     min-width: min(420px, 34vw);
   }
 
-  body.tg-desktop .poker-bet-amount-row,
-  body.poker-landscape-active .poker-bet-amount-row {
-    transform: translate(-80px, 18px);
-  }
-
   body.tg-desktop .poker-btn,
   body.poker-landscape-active .poker-btn {
     min-height: 54px;
@@ -4870,14 +4859,6 @@ body.tg-desktop .poker-board .poker-hole-card {
   body.tg-desktop .poker-bottom {
     flex-wrap: wrap;
     justify-content: flex-end;
-  }
-
-  body.tg-desktop .poker-bet-amount-row {
-    transform: translate(-12px, 8px);
-    order: 2;
-    width: 100%;
-    justify-content: flex-start;
-    margin: 0;
   }
 
   body.tg-desktop .poker-actions {
