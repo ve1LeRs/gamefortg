@@ -17,6 +17,7 @@ import {
   loadPokerProgress,
   type PokerProgress,
 } from '../lib/pokerProgress'
+import { awardSidePots } from './poker/sidePots'
 
 type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'over'
 
@@ -37,6 +38,8 @@ type Seat = {
   hole: Card[]
   stack: number
   streetBet: number
+  /** Total chips this seat put into the pot this hand (for side pots). */
+  invested: number
   folded: boolean
   showCards: boolean
 }
@@ -271,6 +274,7 @@ function dealSeats(
     hole: [deck.pop()!, deck.pop()!],
     stack: Math.max(0, stacks[i] ?? START_STACK),
     streetBet: 0,
+    invested: 0,
     folded: false,
     showCards: false,
   }))
@@ -282,11 +286,7 @@ function dealSeats(
   const bb = (dealer + 2) % n
   let pot = 0
   for (const idx of [sb, bb]) {
-    const seat = seats[idx]!
-    const blind = Math.min(BLIND, seat.stack)
-    seat.stack -= blind
-    seat.streetBet = blind
-    pot += blind
+    pot += putChips(seats[idx]!, BLIND)
   }
 
   return { seats, deck, pot, dealer, sb, bb }
@@ -640,6 +640,7 @@ function putChips(seat: Seat, amount: number): number {
   const add = Math.min(Math.max(0, amount), seat.stack)
   seat.stack -= add
   seat.streetBet += add
+  seat.invested += add
   return add
 }
 
@@ -921,6 +922,69 @@ function awardPotToWinners(seats: Seat[], potAmount: number, winnerIdxs: number[
     if (rem > 0) rem -= 1
     seats[idx]!.stack += share + extra
   }
+}
+
+/** Showdown settlement with side pots — short all-ins only take what they covered. */
+function settleShowdownPots(seats: Seat[], board: Card[], potAmount: number) {
+  const invested = seats.map((s) => Math.max(0, s.invested))
+  const investedTotal = invested.reduce((a, b) => a + b, 0)
+  // Prefer tracked contributions; fall back to flat pot if somehow out of sync.
+  const useInvested = investedTotal > 0
+  const result = awardSidePots(seats.length, useInvested ? invested : seats.map(() => 0), (i) => {
+    const s = seats[i]!
+    if (s.folded || s.hole.length < 2) return null
+    return bestHand(s.hole, board)
+  })
+
+  if (!useInvested || result.total <= 0) {
+    const flat = bestSeatIndexes(seats, board)
+    awardPotToWinners(seats, potAmount, flat.idxs)
+    return {
+      awards: seats.map((_, i) => (flat.idxs.includes(i) ? Math.floor(potAmount / Math.max(1, flat.idxs.length)) : 0)),
+      winnerIdxs: flat.idxs,
+      pots: flat.idxs.length
+        ? [{ amount: potAmount, winners: flat.idxs, label: flat.label }]
+        : [],
+      total: potAmount,
+      label: flat.label,
+    }
+  }
+
+  for (let i = 0; i < seats.length; i += 1) {
+    seats[i]!.stack += result.awards[i]!
+  }
+
+  // If rounding left dust vs potAmount, give remainder to first winner.
+  const dust = potAmount - result.total
+  if (dust > 0 && result.winnerIdxs.length > 0) {
+    seats[result.winnerIdxs[0]!]!.stack += dust
+    result.awards[result.winnerIdxs[0]!]! += dust
+  }
+
+  const label =
+    result.pots.find((p) => p.winners.length)?.label ||
+    bestSeatIndexes(seats, board).label
+
+  return { ...result, total: result.total + Math.max(0, dust), label }
+}
+
+function formatSidePotStatus(
+  seats: Seat[],
+  settlement: ReturnType<typeof settleShowdownPots>,
+  potAmount: number,
+): string {
+  if (settlement.pots.length <= 1) {
+    const names = settlement.winnerIdxs.map((i) => seats[i]!.name).join(', ')
+    const won = settlement.winnerIdxs.length === 1 ? settlement.awards[settlement.winnerIdxs[0]!]! : potAmount
+    return settlement.winnerIdxs.length === 1
+      ? `${names}: ${settlement.label}. +${formatChips(won)}`
+      : `${settlement.label}. Банк делится (${names}).`
+  }
+  const parts = settlement.pots.map((p) => {
+    const names = p.winners.map((i) => seats[i]!.name).join('/')
+    return `${formatChips(p.amount)}→${names}`
+  })
+  return `Сайд-поты: ${parts.join(', ')}.`
 }
 
 function bestSeatIndexes(seats: Seat[], board: Card[]): { idxs: number[]; label: string } {
@@ -1209,33 +1273,35 @@ export function PokerGame({
 
       revealBotsThen(seatsNow, (revealed) => {
         const next = cloneSeats(revealed)
-        const { idxs, label } = bestSeatIndexes(next, community)
-        awardPotToWinners(next, potAmount, idxs)
+        const settlement = settleShowdownPots(next, community, potAmount)
+        const idxs = settlement.winnerIdxs
+        const label = settlement.label
+        const playerAward = settlement.awards[0] ?? 0
         applySeats(next)
         setPot(0)
         setPhase('over')
         playPotWinFx(idxs, potAmount)
 
-        const playerWins = idxs.includes(0)
-        const onlyPlayer = idxs.length === 1 && playerWins
+        const playerWins = playerAward > 0
+        const onlyPlayer = idxs.length === 1 && idxs[0] === 0
         const playerTied = playerWins && idxs.length > 1
-        const names = idxs.map((i) => next[i]!.name).join(', ')
+        const potLine = formatSidePotStatus(next, settlement, potAmount)
 
         if (onlyPlayer) {
-          const xpNote = grantXp('win', potAmount)
-          setStatus(`Победа! ${label}. +${formatChips(potAmount)}${xpNote}`)
+          const xpNote = grantXp('win', playerAward || potAmount)
+          setStatus(`Победа! ${label}. +${formatChips(playerAward || potAmount)}${xpNote}`)
           setResultClass('win')
           onHaptic?.('success')
           playUiSound('ok')
         } else if (playerTied) {
-          const xpNote = grantXp('tie', potAmount)
-          setStatus(`Ничья: ${label}. Банк делится (${names}).${xpNote}`)
-          setResultClass('')
+          const xpNote = grantXp(playerAward > 0 ? 'tie' : 'lose', playerAward || potAmount)
+          setStatus(`${potLine}${xpNote}`)
+          setResultClass(playerAward > 0 ? 'win' : '')
           onHaptic?.('medium')
           playUiSound('tap')
         } else if (playerWins) {
-          const xpNote = grantXp('win', potAmount)
-          setStatus(`Вы в числе победителей: ${label}. Банк: ${names}.${xpNote}`)
+          const xpNote = grantXp('win', playerAward)
+          setStatus(`Вы забрали ${formatChips(playerAward)}. ${potLine}${xpNote}`)
           setResultClass('win')
           onHaptic?.('success')
           playUiSound('ok')
@@ -1244,7 +1310,7 @@ export function PokerGame({
           const yours = next[0]!.folded
             ? 'фолд'
             : bestHand(next[0]!.hole, community).label
-          setStatus(`Поражение. ${names}: ${label}. У вас ${yours}.${xpNote}`)
+          setStatus(`Поражение. ${potLine} У вас ${yours}.${xpNote}`)
           setResultClass('lose')
           onHaptic?.('error')
           playUiSound('warn')
@@ -1559,20 +1625,18 @@ export function PokerGame({
 
       revealBotsThen(seatsNow, (revealed) => {
         const next = cloneSeats(revealed)
-        const ranked = bestSeatIndexes(next, finalBoard)
-        const winnerIdxsLocal = ranked.idxs
-        const label = ranked.label
-        awardPotToWinners(next, potAmount, winnerIdxsLocal)
+        const settlement = settleShowdownPots(next, finalBoard, potAmount)
+        const winnerIdxsLocal = settlement.winnerIdxs
         applySeats(next)
         setPot(0)
         setPhase('over')
         playPotWinFx(winnerIdxsLocal, potAmount)
         const xpNote = grantXp('lose', potAmount)
-        const names = winnerIdxsLocal.map((i) => next[i]!.name).join(', ')
+        const potLine = formatSidePotStatus(next, settlement, potAmount)
         setStatus(
           wasFacingBet
-            ? `Вы сбросили. Банк ${formatChips(potAmount)} → ${names}${label ? ` (${label})` : ''}.${xpNote}`
-            : `Вы сбросили. Банк ${formatChips(potAmount)} уходит: ${names}${label ? ` (${label})` : ''}.${xpNote}`,
+            ? `Вы сбросили. ${potLine}${xpNote}`
+            : `Вы сбросили. ${potLine}${xpNote}`,
         )
         setResultClass('lose')
         setStreetBusy(false)
