@@ -117,9 +117,14 @@ function stacksFromSeats(seats: Seat[]): SavedStacks {
   }
 }
 
-const BOT_THINK_MS = 980
-const STREET_PAUSE_MS = 1100
-const BOT_REPLY_SOUND_MS = 200
+const BOT_THINK_MS = 1200
+/** First bot pause after the player opens/raises — felt response, not instant pile-on. */
+const BOT_FACE_BET_MS = 1650
+/** Gap between successive bot replies so call/raise doesn't land as one flash. */
+const BOT_BETWEEN_MS = 780
+const STREET_PAUSE_MS = 1150
+const BOT_REPLY_SOUND_MS = 220
+const FOLD_RUNOUT_MS = 580
 
 function formatChips(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
@@ -615,6 +620,13 @@ function botsAlive(seats: Seat[]) {
   return seats.slice(1).filter((s) => !s.folded)
 }
 
+type BotRoundStep = {
+  seats: Seat[]
+  pot: number
+  line: string
+  sound: 'chips' | 'check' | null
+}
+
 type BotRoundResult = {
   seats: Seat[]
   pot: number
@@ -622,6 +634,17 @@ type BotRoundResult = {
   status: string
   playerWonUncontested: boolean
   allChecked: boolean
+  /** Intermediate table snapshots so the UI can reveal bot replies one-by-one. */
+  steps: BotRoundStep[]
+}
+
+function snapshotBotStep(
+  seats: Seat[],
+  pot: number,
+  line: string,
+  sound: BotRoundStep['sound'],
+): BotRoundStep {
+  return { seats: cloneSeats(seats), pot, line, sound }
 }
 
 /** Run bots in seat order after the player checked (toCall was 0). */
@@ -636,6 +659,7 @@ function runBotsAfterCheck(
   let opener: string | null = null
   let lastRaiseName: string | null = null
   let currentMax = streetMaxBet(seats)
+  const steps: BotRoundStep[] = []
 
   for (let i = 1; i < seats.length; i += 1) {
     const seat = seats[i]!
@@ -663,6 +687,9 @@ function runBotsAfterCheck(
           currentMax = Math.max(currentMax, seat.streetBet)
           opener = seat.name
           lastRaiseName = seat.name
+          steps.push(
+            snapshotBotStep(seats, pot, `${seat.name} ставит ${formatChips(amount)}.`, 'chips'),
+          )
         }
       }
       continue
@@ -681,6 +708,7 @@ function runBotsAfterCheck(
 
     if (decision.type === 'fold') {
       seat.folded = true
+      steps.push(snapshotBotStep(seats, pot, `${seat.name} сбрасывает.`, null))
       continue
     }
 
@@ -691,12 +719,18 @@ function runBotsAfterCheck(
         pot += putChips(seat, add)
         currentMax = Math.max(currentMax, seat.streetBet)
         lastRaiseName = seat.name
+        steps.push(
+          snapshotBotStep(seats, pot, `${seat.name} рейзит до ${formatChips(seat.streetBet)}.`, 'chips'),
+        )
         continue
       }
     }
 
     // Call (or failed raise → call)
     pot += putChips(seat, need)
+    steps.push(
+      snapshotBotStep(seats, pot, `${seat.name} коллирует ${formatChips(need)}.`, 'chips'),
+    )
   }
 
   // One pass for remaining bots who still need to match after late raises.
@@ -721,6 +755,7 @@ function runBotsAfterCheck(
       })
       if (decision.type === 'fold') {
         seat.folded = true
+        steps.push(snapshotBotStep(seats, pot, `${seat.name} сбрасывает.`, null))
         changed = true
         continue
       }
@@ -731,10 +766,16 @@ function runBotsAfterCheck(
           currentMax = seat.streetBet
           lastRaiseName = seat.name
         }
+        steps.push(
+          snapshotBotStep(seats, pot, `${seat.name} рейзит до ${formatChips(seat.streetBet)}.`, 'chips'),
+        )
         changed = true
         continue
       }
       pot += putChips(seat, need)
+      steps.push(
+        snapshotBotStep(seats, pot, `${seat.name} коллирует ${formatChips(need)}.`, 'chips'),
+      )
       changed = true
     }
     if (!changed) break
@@ -753,6 +794,7 @@ function runBotsAfterCheck(
       status: '',
       playerWonUncontested: true,
       allChecked: false,
+      steps,
     }
   }
 
@@ -765,6 +807,7 @@ function runBotsAfterCheck(
       status: `${name} ставит. Колл ${formatChips(Math.min(playerNeed, player.stack))}, рейз или фолд.`,
       playerWonUncontested: false,
       allChecked: false,
+      steps,
     }
   }
 
@@ -776,6 +819,7 @@ function runBotsAfterCheck(
       status: 'Все чекают.',
       playerWonUncontested: false,
       allChecked: true,
+      steps,
     }
   }
 
@@ -786,6 +830,7 @@ function runBotsAfterCheck(
     status: 'Боты уравняли. Открываем дальше…',
     playerWonUncontested: false,
     allChecked: true,
+    steps,
   }
 }
 
@@ -800,6 +845,7 @@ function runBotsAfterPlayerBet(
   let pot = potIn
   let lastRaiseName: string | null = null
   let currentMax = streetMaxBet(seats)
+  const steps: BotRoundStep[] = []
 
   for (let i = 1; i < seats.length; i += 1) {
     const seat = seats[i]!
@@ -829,6 +875,9 @@ function runBotsAfterPlayerBet(
           pot += putChips(seat, amount)
           currentMax = Math.max(currentMax, seat.streetBet)
           lastRaiseName = seat.name
+          steps.push(
+            snapshotBotStep(seats, pot, `${seat.name} рейзит ${formatChips(amount)}.`, 'chips'),
+          )
         }
       }
       continue
@@ -847,6 +896,7 @@ function runBotsAfterPlayerBet(
 
     if (decision.type === 'fold') {
       seat.folded = true
+      steps.push(snapshotBotStep(seats, pot, `${seat.name} сбрасывает.`, null))
       continue
     }
 
@@ -857,10 +907,16 @@ function runBotsAfterPlayerBet(
         currentMax = seat.streetBet
         lastRaiseName = seat.name
       }
+      steps.push(
+        snapshotBotStep(seats, pot, `${seat.name} рейзит до ${formatChips(seat.streetBet)}.`, 'chips'),
+      )
       continue
     }
 
     pot += putChips(seat, need)
+    steps.push(
+      snapshotBotStep(seats, pot, `${seat.name} коллирует ${formatChips(need)}.`, 'chips'),
+    )
   }
 
   // Settle leftover mismatches among bots after raises.
@@ -885,6 +941,7 @@ function runBotsAfterPlayerBet(
       })
       if (decision.type === 'fold') {
         seat.folded = true
+        steps.push(snapshotBotStep(seats, pot, `${seat.name} сбрасывает.`, null))
         changed = true
         continue
       }
@@ -895,10 +952,16 @@ function runBotsAfterPlayerBet(
           currentMax = seat.streetBet
           lastRaiseName = seat.name
         }
+        steps.push(
+          snapshotBotStep(seats, pot, `${seat.name} рейзит до ${formatChips(seat.streetBet)}.`, 'chips'),
+        )
         changed = true
         continue
       }
       pot += putChips(seat, need)
+      steps.push(
+        snapshotBotStep(seats, pot, `${seat.name} коллирует ${formatChips(need)}.`, 'chips'),
+      )
       changed = true
     }
     if (!changed) break
@@ -917,6 +980,7 @@ function runBotsAfterPlayerBet(
       status: '',
       playerWonUncontested: true,
       allChecked: false,
+      steps,
     }
   }
 
@@ -929,6 +993,7 @@ function runBotsAfterPlayerBet(
       status: `${name} рейзит. Нужно ещё ${formatChips(Math.min(playerNeed, player.stack))}.`,
       playerWonUncontested: false,
       allChecked: false,
+      steps,
     }
   }
 
@@ -945,6 +1010,7 @@ function runBotsAfterPlayerBet(
     status: `Ставка принята.${foldNote}`,
     playerWonUncontested: false,
     allChecked: true,
+    steps,
   }
 }
 
@@ -1325,6 +1391,85 @@ export function PokerGame({
     }
   }, [allInSpectating, phase, player.stack, advance, showdown])
 
+  const finishBotRound = useCallback(
+    (
+      result: BotRoundResult,
+      phaseNow: Phase,
+      deckNow: Card[],
+      boardNow: Card[],
+      opts?: { uncontestedMsg?: string; settledStatus?: string; finalSound?: 'chips' | 'check' },
+    ) => {
+      applySeats(result.seats)
+      setPot(result.pot)
+
+      if (result.playerWonUncontested) {
+        streetBusyRef.current = false
+        winUncontested(
+          result.seats,
+          result.pot,
+          opts?.uncontestedMsg ?? `Боты сбросили. Банк ${formatChips(result.pot)} ваш.`,
+        )
+        return
+      }
+
+      if (result.toCall > 0) {
+        setToCall(result.toCall)
+        setWager(
+          clampBet(
+            result.toCall,
+            result.toCall,
+            Math.min(result.seats[0]!.stack, maxOppStack || result.toCall || maxWager),
+          ),
+        )
+        setStatus(result.status)
+        onHaptic?.('medium')
+        window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
+        streetBusyRef.current = false
+        return
+      }
+
+      setToCall(0)
+      setStatus(opts?.settledStatus ?? result.status)
+      window.setTimeout(() => playPokerSound(opts?.finalSound ?? 'chips'), BOT_REPLY_SOUND_MS)
+      queueContinue(STREET_PAUSE_MS, phaseNow, deckNow, boardNow, result.pot, result.seats)
+    },
+    [applySeats, maxOppStack, maxWager, onHaptic, queueContinue, winUncontested],
+  )
+
+  const playBotRound = useCallback(
+    (
+      result: BotRoundResult,
+      firstDelay: number,
+      phaseNow: Phase,
+      deckNow: Card[],
+      boardNow: Card[],
+      opts?: { uncontestedMsg?: string; settledStatus?: string; finalSound?: 'chips' | 'check' },
+    ) => {
+      const steps = result.steps
+      if (steps.length === 0) {
+        window.setTimeout(() => finishBotRound(result, phaseNow, deckNow, boardNow, opts), firstDelay)
+        return
+      }
+
+      let i = 0
+      const tick = () => {
+        const step = steps[i]!
+        applySeats(step.seats)
+        setPot(step.pot)
+        if (step.line) setStatus(step.line)
+        if (step.sound) playPokerSound(step.sound)
+        i += 1
+        if (i >= steps.length) {
+          window.setTimeout(() => finishBotRound(result, phaseNow, deckNow, boardNow, opts), BOT_BETWEEN_MS)
+          return
+        }
+        window.setTimeout(tick, BOT_BETWEEN_MS)
+      }
+      window.setTimeout(tick, firstDelay)
+    },
+    [applySeats, finishBotRound],
+  )
+
   const check = () => {
     if (phase === 'over' || facingBet || allInSpectating || streetBusyRef.current) return
     if (player.folded) return
@@ -1334,31 +1479,14 @@ export function PokerGame({
     const botsLeft = seats.slice(1).filter((s) => !s.folded).length
     setStatus(botsLeft > 1 ? 'Боты думают…' : 'Бот думает…')
 
-    window.setTimeout(() => {
-      const result = runBotsAfterCheck(seats, pot, board, phase)
-      applySeats(result.seats)
-      setPot(result.pot)
-
-      if (result.playerWonUncontested) {
-        streetBusyRef.current = false
-        winUncontested(result.seats, result.pot, `Все сбросили. Банк ${formatChips(result.pot)} ваш.`)
-        return
-      }
-
-      if (result.toCall > 0) {
-        setToCall(result.toCall)
-        setWager(clampBet(result.toCall, result.toCall, Math.min(result.seats[0]!.stack, maxWager)))
-        setStatus(result.status)
-        onHaptic?.('medium')
-        window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
-        streetBusyRef.current = false
-        return
-      }
-
-      setStatus(result.status || 'Все чекают.')
-      window.setTimeout(() => playPokerSound('check'), BOT_REPLY_SOUND_MS)
-      queueContinue(STREET_PAUSE_MS, phase, deck, board, result.pot, result.seats)
-    }, BOT_THINK_MS)
+    const result = runBotsAfterCheck(seats, pot, board, phase)
+    playBotRound(result, BOT_THINK_MS, phase, deck, board, {
+      uncontestedMsg: `Все сбросили. Банк ${formatChips(result.pot)} ваш.`,
+      settledStatus: result.status || 'Все чекают.',
+      finalSound: result.allChecked && result.toCall === 0 && !result.steps.some((s) => s.sound === 'chips')
+        ? 'check'
+        : 'chips',
+    })
   }
 
   const callBet = () => {
@@ -1407,37 +1535,14 @@ export function PokerGame({
       streetBusyRef.current = true
       setStatus('Боты отвечают…')
 
-      window.setTimeout(() => {
-        const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
-        applySeats(result.seats)
-        setPot(result.pot)
-
-        if (result.playerWonUncontested) {
-          streetBusyRef.current = false
-          winUncontested(result.seats, result.pot, `Боты сбросили на рейз. Банк ${formatChips(result.pot)} ваш.`)
-          return
-        }
-
-        if (result.toCall > 0) {
-          setToCall(result.toCall)
-          setWager(
-            clampBet(result.toCall, result.toCall, Math.min(result.seats[0]!.stack, maxOppStack || result.toCall)),
-          )
-          setStatus(result.status)
-          window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
-          streetBusyRef.current = false
-          return
-        }
-
-        setToCall(0)
-        setStatus(
+      const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
+      playBotRound(result, BOT_FACE_BET_MS, phase, deck, board, {
+        uncontestedMsg: `Боты сбросили на рейз. Банк ${formatChips(result.pot)} ваш.`,
+        settledStatus:
           result.seats[0]!.stack <= 0
             ? `All-in. Доигрываем…`
             : result.status || `Рейз ${formatChips(paid)}. Боты ответили.`,
-        )
-        window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
-        queueContinue(STREET_PAUSE_MS, phase, deck, board, result.pot, result.seats)
-      }, BOT_THINK_MS)
+      })
       return
     }
 
@@ -1457,84 +1562,141 @@ export function PokerGame({
     streetBusyRef.current = true
     setStatus('Боты думают…')
 
-    window.setTimeout(() => {
-      const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
-      applySeats(result.seats)
-      setPot(result.pot)
-
-      if (result.playerWonUncontested) {
-        streetBusyRef.current = false
-        winUncontested(
-          result.seats,
-          result.pot,
-          `Вы поставили ${formatChips(paid)}. Боты сбросили. Банк ваш.`,
-        )
-        return
-      }
-
-      if (result.toCall > 0) {
-        setToCall(result.toCall)
-        setWager(
-          clampBet(result.toCall, result.toCall, Math.min(result.seats[0]!.stack, maxOppStack || result.toCall)),
-        )
-        setStatus(result.status)
-        window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
-        streetBusyRef.current = false
-        return
-      }
-
-      setToCall(0)
-      setStatus(
+    const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
+    playBotRound(result, BOT_FACE_BET_MS, phase, deck, board, {
+      uncontestedMsg: `Вы поставили ${formatChips(paid)}. Боты сбросили. Банк ваш.`,
+      settledStatus:
         result.seats[0]!.stack <= 0
           ? `All-in ${formatChips(paid)}. Доигрываем…`
           : `Ставка ${formatChips(paid)}. ${result.status}`,
-      )
-      window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
-      queueContinue(STREET_PAUSE_MS, phase, deck, board, result.pot, result.seats)
-    }, BOT_THINK_MS)
+    })
   }
 
+  const resolveFoldShowdown = useCallback(
+    (finalBoard: Card[], seatsNow: Seat[], potAmount: number, wasFacingBet: boolean) => {
+      const next = cloneSeats(seatsNow).map((s) => ({
+        ...s,
+        showCards: !s.folded,
+        streetBet: 0,
+      }))
+      const ranked = bestSeatIndexes(next, finalBoard)
+      const winnerIdxsLocal = ranked.idxs
+      const label = ranked.label
+      awardPotToWinners(next, potAmount, winnerIdxsLocal)
+      applySeats(next)
+      setBoard(finalBoard)
+      setPot(0)
+      setPhase('over')
+      setToCall(0)
+      playPotWinFx(winnerIdxsLocal, potAmount)
+      const xpNote = grantXp('lose', potAmount)
+      const names = winnerIdxsLocal.map((i) => next[i]!.name).join(', ')
+      setStatus(
+        wasFacingBet
+          ? `Вы сбросили. Банк ${formatChips(potAmount)} → ${names}${label ? ` (${label})` : ''}.${xpNote}`
+          : `Вы сбросили. Банк ${formatChips(potAmount)} уходит: ${names}${label ? ` (${label})` : ''}.${xpNote}`,
+      )
+      setResultClass('lose')
+      streetBusyRef.current = false
+    },
+    [applySeats, grantXp, playPotWinFx],
+  )
+
   const fold = () => {
-    if (phase === 'over' || allInSpectating) return
+    if (phase === 'over' || allInSpectating || streetBusyRef.current) return
     if (loadSettings().confirmFold && !window.confirm('Сбросить карты и отдать банк?')) return
 
     const next = cloneSeats(seats)
     next[0]!.folded = true
-    for (let i = 1; i < next.length; i += 1) {
-      if (!next[i]!.folded) next[i]!.showCards = true
-    }
+    const wasFacingBet = facingBet
+    const potSnap = pot
 
     const contenders = next
       .map((s, i) => ({ i, s }))
       .filter((x) => !x.s.folded)
-    let winnerIdxs: number[] = []
-    let label = ''
 
-    if (contenders.length === 1) {
-      winnerIdxs = [contenders[0]!.i]
-      label = contenders[0]!.s.name
-    } else if (contenders.length > 1) {
-      const ranked = bestSeatIndexes(next, board)
-      winnerIdxs = ranked.idxs
-      label = ranked.label
-    }
-
-    awardPotToWinners(next, pot, winnerIdxs)
-    applySeats(next)
-    setPot(0)
-    setPhase('over')
-    setToCall(0)
-    playPotWinFx(winnerIdxs, pot)
-    const xpNote = grantXp('lose', pot)
-    const names = winnerIdxs.map((i) => next[i]!.name).join(', ')
-    setStatus(
-      facingBet
-        ? `Вы сбросили. Банк ${formatChips(pot)} → ${names}${label ? ` (${label})` : ''}.${xpNote}`
-        : `Вы сбросили. Банк ${formatChips(pot)} уходит: ${names}.${xpNote}`,
-    )
-    setResultClass('lose')
     onHaptic?.('error')
     playUiSound('warn')
+    setToCall(0)
+
+    if (contenders.length <= 1) {
+      const winnerIdxsLocal = contenders.length === 1 ? [contenders[0]!.i] : []
+      const label = contenders.length === 1 ? contenders[0]!.s.name : ''
+      for (let i = 1; i < next.length; i += 1) {
+        if (!next[i]!.folded) next[i]!.showCards = true
+      }
+      awardPotToWinners(next, potSnap, winnerIdxsLocal)
+      applySeats(next)
+      setPot(0)
+      setPhase('over')
+      playPotWinFx(winnerIdxsLocal, potSnap)
+      const xpNote = grantXp('lose', potSnap)
+      const names = winnerIdxsLocal.map((i) => next[i]!.name).join(', ')
+      setStatus(
+        wasFacingBet
+          ? `Вы сбросили. Банк ${formatChips(potSnap)} → ${names}${label ? ` (${label})` : ''}.${xpNote}`
+          : `Вы сбросили. Банк ${formatChips(potSnap)} уходит: ${names}.${xpNote}`,
+      )
+      setResultClass('lose')
+      return
+    }
+
+    // Multiway after fold — always run the board out to five cards before ranking.
+    streetBusyRef.current = true
+    applySeats(next)
+    setStatus('Вы сбросили. Открываем карты до ривера…')
+
+    let deckNow = [...deck]
+    let boardNow = [...board]
+
+    const dealNext = () => {
+      if (boardNow.length >= 5) {
+        resolveFoldShowdown(boardNow, next, potSnap, wasFacingBet)
+        return
+      }
+
+      if (boardNow.length === 0) {
+        deckNow.pop()
+        const flop = [deckNow.pop()!, deckNow.pop()!, deckNow.pop()!]
+        boardNow = flop
+        boardLenRef.current = 0
+        setFreshBoardIds(flop.map((c) => c.id))
+        setBoard(flop)
+        setDeck(deckNow)
+        setPhase('flop')
+        playPokerSound('cards')
+        window.setTimeout(dealNext, FOLD_RUNOUT_MS)
+        return
+      }
+
+      if (boardNow.length === 3) {
+        deckNow.pop()
+        const card = deckNow.pop()!
+        boardNow = [...boardNow, card]
+        boardLenRef.current = 3
+        setFreshBoardIds([card.id])
+        setBoard(boardNow)
+        setDeck(deckNow)
+        setPhase('turn')
+        playPokerSound('card')
+        window.setTimeout(dealNext, FOLD_RUNOUT_MS)
+        return
+      }
+
+      // 4 → river
+      deckNow.pop()
+      const card = deckNow.pop()!
+      boardNow = [...boardNow, card]
+      boardLenRef.current = 4
+      setFreshBoardIds([card.id])
+      setBoard(boardNow)
+      setDeck(deckNow)
+      setPhase('river')
+      playPokerSound('card')
+      window.setTimeout(dealNext, FOLD_RUNOUT_MS)
+    }
+
+    window.setTimeout(dealNext, 420)
   }
 
   useEffect(() => {
@@ -1675,44 +1837,17 @@ export function PokerGame({
                   }${isWinner ? ' is-winner' : ''}${playerActing ? ' is-acting' : ''}`}
                 >
                   {isHuman ? (
-                    <>
-                      <SeatCard
-                        name={seat.name}
-                        level={playerLevel}
-                        stackText={formatChips(seat.stack)}
-                        dealer={i === dealerIdx && phase !== 'over'}
-                        active={!seat.folded}
-                        accent={seat.accent}
-                        xpFrac={playerLevelInfo.frac}
-                        levelTitle={playerLevelTitle}
-                        hideName={false}
-                      />
-                      <div className="poker-you-cards" key={`hand-${dealTick}`}>
-                        {liveHint ? (
-                          <div className="poker-live-hint" aria-live="polite">
-                            <span className="poker-live-combo">{liveHint.combo}</span>
-                            <span className="poker-live-sep" aria-hidden>
-                              ·
-                            </span>
-                            <span className={`poker-live-odds is-${liveHint.tone}`}>
-                              {liveHint.exact ? `${liveHint.pct}%` : `~${liveHint.pct}%`}
-                            </span>
-                          </div>
-                        ) : null}
-                        <div className="poker-hand">
-                          {seat.hole.map((c, ci) => (
-                            <PlayingCard
-                              key={c.id}
-                              card={c}
-                              index={ci}
-                              enter="none"
-                              className="poker-hole-card poker-deal-to-you"
-                              style={{ animationDelay: `${ci * dealTiming.gapMs}ms` }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </>
+                    <SeatCard
+                      name={seat.name}
+                      level={playerLevel}
+                      stackText={formatChips(seat.stack)}
+                      dealer={i === dealerIdx && phase !== 'over'}
+                      active={!seat.folded}
+                      accent={seat.accent}
+                      xpFrac={playerLevelInfo.frac}
+                      levelTitle={playerLevelTitle}
+                      hideName={false}
+                    />
                   ) : (
                     <>
                       <div
@@ -1752,7 +1887,38 @@ export function PokerGame({
             })}
           </div>
 
-          <div className="poker-bottom">
+          <div
+            className={`poker-bottom${
+              phase !== 'over' && !player.folded && !allInSpectating ? ' is-acting-hand' : ''
+            }`}
+          >
+            <div className="poker-hand-dock" key={`hand-${dealTick}`}>
+              {liveHint ? (
+                <div className="poker-live-hint" aria-live="polite">
+                  <span className="poker-live-combo">{liveHint.combo}</span>
+                  <span className="poker-live-sep" aria-hidden>
+                    ·
+                  </span>
+                  <span className={`poker-live-odds is-${liveHint.tone}`}>
+                    {liveHint.exact ? `${liveHint.pct}%` : `~${liveHint.pct}%`}
+                  </span>
+                </div>
+              ) : null}
+              <div className="poker-you-cards">
+                <div className="poker-hand">
+                  {player.hole.map((c, ci) => (
+                    <PlayingCard
+                      key={c.id}
+                      card={c}
+                      index={ci}
+                      enter="none"
+                      className="poker-hole-card poker-deal-to-you"
+                      style={{ animationDelay: `${ci * dealTiming.gapMs}ms` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
             <div className="poker-actions">
               {phase !== 'over' && allInSpectating ? (
                 <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
