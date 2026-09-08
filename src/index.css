@@ -3468,7 +3468,7 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-bet-s0 {
   left: 50%;
   top: auto;
-  bottom: 22%;
+  bottom: 27%;
   transform: translateX(-50%);
 }
 
@@ -4611,7 +4611,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   .poker-bet-s0,
   .poker-bet-you {
     left: 50%;
-    bottom: 20%;
+    bottom: 25%;
     transform: translateX(-50%);
   }
   .poker-bet-s1 {
