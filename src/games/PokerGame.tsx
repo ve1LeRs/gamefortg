@@ -134,6 +134,15 @@ function formatChips(n: number) {
   return String(n)
 }
 
+function BetActionLabel({ verb, amount }: { verb: string; amount: number }) {
+  return (
+    <span className="poker-btn-stack">
+      <span className="poker-btn-verb">{verb}</span>
+      <span className="poker-btn-amt">{formatChips(amount)}</span>
+    </span>
+  )
+}
+
 function evaluate(cards: Card[]): HandRank {
   const values = cards
     .map((c) => rankValue(c.rank, POKER_RANKS))
@@ -501,6 +510,26 @@ function botDecide(opts: {
 
 function isLandscapeNow() {
   if (typeof window === 'undefined') return true
+  // Desktop Telegram / web: always playable — no “rotate phone” gate.
+  try {
+    const p = window.Telegram?.WebApp?.platform?.toLowerCase() ?? ''
+    if (
+      p === 'tdesktop' ||
+      p === 'web' ||
+      p === 'weba' ||
+      p === 'webk' ||
+      p === 'macos' ||
+      p === 'linux' ||
+      p === 'windows' ||
+      p === 'unigram' ||
+      p === 'desktop'
+    ) {
+      return true
+    }
+    if (!window.Telegram?.WebApp && window.innerWidth >= 820) return true
+  } catch {
+    /* noop */
+  }
   if (window.innerWidth > window.innerHeight) return true
   if (window.innerHeight > window.innerWidth) return false
   try {
@@ -2066,7 +2095,11 @@ export function PokerGame({
                   <div className="poker-actions-row">
                     {facingBet ? (
                       <button type="button" className="poker-btn poker-btn-soft" onClick={callBet}>
-                        {toCall >= player.stack ? 'All In' : `Колл ${formatChips(toCall)}`}
+                        {toCall >= player.stack ? (
+                          'All In'
+                        ) : (
+                          <BetActionLabel verb="Колл" amount={toCall} />
+                        )}
                       </button>
                     ) : (
                       <button type="button" className="poker-btn poker-btn-soft" onClick={check}>
@@ -2079,13 +2112,17 @@ export function PokerGame({
                       onClick={bet}
                       disabled={wager <= 0 || (facingBet && wager < toCall)}
                     >
-                      {wager >= player.stack && player.stack > 0
-                        ? 'All In'
-                        : facingBet
-                          ? wager > toCall
-                            ? `Рейз ${formatChips(wager)}`
-                            : `Колл ${formatChips(toCall)}`
-                          : `Поставить ${formatChips(wager)}`}
+                      {wager >= player.stack && player.stack > 0 ? (
+                        'All In'
+                      ) : facingBet ? (
+                        wager > toCall ? (
+                          <BetActionLabel verb="Рейз" amount={wager} />
+                        ) : (
+                          <BetActionLabel verb="Колл" amount={toCall} />
+                        )
+                      ) : (
+                        <BetActionLabel verb="Ставка" amount={wager} />
+                      )}
                     </button>
                     <button type="button" className="poker-btn poker-btn-fold" onClick={fold}>
                       Сброс

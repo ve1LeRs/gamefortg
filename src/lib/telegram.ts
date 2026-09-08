@@ -64,6 +64,27 @@ export function getWebApp(): TelegramWebApp | null {
   return window.Telegram?.WebApp ?? null
 }
 
+/** Telegram Desktop / Web clients — no phone rotate, roomier layout. */
+export function isTelegramDesktop(wa = getWebApp()): boolean {
+  const p = (wa?.platform ?? '').toLowerCase()
+  if (
+    p === 'tdesktop' ||
+    p === 'web' ||
+    p === 'weba' ||
+    p === 'webk' ||
+    p === 'macos' ||
+    p === 'linux' ||
+    p === 'windows' ||
+    p === 'unigram' ||
+    p === 'desktop'
+  ) {
+    return true
+  }
+  // Local browser preview without Telegram bridge
+  if (!wa && typeof window !== 'undefined' && window.innerWidth >= 820) return true
+  return false
+}
+
 export function requestAppFullscreen(wa = getWebApp()): boolean {
   if (!wa) return false
   try {
@@ -85,7 +106,10 @@ export function requestAppFullscreen(wa = getWebApp()): boolean {
 }
 
 export function applyTelegramChrome(wa = getWebApp()) {
-  if (!wa) return
+  if (!wa) {
+    document.body.classList.toggle('tg-desktop', isTelegramDesktop(null))
+    return
+  }
 
   // Colors / expand once up front — avoid repeating fullscreen which flashes the WebView.
   if (!chromeApplied) {
@@ -129,10 +153,12 @@ export function applyTelegramChrome(wa = getWebApp()) {
   }
 
   document.body.classList.add('tg-webapp')
+  document.body.classList.toggle('tg-desktop', isTelegramDesktop(wa))
 
   const syncFullscreenClass = () => {
     document.body.classList.toggle('tg-fullscreen', !!wa.isFullscreen)
     document.body.classList.toggle('tg-expanded', !!wa.isExpanded || !!wa.isFullscreen)
+    document.body.classList.toggle('tg-desktop', isTelegramDesktop(wa))
   }
   syncFullscreenClass()
 
