@@ -174,9 +174,7 @@ export function PotFlightOverlay({
           [0, 1, 2, 3, 4, 5].map((ci) => (
             <span
               key={`${seatIdx}-${ci}`}
-              className={`poker-pot-flight-chip is-c${ci % 5} poker-fly-to-s${seatIdx}${
-                seatIdx === 2 ? ' poker-fly-online-opp' : ''
-              }`}
+              className={`poker-pot-flight-chip is-c${ci % 5} poker-fly-to-s${seatIdx}`}
               style={{
                 animationDelay: `${80 + ti * 70 + ci * 55}ms`,
                 ['--chip-scatter' as string]: `${(ci % 3) * 6 - 6}px`,
