@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { PlayingCard } from '../../components/PlayingCard'
 import { OnlineLobbyMenu, OnlineWait } from '../../components/OnlineLobby'
 import { getWebApp } from '../../lib/telegram'
-import { playPokerSound, playUiSound } from '../../lib/settings'
+import { getDealTiming, playPokerSound, playUiSound } from '../../lib/settings'
 import {
   type PokerAction,
   type PokerSeatView,
+  bestHand,
   formatChips,
   BLIND,
 } from './engine'
@@ -17,6 +18,9 @@ import {
   joinPokerRoom,
   watchPokerLobby,
 } from './peerRoom'
+import { BetActionLabel, ChipPile, PokerSeatCard, PotFlightOverlay } from './tableChrome'
+
+const REVEAL_STAGGER_MS = 420
 
 function playerFromTelegram(): PlayerInfo {
   const u = getWebApp()?.initDataUnsafe?.user
@@ -62,40 +66,8 @@ function useLandscape() {
   return landscape
 }
 
-function BetActionLabel({ verb, amount }: { verb: string; amount: number }) {
-  return (
-    <span className="poker-btn-stack">
-      <span className="poker-btn-verb">{verb}</span>
-      <span className="poker-btn-amt">{formatChips(amount)}</span>
-    </span>
-  )
-}
-
-function SeatBadge({
-  name,
-  stack,
-  accent,
-  dealer,
-  active,
-}: {
-  name: string
-  stack: number
-  accent: string
-  dealer?: boolean
-  active?: boolean
-}) {
-  const initial = (name.trim()[0] || '?').toUpperCase()
-  return (
-    <div className={`poker-seat${active ? ' is-active' : ''}`}>
-      <div className="poker-seat-avatar" style={{ background: accent }} aria-hidden>
-        {initial}
-        {dealer ? <span className="poker-dealer-btn">D</span> : null}
-      </div>
-      <div className="poker-seat-meta">
-        <span className="poker-seat-stack">{formatChips(stack)}</span>
-      </div>
-    </div>
-  )
+function holeKey(cards: { id: string }[] | null | undefined) {
+  return cards?.map((c) => c.id).join(',') ?? ''
 }
 
 function PokerOnlineTable({
@@ -113,21 +85,191 @@ function PokerOnlineTable({
 }) {
   const landscape = useLandscape()
   const [wager, setWager] = useState(() => Math.max(view.minBet, BLIND))
-  const prevPhase = useRef(view.phase)
+  const [dealTick, setDealTick] = useState(1)
+  const [freshBoardIds, setFreshBoardIds] = useState<string[]>([])
+  const [oppRevealed, setOppRevealed] = useState(false)
+  const [oppFlipping, setOppFlipping] = useState(false)
+  const [winnerIdxs, setWinnerIdxs] = useState<number[]>([])
+  const [potFlight, setPotFlight] = useState<{ id: number; targets: number[]; amount: number } | null>(
+    null,
+  )
+
+  const prev = useRef({
+    phase: view.phase,
+    boardLen: view.board.length,
+    boardIds: view.board.map((c) => c.id).join(','),
+    hole: holeKey(view.you.hole),
+    pot: view.pot,
+    yourTurn: view.yourTurn,
+    oppStreet: view.opponent.streetBet,
+    oppFolded: view.opponent.folded,
+    oppStack: view.opponent.stack,
+    youStack: view.you.stack,
+    status: view.status,
+  })
+  const potFlightTimerRef = useRef(0)
+  const revealTimerRef = useRef(0)
+  const lastPotRef = useRef(view.pot)
+  const dealTiming = useMemo(() => getDealTiming(), [dealTick])
+
+  const allInSpectating =
+    view.phase !== 'over' && view.you.stack <= 0 && !view.yourTurn && !view.you.folded
+
+  useEffect(() => {
+    if (view.pot > 0) lastPotRef.current = view.pot
+  }, [view.pot])
+
+  // New hand → deal anim + chips sound
+  useEffect(() => {
+    const key = holeKey(view.you.hole)
+    if (key && key !== prev.current.hole && view.phase === 'preflop') {
+      setDealTick((t) => t + 1)
+      setOppRevealed(false)
+      setOppFlipping(false)
+      setWinnerIdxs([])
+      setFreshBoardIds([])
+      playPokerSound('cards')
+      window.setTimeout(() => playPokerSound('chips'), 140)
+    }
+    prev.current.hole = key
+  }, [view.you.hole, view.phase])
+
+  // Board deals
+  useEffect(() => {
+    const ids = view.board.map((c) => c.id)
+    const joined = ids.join(',')
+    if (joined !== prev.current.boardIds) {
+      const prevIds = prev.current.boardIds ? prev.current.boardIds.split(',').filter(Boolean) : []
+      const fresh = ids.filter((id) => !prevIds.includes(id))
+      if (fresh.length) {
+        setFreshBoardIds(fresh)
+        if (fresh.length >= 3) playPokerSound('cards')
+        else playPokerSound('card')
+        const { baseMs } = getDealTiming()
+        window.setTimeout(() => setFreshBoardIds([]), Math.max(280, Math.round(baseMs * 0.55)))
+      }
+      prev.current.boardIds = joined
+      prev.current.boardLen = ids.length
+    }
+  }, [view.board])
+
+  // Opponent action sounds while waiting
+  useEffect(() => {
+    const p = prev.current
+    if (view.phase === 'over') {
+      p.yourTurn = view.yourTurn
+      p.oppStreet = view.opponent.streetBet
+      p.oppFolded = view.opponent.folded
+      p.oppStack = view.opponent.stack
+      p.youStack = view.you.stack
+      p.pot = view.pot
+      return
+    }
+
+    const becameTheirTurn = p.yourTurn && !view.yourTurn
+    const becameYourTurn = !p.yourTurn && view.yourTurn
+    const oppBetGrew = view.opponent.streetBet > p.oppStreet
+    const oppFoldedNow = !p.oppFolded && view.opponent.folded
+    const potGrew = view.pot > p.pot && !view.yourTurn
+
+    if (oppFoldedNow) {
+      playUiSound('ok')
+    } else if (oppBetGrew || (becameYourTurn && potGrew && view.toCall > 0)) {
+      playPokerSound('chips')
+    } else if (becameYourTurn && view.toCall <= 0 && !becameTheirTurn) {
+      playPokerSound('check')
+    } else if (becameTheirTurn && view.opponent.streetBet === p.oppStreet && !oppBetGrew) {
+      // they may still be thinking — no sound yet
+    }
+
+    p.yourTurn = view.yourTurn
+    p.oppStreet = view.opponent.streetBet
+    p.oppFolded = view.opponent.folded
+    p.oppStack = view.opponent.stack
+    p.youStack = view.you.stack
+    p.pot = view.pot
+  }, [
+    view.yourTurn,
+    view.opponent.streetBet,
+    view.opponent.folded,
+    view.opponent.stack,
+    view.you.stack,
+    view.pot,
+    view.toCall,
+    view.phase,
+  ])
+
+  // Staggered opponent reveal at showdown
+  useEffect(() => {
+    window.clearTimeout(revealTimerRef.current)
+    if (view.phase === 'over' && view.opponent.hole && !view.opponent.folded) {
+      if (oppRevealed) return
+      setOppFlipping(true)
+      playPokerSound('card')
+      revealTimerRef.current = window.setTimeout(() => {
+        setOppFlipping(false)
+        setOppRevealed(true)
+      }, REVEAL_STAGGER_MS)
+      return () => window.clearTimeout(revealTimerRef.current)
+    }
+    if (view.phase !== 'over') {
+      setOppRevealed(false)
+      setOppFlipping(false)
+    }
+  }, [view.phase, view.opponent.hole, view.opponent.folded, oppRevealed])
+
+  // Pot flight + outcome sounds when hand ends
+  useEffect(() => {
+    if (prev.current.phase !== 'over' && view.phase === 'over') {
+      const potSnap = Math.max(lastPotRef.current, prev.current.pot, view.pot)
+      const targets: number[] = []
+      if (view.winner === view.seat || (view.winner == null && view.youWon)) targets.push(0)
+      if (view.winner != null && view.winner !== view.seat) targets.push(2)
+      if (view.winner == null && view.youWon !== false) {
+        // split — fly to both
+        if (!targets.includes(0)) targets.push(0)
+        if (!targets.includes(2)) targets.push(2)
+      }
+      if (targets.length === 0) targets.push(view.youWon ? 0 : 2)
+
+      window.clearTimeout(potFlightTimerRef.current)
+      setWinnerIdxs(targets)
+      setPotFlight({ id: Date.now(), targets, amount: Math.max(1, potSnap) })
+      playPokerSound('chips')
+      window.setTimeout(() => playPokerSound('chips'), 320)
+      potFlightTimerRef.current = window.setTimeout(() => setPotFlight(null), 1200)
+
+      if (view.youWon === true) {
+        onHaptic?.('success')
+        playUiSound('ok')
+      } else if (view.youWon === false) {
+        onHaptic?.('error')
+        playUiSound('warn')
+      } else {
+        onHaptic?.('medium')
+        playUiSound('tap')
+      }
+    }
+    if (view.phase !== 'over' && prev.current.phase === 'over') {
+      setWinnerIdxs([])
+      setPotFlight(null)
+    }
+    prev.current.phase = view.phase
+    prev.current.pot = view.pot
+  }, [view.phase, view.winner, view.seat, view.youWon, view.pot, onHaptic])
 
   useEffect(() => {
     setWager(Math.max(view.minBet, Math.min(view.maxBet, wager || view.minBet)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.minBet, view.maxBet, view.phase, view.toCall])
 
-  useEffect(() => {
-    if (prevPhase.current !== view.phase) {
-      if (view.board.length >= 3 && view.phase === 'flop') playPokerSound('cards')
-      else if (view.phase === 'turn' || view.phase === 'river') playPokerSound('card')
-      else if (view.phase === 'over') playPokerSound('chips')
-      prevPhase.current = view.phase
-    }
-  }, [view.phase, view.board.length])
+  useEffect(
+    () => () => {
+      window.clearTimeout(potFlightTimerRef.current)
+      window.clearTimeout(revealTimerRef.current)
+    },
+    [],
+  )
 
   const clampWager = (n: number) => Math.max(view.minBet, Math.min(view.maxBet, Math.floor(n)))
 
@@ -140,6 +282,8 @@ function PokerOnlineTable({
     } else if (action.type === 'check') {
       onHaptic?.('light')
       playPokerSound('check')
+    } else if (action.type === 'nextHand') {
+      onHaptic?.('medium')
     } else {
       onHaptic?.('medium')
       playPokerSound('chips')
@@ -148,6 +292,39 @@ function PokerOnlineTable({
 
   const resultClass =
     view.phase === 'over' ? (view.youWon ? 'win' : view.youWon === false ? 'lose' : '') : ''
+
+  const liveHint = useMemo(() => {
+    if (view.you.hole.length < 2) return null
+    const combo = (() => {
+      const hand = bestHand(view.you.hole, view.board)
+      if (view.board.length === 0) {
+        if (hand.label === 'Пара') return 'Пара в руке'
+        return hand.label
+      }
+      return hand.label
+    })()
+    let pct = 50
+    let exact = false
+    if (view.phase === 'over' && view.opponent.hole && !view.opponent.folded) {
+      const yours = bestHand(view.you.hole, view.board).score
+      const theirs = bestHand(view.opponent.hole, view.board).score
+      pct = yours > theirs ? 100 : yours < theirs ? 0 : 50
+      exact = true
+    } else if (view.board.length >= 3) {
+      const score = bestHand(view.you.hole, view.board).score
+      if (score >= 5000) pct = 78
+      else if (score >= 3000) pct = 62
+      else if (score >= 1000) pct = 44
+      else pct = 32
+    }
+    const tone = pct >= 58 ? 'good' : pct <= 38 ? 'low' : 'mid'
+    return { combo, pct, tone, exact }
+  }, [view.you.hole, view.board, view.phase, view.opponent.hole, view.opponent.folded])
+
+  const showOppCards = oppRevealed && !!view.opponent.hole && !view.opponent.folded
+  const youWinner = winnerIdxs.includes(0)
+  const oppWinner = winnerIdxs.includes(2)
+  const waitingTurn = view.phase !== 'over' && !view.yourTurn && !allInSpectating
 
   return (
     <div className={`poker-landscape${landscape ? ' is-landscape' : ' is-portrait'}`}>
@@ -176,64 +353,123 @@ function PokerOnlineTable({
               </div>
 
               <div className="poker-board">
-                {view.board.map((c, i) => (
-                  <PlayingCard key={c.id} card={c} index={i} enter="none" className="poker-board-card" />
-                ))}
+                {view.board.map((c, i) => {
+                  const isFresh = freshBoardIds.includes(c.id)
+                  const freshIndex = isFresh ? freshBoardIds.indexOf(c.id) : 0
+                  return (
+                    <PlayingCard
+                      key={c.id}
+                      card={c}
+                      index={i}
+                      enter="none"
+                      className={`poker-board-card${isFresh ? ' poker-deal-board' : ''}`}
+                      style={
+                        isFresh
+                          ? { animationDelay: `${freshIndex * dealTiming.boardGapMs}ms` }
+                          : undefined
+                      }
+                    />
+                  )
+                })}
               </div>
-
-              {view.pot > 0 ? (
-                <div className="poker-pot" aria-label={`Банк ${view.pot}`}>
-                  <span className="poker-pot-chip" aria-hidden />
-                  <span>
-                    {formatChips(view.pot)} БАНК
-                  </span>
-                </div>
-              ) : null}
             </div>
 
-            {/* Opponent — top */}
+            {view.pot > 0 ? (
+              <div className="poker-pot" key={`pot-${view.pot}`}>
+                <ChipPile amount={view.pot} format={formatChips} compact maxChips={3} />
+                <span className="poker-pot-label">Банк</span>
+              </div>
+            ) : potFlight ? (
+              <PotFlightOverlay
+                id={potFlight.id}
+                targets={potFlight.targets}
+                amount={potFlight.amount}
+                format={formatChips}
+              />
+            ) : null}
+
+            {view.opponent.streetBet > 0 ? (
+              <ChipPile
+                amount={view.opponent.streetBet}
+                format={formatChips}
+                className="poker-bet-on-table poker-bet-online-opp"
+                flat
+              />
+            ) : null}
+
+            {view.you.streetBet > 0 ? (
+              <ChipPile
+                amount={view.you.streetBet}
+                format={formatChips}
+                className="poker-bet-on-table poker-bet-s0"
+                flat
+              />
+            ) : null}
+
+            {/* Opponent — top center (HU) */}
             <div
-              className={`poker-seat-slot poker-seat-s2${view.opponent.folded ? ' is-folded' : ''}${
-                view.winner != null && view.winner !== view.seat ? ' is-winner' : ''
-              }${view.opponent.hole ? ' is-revealed' : ''}`}
+              className={`poker-seat-slot poker-seat-s2 poker-seat-online-opp${
+                view.opponent.folded ? ' is-folded' : ''
+              }${showOppCards ? ' is-revealed' : ''}${oppWinner ? ' is-winner' : ''}`}
             >
-              <div className={`poker-bot-cards${view.opponent.hole ? ' is-revealed' : ''}`}>
-                {view.opponent.hole
+              <div
+                className={`poker-bot-cards${showOppCards ? ' is-revealed' : ''}${
+                  oppFlipping ? ' is-flipping' : ''
+                }`}
+                key={`opp-cards-${dealTick}`}
+              >
+                {showOppCards && view.opponent.hole
                   ? view.opponent.hole.map((c, ci) => (
-                      <PlayingCard key={c.id} card={c} index={ci} enter="none" className="poker-hole-card" />
+                      <PlayingCard
+                        key={c.id}
+                        card={c}
+                        index={ci}
+                        enter="none"
+                        className="poker-hole-card poker-deal-to-bot"
+                      />
                     ))
                   : [0, 1].map((ci) => (
                       <PlayingCard
-                        key={`opp-back-${ci}`}
+                        key={`opp-back-${dealTick}-${ci}`}
                         faceDown
                         index={ci}
                         enter="none"
-                        className="poker-hole-card"
+                        className="poker-hole-card poker-deal-to-bot"
+                        style={{
+                          animationDelay: `${Math.round(dealTiming.gapMs * 1.35) + ci * dealTiming.gapMs}ms`,
+                        }}
                       />
                     ))}
               </div>
-              <SeatBadge
+              <PokerSeatCard
                 name={opponentName}
-                stack={view.opponent.stack}
+                level={12}
+                stackText={formatChips(view.opponent.stack)}
                 accent="linear-gradient(145deg,#6b3a3a,#3a1515)"
-                dealer={view.dealer !== view.seat}
+                dealer={view.dealer !== view.seat && view.phase !== 'over'}
                 active={!view.opponent.folded}
+                hideName
               />
             </div>
-
-            {view.opponent.streetBet > 0 ? (
-              <div className="poker-bet-on-table poker-bet-s2">
-                <span className="poker-chip-amt">{formatChips(view.opponent.streetBet)}</span>
-              </div>
-            ) : null}
 
             {/* You — bottom */}
             <div
               className={`poker-seat-slot poker-seat-s0${view.you.folded ? ' is-folded' : ''}${
-                view.yourTurn ? ' is-acting' : ''
-              }${view.winner === view.seat ? ' is-winner' : ''}`}
+                view.yourTurn && view.phase !== 'over' && !allInSpectating ? ' is-acting' : ''
+              }${youWinner ? ' is-winner' : ''}`}
             >
-              <div className="poker-you-cards">
+              <div className="poker-you-cards" key={`hand-${dealTick}`}>
+                {liveHint ? (
+                  <div className="poker-live-hint" aria-live="polite">
+                    <span className="poker-live-combo">{liveHint.combo}</span>
+                    <span className="poker-live-sep" aria-hidden>
+                      ·
+                    </span>
+                    <span className={`poker-live-odds is-${liveHint.tone}`}>
+                      {liveHint.exact ? `${liveHint.pct}%` : `~${liveHint.pct}%`}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="poker-hand">
                   {view.you.hole.map((c, ci) => (
                     <PlayingCard
@@ -241,23 +477,29 @@ function PokerOnlineTable({
                       card={c}
                       index={ci}
                       enter="none"
-                      className="poker-hole-card"
+                      className="poker-hole-card poker-deal-to-you"
+                      style={{ animationDelay: `${ci * dealTiming.gapMs}ms` }}
                     />
                   ))}
                 </div>
                 {view.you.hole.length >= 2 ? (
                   <div
                     className={`poker-bet-amount-row${
-                      view.phase === 'over' ? ' is-ghost' : view.yourTurn ? '' : ' is-dimmed'
+                      view.phase === 'over' || allInSpectating ? ' is-ghost' : waitingTurn ? ' is-dimmed' : ''
                     }`}
-                    aria-hidden={view.phase === 'over'}
+                    aria-hidden={view.phase === 'over' || allInSpectating}
                   >
                     <div className="poker-bet-stepper" aria-label="Размер ставки">
                       <button
                         type="button"
                         className="poker-bet-nudge"
                         aria-label="Уменьшить ставку"
-                        disabled={view.phase === 'over' || !view.yourTurn || wager <= view.minBet}
+                        disabled={
+                          view.phase === 'over' ||
+                          allInSpectating ||
+                          !view.yourTurn ||
+                          wager <= view.minBet
+                        }
                         onClick={() => setWager((w) => clampWager(w - 10))}
                       >
                         −
@@ -267,7 +509,12 @@ function PokerOnlineTable({
                         type="button"
                         className="poker-bet-nudge"
                         aria-label="Увеличить ставку"
-                        disabled={view.phase === 'over' || !view.yourTurn || wager >= view.maxBet}
+                        disabled={
+                          view.phase === 'over' ||
+                          allInSpectating ||
+                          !view.yourTurn ||
+                          wager >= view.maxBet
+                        }
                         onClick={() => setWager((w) => clampWager(w + 10))}
                       >
                         +
@@ -276,26 +523,22 @@ function PokerOnlineTable({
                   </div>
                 ) : null}
               </div>
-              <SeatBadge
+              <PokerSeatCard
                 name="Вы"
-                stack={view.you.stack}
+                level={10}
+                stackText={formatChips(view.you.stack)}
                 accent="linear-gradient(145deg,#3a6ea5,#1a3358)"
-                dealer={view.dealer === view.seat}
+                dealer={view.dealer === view.seat && view.phase !== 'over'}
                 active={!view.you.folded}
+                hideName
               />
             </div>
-
-            {view.you.streetBet > 0 ? (
-              <div className="poker-bet-on-table poker-bet-s0">
-                <span className="poker-chip-amt">{formatChips(view.you.streetBet)}</span>
-              </div>
-            ) : null}
           </div>
 
           <div className="poker-bottom">
             <div
-              className={`poker-actions${view.phase !== 'over' && !view.yourTurn ? ' is-dimmed' : ''}`}
-              aria-disabled={view.phase !== 'over' && !view.yourTurn ? true : undefined}
+              className={`poker-actions${waitingTurn ? ' is-dimmed' : ''}`}
+              aria-disabled={waitingTurn || undefined}
             >
               {view.phase === 'over' ? (
                 <div className="poker-actions-row">
@@ -310,6 +553,8 @@ function PokerOnlineTable({
                     Ещё раздача
                   </button>
                 </div>
+              ) : allInSpectating ? (
+                <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
               ) : (
                 <>
                   <div className="poker-bet-presets">
@@ -326,7 +571,9 @@ function PokerOnlineTable({
                       className="poker-bet-chip"
                       disabled={!view.yourTurn}
                       onClick={() =>
-                        setWager(clampWager(Math.max(view.minBet, Math.floor(view.pot / 2) || view.minBet)))
+                        setWager(
+                          clampWager(Math.max(view.minBet, Math.floor(view.pot / 2) || view.minBet)),
+                        )
                       }
                     >
                       ½ банка
@@ -359,7 +606,11 @@ function PokerOnlineTable({
                         {view.callAmount >= view.you.stack ? (
                           'All In'
                         ) : (
-                          <BetActionLabel verb="Колл" amount={Math.max(view.callAmount, view.toCall)} />
+                          <BetActionLabel
+                            verb="Колл"
+                            amount={Math.max(view.callAmount, view.toCall)}
+                            format={formatChips}
+                          />
                         )}
                       </button>
                     ) : (
@@ -387,12 +638,12 @@ function PokerOnlineTable({
                         'All In'
                       ) : view.toCall > 0 ? (
                         wager > view.toCall ? (
-                          <BetActionLabel verb="Рейз" amount={clampWager(wager)} />
+                          <BetActionLabel verb="Рейз" amount={clampWager(wager)} format={formatChips} />
                         ) : (
-                          <BetActionLabel verb="Колл" amount={view.toCall} />
+                          <BetActionLabel verb="Колл" amount={view.toCall} format={formatChips} />
                         )
                       ) : (
-                        <BetActionLabel verb="Ставка" amount={clampWager(wager)} />
+                        <BetActionLabel verb="Ставка" amount={clampWager(wager)} format={formatChips} />
                       )}
                     </button>
                     <button
