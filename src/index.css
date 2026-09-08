@@ -3428,18 +3428,56 @@ body.poker-landscape-active .app-main.game-mode {
   pointer-events: none;
 }
 
-/* Absolute on the table — sit on the felt near each rim, not under the seats. */
-.poker-bet-bot {
-  left: auto;
-  right: 17%;
-  top: 16%;
+/* Absolute on the felt near each seat — siblings of seats, not inside them. */
+.poker-bet-s0 {
+  left: 14%;
+  top: auto;
+  bottom: 20%;
   transform: none;
 }
 
+.poker-bet-s1 {
+  left: 12%;
+  top: 40%;
+  bottom: auto;
+  transform: none;
+}
+
+.poker-bet-s2 {
+  left: 26%;
+  top: 15%;
+  bottom: auto;
+  transform: none;
+}
+
+.poker-bet-s3 {
+  left: 52%;
+  top: 15%;
+  bottom: auto;
+  transform: none;
+}
+
+.poker-bet-s4 {
+  left: auto;
+  right: 16%;
+  top: 15%;
+  bottom: auto;
+  transform: none;
+}
+
+/* Compat aliases for old heads-up class names. */
 .poker-bet-you {
-  left: 15%;
+  left: 14%;
   top: auto;
-  bottom: 18%;
+  bottom: 20%;
+  transform: none;
+}
+
+.poker-bet-bot {
+  left: auto;
+  right: 16%;
+  top: 15%;
+  bottom: auto;
   transform: none;
 }
 
@@ -3454,23 +3492,105 @@ body.poker-landscape-active .app-main.game-mode {
   }
 }
 
-/* Seats outside the oval; bot clear of Telegram close/menu chrome. */
+/* Seats outside the oval rim; s4 clear of Telegram close/menu chrome. */
 .poker-seat-slot {
   position: absolute;
   z-index: 4;
   width: clamp(64px, 12vw, 100px);
 }
 
-.poker-seat-bot {
-  left: auto;
-  right: max(52px, 13%);
-  top: max(28px, 5%);
+.poker-seat-s0 {
+  left: 2%;
+  bottom: 1%;
+  top: auto;
+  transform: none;
+  z-index: 5;
+}
+
+.poker-seat-s1 {
+  left: 2%;
+  top: 32%;
+  bottom: auto;
   transform: none;
   width: auto;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  z-index: 5;
+}
+
+.poker-seat-s2 {
+  left: 22%;
+  top: max(28px, 4%);
+  bottom: auto;
+  transform: none;
+  width: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+}
+
+.poker-seat-s3 {
+  left: 48%;
+  top: max(28px, 4%);
+  bottom: auto;
+  transform: none;
+  width: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+}
+
+.poker-seat-s4 {
+  left: auto;
+  right: max(52px, 12%);
+  top: max(28px, 5%);
+  bottom: auto;
+  transform: none;
+  width: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+}
+
+.poker-seat-s1.is-revealed,
+.poker-seat-s2.is-revealed,
+.poker-seat-s3.is-revealed,
+.poker-seat-s4.is-revealed {
+  z-index: 7;
+}
+
+.poker-seat-slot.is-folded {
+  opacity: 0.45;
+}
+
+/* Compat aliases for old heads-up seat classes. */
+.poker-seat-you {
+  left: 2%;
+  bottom: 1%;
+  top: auto;
+  transform: none;
+  z-index: 5;
+}
+
+.poker-seat-bot {
+  left: auto;
+  right: max(52px, 12%);
+  top: max(28px, 5%);
+  bottom: auto;
+  transform: none;
+  width: auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
   z-index: 5;
 }
 
@@ -3478,16 +3598,9 @@ body.poker-landscape-active .app-main.game-mode {
   z-index: 7;
 }
 
-.poker-seat-you {
-  left: 2%;
-  bottom: max(4px, 1%);
-  transform: none;
-  z-index: 5;
-}
-
 .poker-bot-cards {
   display: flex;
-  gap: 4px;
+  gap: 3px;
   justify-content: center;
   margin: 0;
   position: relative;
@@ -3497,29 +3610,30 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-bot-cards.is-revealed {
-  gap: 6px;
+  gap: 5px;
 }
 
+/* Crowded 5-max: compact face-down hole cards beside each bot seat. */
 .poker-bot-cards .pcard,
 .poker-bot-cards .poker-hole-card {
-  width: clamp(26px, 4.2vw, 36px);
-  height: clamp(36px, 5.8vw, 50px);
-  font-size: 9px;
-  padding: 2px;
-  border-radius: 4px;
+  width: clamp(20px, 3.2vw, 28px);
+  height: clamp(28px, 4.4vw, 40px);
+  font-size: 8px;
+  padding: 1px;
+  border-radius: 3px;
   animation: none;
   overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* Showdown: larger hole cards, readable and not under the avatar. */
 .poker-bot-cards.is-revealed .pcard,
 .poker-bot-cards.is-revealed .poker-hole-card {
-  width: clamp(38px, 6.4vw, 54px);
-  height: clamp(52px, 8.8vw, 74px);
-  font-size: clamp(11px, 1.9vw, 14px);
+  width: clamp(34px, 5.6vw, 48px);
+  height: clamp(46px, 7.6vw, 66px);
+  font-size: clamp(10px, 1.7vw, 13px);
   padding: 3px 4px;
-  border-radius: 6px;
+  border-radius: 5px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
 }
 
@@ -3570,10 +3684,19 @@ body.poker-landscape-active .app-main.game-mode {
   font-size: clamp(16px, 3.2vw, 24px);
 }
 
+/* Bot names stay hidden — avatar initial is enough at 5-max. */
+.poker-seat-s1 .poker-seat-name,
+.poker-seat-s2 .poker-seat-name,
+.poker-seat-s3 .poker-seat-name,
+.poker-seat-s4 .poker-seat-name,
 .poker-seat-bot .poker-seat-name {
   display: none;
 }
 
+.poker-seat-s1 .poker-seat,
+.poker-seat-s2 .poker-seat,
+.poker-seat-s3 .poker-seat,
+.poker-seat-s4 .poker-seat,
 .poker-seat-bot .poker-seat {
   position: relative;
   z-index: 1;
@@ -4012,35 +4135,66 @@ body.poker-landscape-active .app-main.game-mode {
   .poker-table-felt {
     inset: 5.5% 5% 7% 5%;
   }
-  .poker-seat-bot {
-    top: max(24px, 4%);
-    right: max(48px, 12%);
-    gap: 6px;
-  }
+  .poker-seat-s0,
   .poker-seat-you {
     left: 1.5%;
     bottom: 0;
   }
-  .poker-bet-bot {
-    right: 16%;
-    top: 14%;
+  .poker-seat-s1 {
+    left: 1.5%;
+    top: 30%;
+    gap: 4px;
   }
+  .poker-seat-s2 {
+    left: 20%;
+    top: max(22px, 3%);
+    gap: 4px;
+  }
+  .poker-seat-s3 {
+    left: 46%;
+    top: max(22px, 3%);
+    gap: 4px;
+  }
+  .poker-seat-s4,
+  .poker-seat-bot {
+    top: max(22px, 3.5%);
+    right: max(48px, 11%);
+    gap: 4px;
+  }
+  .poker-bet-s0,
   .poker-bet-you {
     left: 13%;
     bottom: 16%;
+  }
+  .poker-bet-s1 {
+    left: 11%;
+    top: 38%;
+  }
+  .poker-bet-s2 {
+    left: 24%;
+    top: 13%;
+  }
+  .poker-bet-s3 {
+    left: 50%;
+    top: 13%;
+  }
+  .poker-bet-s4,
+  .poker-bet-bot {
+    right: 15%;
+    top: 13%;
   }
   .poker-bot-cards {
     margin: 0;
   }
   .poker-bot-cards .pcard,
   .poker-bot-cards .poker-hole-card {
-    width: clamp(22px, 3.8vw, 30px);
-    height: clamp(30px, 5.2vw, 42px);
+    width: clamp(18px, 2.8vw, 24px);
+    height: clamp(24px, 3.8vw, 34px);
   }
   .poker-bot-cards.is-revealed .pcard,
   .poker-bot-cards.is-revealed .poker-hole-card {
-    width: clamp(32px, 5.6vw, 44px);
-    height: clamp(44px, 7.6vw, 60px);
+    width: clamp(28px, 4.8vw, 40px);
+    height: clamp(38px, 6.6vw, 54px);
   }
   .poker-board {
     transform: translateY(16%);
