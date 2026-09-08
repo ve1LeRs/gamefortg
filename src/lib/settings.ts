@@ -185,8 +185,8 @@ export function playUiSound(kind: 'tap' | 'ok' | 'warn' | 'deal' = 'tap') {
   }
 }
 
-/** Poker table FX: chip rustle / card slide — synthesized, no assets. */
-export function playPokerSound(kind: 'chips' | 'card' | 'cards') {
+/** Poker table FX: chip rustle / card slide / check knocks — synthesized, no assets. */
+export function playPokerSound(kind: 'chips' | 'card' | 'cards' | 'check') {
   try {
     const s = loadSettings()
     if (!s.sounds) return
@@ -241,12 +241,32 @@ export function playPokerSound(kind: 'chips' | 'card' | 'cards') {
 
     /** Soft paper/card whoosh — no tonal beep. */
     const cardSlide = (t: number) => {
-      // Air/friction of the slide
       noiseBurst(t, 0.11, 0.038, { hp: 700, lp: 2800, peakAt: 0.018 })
-      // Quieter mid scrape
       noiseBurst(t + 0.01, 0.07, 0.022, { hp: 1400, lp: 4500, peakAt: 0.01 })
-      // Soft felt land thump
       noiseBurst(t + 0.06, 0.055, 0.03, { hp: 120, lp: 520, peakAt: 0.008 })
+    }
+
+    /** Two knuckles on the rail — classic check. */
+    const tableKnock = (t: number) => {
+      noiseBurst(t, 0.038, 0.06, { hp: 90, lp: 780, peakAt: 0.003 })
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(155, t)
+      osc.frequency.exponentialRampToValueAtTime(78, t + 0.05)
+      gain.gain.setValueAtTime(0.0001, t)
+      gain.gain.exponentialRampToValueAtTime(0.04, t + 0.003)
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.055)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(t)
+      osc.stop(t + 0.07)
+    }
+
+    if (kind === 'check') {
+      tableKnock(now)
+      tableKnock(now + 0.1)
+      return
     }
 
     if (kind === 'chips') {
@@ -263,7 +283,6 @@ export function playPokerSound(kind: 'chips' | 'card' | 'cards') {
       return
     }
 
-    // cards — staggered deal, slightly varied timing
     for (let i = 0; i < 3; i += 1) {
       cardSlide(now + i * 0.078 + Math.random() * 0.01)
     }

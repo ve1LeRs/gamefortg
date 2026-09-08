@@ -765,6 +765,7 @@ export function PokerGame({
   const check = () => {
     if (phase === 'over' || facingBot || allInSpectating) return
     onHaptic?.('light')
+    playPokerSound('check')
 
     const decision = botDecide({
       facingBet: false,
@@ -795,6 +796,7 @@ export function PokerGame({
     }
 
     setStatus('Бот чекает.')
+    window.setTimeout(() => playPokerSound('check'), 180)
     queueContinue(320, phase, deck, board, pot, player, bot, stack, botStack)
   }
 
@@ -1086,6 +1088,9 @@ export function PokerGame({
               </div>
             ) : null}
 
+            <ChipPile amount={botBet} className="poker-bet-on-table poker-bet-bot" compact />
+            <ChipPile amount={playerBet} className="poker-bet-on-table poker-bet-you" compact />
+
             <div className={`poker-seat-slot poker-seat-bot${showBot ? ' is-revealed' : ''}`}>
               <div className={`poker-bot-cards${showBot ? ' is-revealed' : ''}`} key={`bot-${dealTick}`}>
                 {bot.map((c, i) => (
@@ -1108,7 +1113,6 @@ export function PokerGame({
                 accent="linear-gradient(145deg,#6b3a3a,#3a1515)"
                 levelTitle={`Уровень ${botLevel}`}
               />
-              <ChipPile amount={botBet} className="poker-bet-on-table poker-bet-bot" compact />
             </div>
 
             <div className="poker-seat-slot poker-seat-you">
@@ -1122,7 +1126,6 @@ export function PokerGame({
                 xpFrac={playerLevelInfo.frac}
                 levelTitle={playerLevelTitle}
               />
-              <ChipPile amount={playerBet} className="poker-bet-on-table poker-bet-you" compact />
             </div>
           </div>
 
