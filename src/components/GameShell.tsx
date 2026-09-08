@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { getGame, type GameId } from '../data/games'
 import { getWebApp } from '../lib/telegram'
 import { PokerGame } from '../games/PokerGame'
+import { PokerOnline } from '../games/poker/PokerOnline'
 import { DurakGame } from '../games/DurakGame'
 import { DurakOnline } from '../games/durak/DurakOnline'
 import { ChessGame } from '../games/ChessGame'
@@ -19,6 +20,7 @@ export function GameShell({
   durakRoomCode,
   chessRoomCode,
   checkersRoomCode,
+  pokerRoomCode,
 }: {
   gameId: GameId
   onBack: () => void
@@ -26,6 +28,7 @@ export function GameShell({
   durakRoomCode?: string | null
   chessRoomCode?: string | null
   checkersRoomCode?: string | null
+  pokerRoomCode?: string | null
 }) {
   const meta = getGame(gameId)
   const immersive = gameId === 'durak' || gameId === 'poker'
@@ -36,10 +39,12 @@ export function GameShell({
   const [durakMode, setDurakMode] = useState<PlayMode>(durakRoomCode ? 'online' : 'pick')
   const [chessMode, setChessMode] = useState<PlayMode>(chessRoomCode ? 'online' : 'pick')
   const [checkersMode, setCheckersMode] = useState<PlayMode>(checkersRoomCode ? 'online' : 'pick')
+  const [pokerMode, setPokerMode] = useState<PlayMode>(pokerRoomCode ? 'online' : 'pick')
   const onBackRef = useRef(onBack)
   const durakModeRef = useRef(durakMode)
   const chessModeRef = useRef(chessMode)
   const checkersModeRef = useRef(checkersMode)
+  const pokerModeRef = useRef(pokerMode)
   const gameIdRef = useRef(gameId)
 
   useEffect(() => {
@@ -55,6 +60,9 @@ export function GameShell({
     checkersModeRef.current = checkersMode
   }, [checkersMode])
   useEffect(() => {
+    pokerModeRef.current = pokerMode
+  }, [pokerMode])
+  useEffect(() => {
     gameIdRef.current = gameId
   }, [gameId])
 
@@ -67,6 +75,9 @@ export function GameShell({
   useEffect(() => {
     if (checkersRoomCode) setCheckersMode('online')
   }, [checkersRoomCode])
+  useEffect(() => {
+    if (pokerRoomCode) setPokerMode('online')
+  }, [pokerRoomCode])
 
   useEffect(() => {
     if (gameId !== 'poker') return
@@ -112,6 +123,10 @@ export function GameShell({
         setCheckersMode('pick')
         return
       }
+      if (id === 'poker' && pokerModeRef.current !== 'pick') {
+        setPokerMode('pick')
+        return
+      }
       onBackRef.current()
     }
 
@@ -150,7 +165,7 @@ export function GameShell({
     } catch {
       /* noop */
     }
-  }, [gameId, durakMode, chessMode, checkersMode])
+  }, [gameId, durakMode, chessMode, checkersMode, pokerMode])
 
   const modePick = (
     title: string,
@@ -213,7 +228,23 @@ export function GameShell({
       <div
         className={`game-body ${immersive ? 'game-body--felt' : ''}${gameId === 'poker' ? ' game-body--poker' : ''}${isBoardGame ? ' game-body--board' : ''}`}
       >
-        {gameId === 'poker' && <PokerGame onHaptic={onHaptic} />}
+        {gameId === 'poker' &&
+          pokerMode === 'pick' &&
+          modePick(
+            'Покер',
+            () => setPokerMode('bot'),
+            () => setPokerMode('online'),
+            'Техасский холдем против ботов',
+            'Хедз-ап онлайн · лобби',
+          )}
+        {gameId === 'poker' && pokerMode === 'bot' && <PokerGame onHaptic={onHaptic} />}
+        {gameId === 'poker' && pokerMode === 'online' && (
+          <PokerOnline
+            initialCode={pokerRoomCode}
+            onHaptic={onHaptic}
+            onBackToBot={() => setPokerMode('bot')}
+          />
+        )}
 
         {gameId === 'durak' && durakMode === 'pick' && modePick('Дурак', () => setDurakMode('bot'), () => setDurakMode('online'))}
         {gameId === 'durak' && durakMode === 'bot' && <DurakGame onHaptic={onHaptic} />}

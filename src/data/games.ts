@@ -16,9 +16,9 @@ export const GAMES: GameMeta[] = [
   {
     id: 'poker',
     title: 'Покер',
-    tagline: 'Техасский холдем за овальным столом. Играйте горизонтально против бота.',
+    tagline: 'Техасский холдем. С ботами или хедз-ап онлайн.',
     genre: 'Карты',
-    players: '1 vs бот',
+    players: '1 vs боты · 2 онлайн',
     accent: '#E8A838',
     glow: 'rgba(232, 168, 56, 0.35)',
     cover: 'poker',
