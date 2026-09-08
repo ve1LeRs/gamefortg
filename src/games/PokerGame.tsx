@@ -117,6 +117,14 @@ function stacksFromSeats(seats: Seat[]): SavedStacks {
   }
 }
 
+const BOT_THINK_MS = 980
+const STREET_PAUSE_MS = 1100
+const BOT_REPLY_SOUND_MS = 200
+
+function activeBotCount(seats: Seat[]) {
+  return seats.slice(1).filter((s) => !s.folded).length
+}
+
 function formatChips(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
   if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`
@@ -1259,36 +1267,42 @@ export function PokerGame({
   }, [allInSpectating, phase, player.stack, advance, showdown])
 
   const check = () => {
-    if (phase === 'over' || facingBet || allInSpectating) return
+    if (phase === 'over' || facingBet || allInSpectating || streetBusyRef.current) return
     if (player.folded) return
     onHaptic?.('light')
     playPokerSound('check')
+    streetBusyRef.current = true
+    setStatus(activeBotCount(seats) > 1 ? 'Боты думают…' : 'Бот думает…')
 
-    const result = runBotsAfterCheck(seats, pot, board, phase)
-    applySeats(result.seats)
-    setPot(result.pot)
+    window.setTimeout(() => {
+      const result = runBotsAfterCheck(seats, pot, board, phase)
+      applySeats(result.seats)
+      setPot(result.pot)
 
-    if (result.playerWonUncontested) {
-      winUncontested(result.seats, result.pot, `Все сбросили. Банк ${formatChips(result.pot)} ваш.`)
-      return
-    }
+      if (result.playerWonUncontested) {
+        streetBusyRef.current = false
+        winUncontested(result.seats, result.pot, `Все сбросили. Банк ${formatChips(result.pot)} ваш.`)
+        return
+      }
 
-    if (result.toCall > 0) {
-      setToCall(result.toCall)
-      setWager(clampBet(result.toCall, result.toCall, Math.min(result.seats[0]!.stack, maxWager)))
-      setStatus(result.status)
-      onHaptic?.('medium')
-      playPokerSound('chips')
-      return
-    }
+      if (result.toCall > 0) {
+        setToCall(result.toCall)
+        setWager(clampBet(result.toCall, result.toCall, Math.min(result.seats[0]!.stack, maxWager)))
+        setStatus(result.status)
+        onHaptic?.('medium')
+        window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
+        streetBusyRef.current = false
+        return
+      }
 
-    setStatus(result.status || 'Все чекают.')
-    window.setTimeout(() => playPokerSound('check'), 180)
-    queueContinue(320, phase, deck, board, result.pot, result.seats)
+      setStatus(result.status || 'Все чекают.')
+      window.setTimeout(() => playPokerSound('check'), BOT_REPLY_SOUND_MS)
+      queueContinue(STREET_PAUSE_MS, phase, deck, board, result.pot, result.seats)
+    }, BOT_THINK_MS)
   }
 
   const callBet = () => {
-    if (phase === 'over' || !facingBet || player.stack <= 0) return
+    if (phase === 'over' || !facingBet || player.stack <= 0 || streetBusyRef.current) return
     const amount = Math.min(toCall, player.stack)
     if (amount <= 0) return
     onHaptic?.('medium')
@@ -1304,11 +1318,11 @@ export function PokerGame({
         ? `All-in ${formatChips(paid)}. Доигрываем раздачу…`
         : `Вы коллируете ${formatChips(paid)}.`,
     )
-    queueContinue(280, phase, deck, board, nextPot, next)
+    queueContinue(STREET_PAUSE_MS, phase, deck, board, nextPot, next)
   }
 
   const bet = () => {
-    if (phase === 'over' || allInSpectating) return
+    if (phase === 'over' || allInSpectating || streetBusyRef.current) return
     if (player.folded) return
 
     if (facingBet) {
@@ -1326,35 +1340,44 @@ export function PokerGame({
       playPokerSound('chips')
       const next = cloneSeats(seats)
       const paid = putChips(next[0]!, amount)
-      let nextPot = pot + paid
-
-      const result = runBotsAfterPlayerBet(next, nextPot, board, phase)
-      applySeats(result.seats)
-      setPot(result.pot)
-      nextPot = result.pot
-
-      if (result.playerWonUncontested) {
-        winUncontested(result.seats, nextPot, `Боты сбросили на рейз. Банк ${formatChips(nextPot)} ваш.`)
-        return
-      }
-
-      if (result.toCall > 0) {
-        setToCall(result.toCall)
-        setWager(
-          clampBet(result.toCall, result.toCall, Math.min(result.seats[0]!.stack, maxOppStack || result.toCall)),
-        )
-        setStatus(result.status)
-        playPokerSound('chips')
-        return
-      }
-
+      const potAfter = pot + paid
+      applySeats(next)
+      setPot(potAfter)
       setToCall(0)
-      setStatus(
-        result.seats[0]!.stack <= 0
-          ? `All-in. Доигрываем…`
-          : result.status || `Рейз ${formatChips(paid)}. Боты ответили.`,
-      )
-      queueContinue(320, phase, deck, board, nextPot, result.seats)
+      streetBusyRef.current = true
+      setStatus('Боты отвечают…')
+
+      window.setTimeout(() => {
+        const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
+        applySeats(result.seats)
+        setPot(result.pot)
+
+        if (result.playerWonUncontested) {
+          streetBusyRef.current = false
+          winUncontested(result.seats, result.pot, `Боты сбросили на рейз. Банк ${formatChips(result.pot)} ваш.`)
+          return
+        }
+
+        if (result.toCall > 0) {
+          setToCall(result.toCall)
+          setWager(
+            clampBet(result.toCall, result.toCall, Math.min(result.seats[0]!.stack, maxOppStack || result.toCall)),
+          )
+          setStatus(result.status)
+          window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
+          streetBusyRef.current = false
+          return
+        }
+
+        setToCall(0)
+        setStatus(
+          result.seats[0]!.stack <= 0
+            ? `All-in. Доигрываем…`
+            : result.status || `Рейз ${formatChips(paid)}. Боты ответили.`,
+        )
+        window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
+        queueContinue(STREET_PAUSE_MS, phase, deck, board, result.pot, result.seats)
+      }, BOT_THINK_MS)
       return
     }
 
@@ -1368,40 +1391,47 @@ export function PokerGame({
 
     const next = cloneSeats(seats)
     const paid = putChips(next[0]!, amount)
-    let nextPot = pot + paid
+    const potAfter = pot + paid
+    applySeats(next)
+    setPot(potAfter)
+    streetBusyRef.current = true
+    setStatus('Боты думают…')
 
-    const result = runBotsAfterPlayerBet(next, nextPot, board, phase)
-    applySeats(result.seats)
-    setPot(result.pot)
-    nextPot = result.pot
+    window.setTimeout(() => {
+      const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
+      applySeats(result.seats)
+      setPot(result.pot)
 
-    if (result.playerWonUncontested) {
-      winUncontested(
-        result.seats,
-        nextPot,
-        `Вы поставили ${formatChips(paid)}. Боты сбросили. Банк ваш.`,
+      if (result.playerWonUncontested) {
+        streetBusyRef.current = false
+        winUncontested(
+          result.seats,
+          result.pot,
+          `Вы поставили ${formatChips(paid)}. Боты сбросили. Банк ваш.`,
+        )
+        return
+      }
+
+      if (result.toCall > 0) {
+        setToCall(result.toCall)
+        setWager(
+          clampBet(result.toCall, result.toCall, Math.min(result.seats[0]!.stack, maxOppStack || result.toCall)),
+        )
+        setStatus(result.status)
+        window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
+        streetBusyRef.current = false
+        return
+      }
+
+      setToCall(0)
+      setStatus(
+        result.seats[0]!.stack <= 0
+          ? `All-in ${formatChips(paid)}. Доигрываем…`
+          : `Ставка ${formatChips(paid)}. ${result.status}`,
       )
-      return
-    }
-
-    if (result.toCall > 0) {
-      setToCall(result.toCall)
-      setWager(
-        clampBet(result.toCall, result.toCall, Math.min(result.seats[0]!.stack, maxOppStack || result.toCall)),
-      )
-      setStatus(result.status)
-      playPokerSound('chips')
-      return
-    }
-
-    setToCall(0)
-    setStatus(
-      result.seats[0]!.stack <= 0
-        ? `All-in ${formatChips(paid)}. Доигрываем…`
-        : `Ставка ${formatChips(paid)}. ${result.status}`,
-    )
-    playPokerSound('chips')
-    queueContinue(320, phase, deck, board, nextPot, result.seats)
+      window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
+      queueContinue(STREET_PAUSE_MS, phase, deck, board, result.pot, result.seats)
+    }, BOT_THINK_MS)
   }
 
   const fold = () => {
