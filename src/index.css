@@ -4333,6 +4333,20 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   flex: 0 1 auto;
   max-width: min(560px, 72vw);
   min-width: min(300px, 56vw);
+  transition: opacity 0.22s ease, filter 0.22s ease;
+}
+
+.poker-actions.is-dimmed {
+  opacity: 0.38;
+  filter: grayscale(0.35) brightness(0.82);
+  pointer-events: none;
+}
+
+.poker-bet-amount-row.is-dimmed {
+  opacity: 0.38;
+  filter: grayscale(0.35) brightness(0.82);
+  pointer-events: none;
+  transition: opacity 0.22s ease, filter 0.22s ease;
 }
 
 .poker-allin-wait {
