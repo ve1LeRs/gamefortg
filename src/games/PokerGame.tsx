@@ -1846,7 +1846,7 @@ export function PokerGame({
                       accent={seat.accent}
                       xpFrac={playerLevelInfo.frac}
                       levelTitle={playerLevelTitle}
-                      hideName={false}
+                      hideName
                     />
                   ) : (
                     <>
