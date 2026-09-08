@@ -20,7 +20,8 @@ type StateMsg = { type: 'state'; role: 'host'; view: PokerSeatView; opponent: Pl
 type BusyMsg = { type: 'busy'; role: 'host' }
 type ByeMsg = { type: 'bye'; role: 'host' | 'guest' }
 type PingMsg = { type: 'ping'; role: 'host' }
-type NetMsg = HelloMsg | ActionMsg | StateMsg | BusyMsg | ByeMsg | PingMsg
+type PongMsg = { type: 'pong'; role: 'guest' }
+type NetMsg = HelloMsg | ActionMsg | StateMsg | BusyMsg | ByeMsg | PingMsg | PongMsg
 
 type LobbyAnnounceMsg = {
   type: 'announce'
@@ -41,18 +42,28 @@ export type LobbyListing = {
   ts: number
 }
 
-export type RoomStatus = 'connecting' | 'waiting' | 'playing' | 'disconnected' | 'error'
+export type RoomStatus =
+  | 'connecting'
+  | 'waiting'
+  | 'playing'
+  | 'reconnecting'
+  | 'disconnected'
+  | 'error'
 
 export type PokerRoom = {
   code: string
   role: 'host' | 'guest'
   status: RoomStatus
   error?: string
+  /** True when the peer sent bye / left on purpose. */
+  opponentLeft?: boolean
   you: PlayerInfo
   opponent: PlayerInfo | null
   view: PokerSeatView | null
   sendAction: (action: PokerAction) => void
   destroy: () => void
+  /** Try to restore MQTT after a background drop. */
+  retryConnection?: () => void
   /** Present in local solo test mode */
   solo?: boolean
   controllingSeat?: 0 | 1
@@ -77,6 +88,8 @@ const CONNECT_MS = 10_000
 const HANDSHAKE_MS = 30_000
 const HELLO_RETRY_MS = 1_500
 const HOST_PING_MS = 4_000
+const RECONNECT_PERIOD_MS = 2_500
+const RECONNECT_GRACE_MS = 18_000
 const LOBBY_TOPIC = 'gft/poker/v1/lobby'
 const LOBBY_ANNOUNCE_MS = 3_000
 const LOBBY_STALE_MS = 9_000
@@ -133,7 +146,7 @@ function connectOne(url: string, clientId: string): Promise<MqttClient> {
         clientId,
         clean: true,
         connectTimeout: CONNECT_MS,
-        reconnectPeriod: 0,
+        reconnectPeriod: RECONNECT_PERIOD_MS,
         protocolVersion: 4,
       })
       const finish = (fn: () => void) => {
@@ -142,7 +155,6 @@ function connectOne(url: string, clientId: string): Promise<MqttClient> {
         window.clearTimeout(t)
         client.off('connect', onConnect)
         client.off('error', onError)
-        client.off('close', onClose)
         fn()
       }
       const t = window.setTimeout(() => {
@@ -155,20 +167,10 @@ function connectOne(url: string, clientId: string): Promise<MqttClient> {
       }, CONNECT_MS)
       const onConnect = () => finish(() => resolve(client))
       const onError = () => {
-        /* wait for timeout/close */
-      }
-      const onClose = () => {
-        if (settled) return
-        try {
-          client.end(true)
-        } catch {
-          /* noop */
-        }
-        finish(() => reject(new Error(`close:${url}`)))
+        /* wait for timeout / reconnect */
       }
       client.on('connect', onConnect)
       client.on('error', onError)
-      client.on('close', onClose)
     }, reject)
   })
 }
@@ -321,6 +323,22 @@ export async function hostPokerRoom(
   let pingTimer: number | null = null
   let lobbyTimer: number | null = null
   let listed = false
+  let reconnectGraceTimer: number | null = null
+  const topicSubscribed = new WeakSet<MqttClient>()
+
+  const clearReconnectGrace = () => {
+    if (reconnectGraceTimer != null) {
+      window.clearTimeout(reconnectGraceTimer)
+      reconnectGraceTimer = null
+    }
+  }
+
+  const ensureSubscribed = (client: MqttClient) => {
+    if (topicSubscribed.has(client)) return
+    client.subscribe(topic, { qos: 1 }, (err) => {
+      if (!err) topicSubscribed.add(client)
+    })
+  }
 
   const stopLobby = () => {
     if (lobbyTimer != null) {
@@ -337,6 +355,46 @@ export async function hostPokerRoom(
     listed = false
   }
 
+  let pushViews = () => undefined
+
+  const markReconnecting = () => {
+    if (!alive) return
+    if (room.status !== 'playing' && room.status !== 'waiting' && room.status !== 'reconnecting') return
+    if (room.opponentLeft) return
+    room.status = 'reconnecting'
+    room.error = 'Восстанавливаем связь…'
+    emit(room, handlers)
+    clearReconnectGrace()
+    reconnectGraceTimer = window.setTimeout(() => {
+      if (!alive) return
+      const anyUp = clients.some((c) => c.connected)
+      if (anyUp) return
+      room.status = 'disconnected'
+      room.error = 'Связь с сервером потеряна'
+      emit(room, handlers)
+    }, RECONNECT_GRACE_MS)
+  }
+
+  const onClientBack = (client: MqttClient) => {
+    if (!alive) return
+    ensureSubscribed(client)
+    if (!clients.includes(client)) clients.push(client)
+    clearReconnectGrace()
+    if (room.status === 'reconnecting' || room.status === 'disconnected') {
+      if (state && opponent) {
+        room.status = 'playing'
+        room.error = undefined
+        pushViews()
+      } else {
+        room.status = 'waiting'
+        room.error = undefined
+        emit(room, handlers)
+      }
+    } else if (state && opponent) {
+      pushViews()
+    }
+  }
+
   const room: PokerRoom = {
     code,
     role: 'host',
@@ -347,6 +405,7 @@ export async function hostPokerRoom(
     sendAction: () => undefined,
     destroy: () => {
       alive = false
+      clearReconnectGrace()
       if (pingTimer != null) window.clearInterval(pingTimer)
       stopLobby()
       try {
@@ -357,20 +416,35 @@ export async function hostPokerRoom(
       endAll(clients)
       clients = []
     },
+    retryConnection: () => {
+      if (!alive) return
+      for (const c of clients) {
+        try {
+          if (!c.connected) c.reconnect()
+          else onClientBack(c)
+        } catch {
+          /* noop */
+        }
+      }
+      markReconnecting()
+    },
   }
 
   emit(room, handlers)
 
-  const pushViews = () => {
-    if (!alive || !state || !opponent || clients.length === 0) return
+  pushViews = () => {
+    if (!alive || !state || !opponent) return
+    const live = clients.filter((c) => c.connected)
+    if (live.length === 0) return
     stopLobby()
     const hostView = seatView(state, 0)
     const guestView = seatView(state, 1)
     room.view = hostView
     room.status = 'playing'
+    room.error = undefined
     room.opponent = opponent
     emit(room, handlers)
-    publishAll(clients, topic, { type: 'state', role: 'host', view: guestView, opponent: you })
+    publishAll(live, topic, { type: 'state', role: 'host', view: guestView, opponent: you })
   }
 
   room.sendAction = (action) => {
@@ -395,6 +469,7 @@ export async function hostPokerRoom(
 
   try {
     await subscribeAll(clients, topic)
+    for (const c of clients) topicSubscribed.add(c)
   } catch (e) {
     room.destroy()
     const message = e instanceof Error ? e.message : 'Не удалось открыть комнату'
@@ -413,6 +488,7 @@ export async function hostPokerRoom(
       }
       opponent = msg.player
       room.opponent = opponent
+      room.opponentLeft = false
       if (!state) state = createPokerGame()
       pushViews()
       return
@@ -422,23 +498,26 @@ export async function hostPokerRoom(
       pushViews()
       return
     }
+    if (msg.type === 'pong' && msg.role === 'guest') {
+      return
+    }
     if (msg.type === 'bye' && msg.role === 'guest') {
+      clearReconnectGrace()
+      room.opponentLeft = true
       room.status = 'disconnected'
-      room.error = 'Соперник отключился'
+      room.error = 'Соперник вышел из игры'
       emit(room, handlers)
     }
   }
 
   for (const client of clients) {
     client.on('message', onBus)
+    client.on('connect', () => onClientBack(client))
+    client.on('reconnect', () => onClientBack(client))
     client.on('close', () => {
       if (!alive) return
-      clients = clients.filter((c) => c !== client && c.connected)
-      if (clients.length === 0 && (room.status === 'playing' || room.status === 'waiting')) {
-        room.status = 'disconnected'
-        room.error = 'Связь с сервером потеряна'
-        emit(room, handlers)
-      }
+      const live = clients.filter((c) => c.connected)
+      if (live.length === 0) markReconnecting()
     })
   }
 
@@ -448,8 +527,15 @@ export async function hostPokerRoom(
   listed = true
   announceLobby(clients, code, you)
   pingTimer = window.setInterval(() => {
-    if (!alive || room.status !== 'waiting') return
-    publishAll(clients, topic, { type: 'ping', role: 'host' })
+    if (!alive) return
+    if (room.status === 'waiting') {
+      publishAll(clients, topic, { type: 'ping', role: 'host' })
+      return
+    }
+    if (room.status === 'playing' || room.status === 'reconnecting') {
+      publishAll(clients, topic, { type: 'ping', role: 'host' })
+      if (state && opponent) pushViews()
+    }
   }, HOST_PING_MS)
   lobbyTimer = window.setInterval(() => {
     if (!alive || room.status !== 'waiting') return
@@ -470,6 +556,59 @@ export async function joinPokerRoom(
   let alive = true
   let helloTimer: number | null = null
   let active: MqttClient[] = []
+  let reconnectGraceTimer: number | null = null
+  const topicSubscribed = new WeakSet<MqttClient>()
+
+  const clearReconnectGrace = () => {
+    if (reconnectGraceTimer != null) {
+      window.clearTimeout(reconnectGraceTimer)
+      reconnectGraceTimer = null
+    }
+  }
+
+  const ensureSubscribed = (client: MqttClient) => {
+    if (topicSubscribed.has(client)) return
+    client.subscribe(topic, { qos: 1 }, (err) => {
+      if (!err) topicSubscribed.add(client)
+    })
+  }
+
+  const markReconnecting = () => {
+    if (!alive) return
+    if (room.status !== 'playing' && room.status !== 'waiting' && room.status !== 'reconnecting') return
+    if (room.opponentLeft) return
+    room.status = 'reconnecting'
+    room.error = 'Восстанавливаем связь…'
+    emit(room, handlers)
+    clearReconnectGrace()
+    reconnectGraceTimer = window.setTimeout(() => {
+      if (!alive) return
+      if (clients.some((c) => c.connected)) return
+      room.status = 'disconnected'
+      room.error = 'Связь с сервером потеряна'
+      emit(room, handlers)
+    }, RECONNECT_GRACE_MS)
+  }
+
+  const sendHello = () => {
+    if (!alive) return
+    if (room.status === 'playing') return
+    publishAll(active.length ? active : clients, topic, { type: 'hello', role: 'guest', player: you })
+  }
+
+  const onClientBack = (client: MqttClient) => {
+    if (!alive) return
+    ensureSubscribed(client)
+    if (!clients.includes(client)) clients.push(client)
+    active = clients.filter((c) => c.connected)
+    clearReconnectGrace()
+    if (room.status === 'reconnecting' || room.status === 'disconnected') {
+      room.status = room.view ? 'playing' : 'waiting'
+      room.error = undefined
+      emit(room, handlers)
+    }
+    sendHello()
+  }
 
   const room: PokerRoom = {
     code: clean,
@@ -483,6 +622,7 @@ export async function joinPokerRoom(
     },
     destroy: () => {
       alive = false
+      clearReconnectGrace()
       if (helloTimer != null) window.clearInterval(helloTimer)
       try {
         publishAll(active.length ? active : clients, topic, { type: 'bye', role: 'guest' })
@@ -492,6 +632,19 @@ export async function joinPokerRoom(
       endAll(clients)
       clients = []
       active = []
+    },
+    retryConnection: () => {
+      if (!alive) return
+      for (const c of clients) {
+        try {
+          if (!c.connected) c.reconnect()
+          else onClientBack(c)
+        } catch {
+          /* noop */
+        }
+      }
+      markReconnecting()
+      sendHello()
     },
   }
 
@@ -514,6 +667,7 @@ export async function joinPokerRoom(
 
   try {
     await subscribeAll(clients, topic)
+    for (const c of clients) topicSubscribed.add(c)
   } catch (e) {
     room.destroy()
     const message = e instanceof Error ? e.message : 'Не удалось подключиться'
@@ -523,11 +677,6 @@ export async function joinPokerRoom(
 
   room.status = 'waiting'
   emit(room, handlers)
-
-  const sendHello = () => {
-    if (!alive || room.status === 'playing') return
-    publishAll(clients, topic, { type: 'hello', role: 'guest', player: you })
-  }
 
   await new Promise<void>((resolve, reject) => {
     let settled = false
@@ -560,6 +709,8 @@ export async function joinPokerRoom(
         room.view = msg.view
         room.opponent = msg.opponent
         room.status = 'playing'
+        room.error = undefined
+        room.opponentLeft = false
         emit(room, handlers)
         settle(() => resolve())
         return
@@ -568,10 +719,16 @@ export async function joinPokerRoom(
         settle(() => reject(new Error('Комната уже занята')))
         return
       }
+      if (msg.type === 'ping' && msg.role === 'host') {
+        publishAll(active.length ? active : clients, topic, { type: 'pong', role: 'guest' })
+        return
+      }
       if (msg.type === 'bye' && msg.role === 'host') {
-        if (room.status === 'playing') {
+        clearReconnectGrace()
+        room.opponentLeft = true
+        if (room.status === 'playing' || room.status === 'reconnecting') {
           room.status = 'disconnected'
-          room.error = 'Связь с хостом потеряна'
+          room.error = 'Соперник вышел из игры'
           emit(room, handlers)
           return
         }
@@ -581,18 +738,17 @@ export async function joinPokerRoom(
 
     for (const client of clients) {
       client.on('message', onBus)
+      client.on('connect', () => onClientBack(client))
+      client.on('reconnect', () => onClientBack(client))
       client.on('close', () => {
         if (!alive) return
-        clients = clients.filter((c) => c !== client && c.connected)
-        active = clients
-        if (clients.length === 0) {
-          if (room.status === 'playing') {
-            room.status = 'disconnected'
-            room.error = 'Связь с сервером потеряна'
-            emit(room, handlers)
+        active = clients.filter((c) => c.connected)
+        if (active.length === 0) {
+          if (room.status === 'playing' || room.status === 'reconnecting') {
+            markReconnecting()
             return
           }
-          settle(() => reject(new Error('Соединение прервалось')))
+          if (!settled) settle(() => reject(new Error('Соединение прервалось')))
         }
       })
     }

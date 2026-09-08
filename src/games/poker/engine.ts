@@ -80,6 +80,8 @@ export type PokerSeatView = {
   canBet: boolean
   canFold: boolean
   canNext: boolean
+  /** Opponent is all-in and you must call/fold only. */
+  facingAllIn: boolean
 }
 
 function evaluate(cards: Card[]): HandRank {
@@ -463,6 +465,9 @@ export function seatView(state: PokerState, seat: Seat): PokerSeatView {
   const yourTurn = state.acting === seat && state.phase !== 'over'
   const minBet = Math.min(Math.max(toCall > 0 ? toCall : BLIND, toCall), you.stack)
   const maxBet = you.stack
+  /** HU: once the opponent is all-in, only call/fold — no re-raise into empty stack. */
+  const oppAllIn = opp.stack <= 0 && !opp.folded
+  const canRaise = toCall === 0 ? maxBet > 0 : maxBet > toCall && !oppAllIn
   const status =
     state.phase === 'over'
       ? state.winner === seat
@@ -500,9 +505,10 @@ export function seatView(state: PokerState, seat: Seat): PokerSeatView {
     callAmount: Math.min(toCall, you.stack),
     minBet,
     maxBet,
-    canBet: yourTurn && maxBet > 0 && (toCall === 0 || maxBet > toCall),
+    canBet: yourTurn && canRaise,
     canFold: yourTurn,
     canNext: state.phase === 'over',
+    facingAllIn: yourTurn && toCall > 0 && oppAllIn,
   }
 }
 

@@ -20,7 +20,19 @@ import {
 } from './peerRoom'
 import { BetActionLabel, ChipPile, PokerSeatCard, PotFlightOverlay } from './tableChrome'
 
-const REVEAL_STAGGER_MS = 420
+const REVEAL_STAGGER_MS = 720
+const NEXT_HAND_SEC = 5
+const ONLINE_ANIM_SCALE = 1.65
+
+function onlineDealTiming() {
+  const t = getDealTiming()
+  return {
+    ...t,
+    baseMs: Math.round(t.baseMs * ONLINE_ANIM_SCALE),
+    gapMs: Math.round(t.gapMs * ONLINE_ANIM_SCALE),
+    boardGapMs: Math.round(t.boardGapMs * ONLINE_ANIM_SCALE),
+  }
+}
 
 function playerFromTelegram(): PlayerInfo {
   const u = getWebApp()?.initDataUnsafe?.user
@@ -72,15 +84,16 @@ function holeKey(cards: { id: string }[] | null | undefined) {
 
 function PokerOnlineTable({
   view,
+  role,
   opponentName,
   onAction,
-  onLeave,
   onHaptic,
 }: {
   view: PokerSeatView
+  role: 'host' | 'guest'
   opponentName: string
   onAction: (action: PokerAction) => void
-  onLeave: () => void
+  onLeave?: () => void
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
 }) {
   const landscape = useLandscape()
@@ -93,6 +106,7 @@ function PokerOnlineTable({
   const [potFlight, setPotFlight] = useState<{ id: number; targets: number[]; amount: number } | null>(
     null,
   )
+  const [nextHandIn, setNextHandIn] = useState<number | null>(null)
 
   const prev = useRef({
     phase: view.phase,
@@ -110,10 +124,12 @@ function PokerOnlineTable({
   const potFlightTimerRef = useRef(0)
   const revealTimerRef = useRef(0)
   const lastPotRef = useRef(view.pot)
-  const dealTiming = useMemo(() => getDealTiming(), [dealTick])
+  const dealTiming = useMemo(() => onlineDealTiming(), [dealTick])
 
   const allInSpectating =
     view.phase !== 'over' && view.you.stack <= 0 && !view.yourTurn && !view.you.folded
+  const facingAllIn = !!view.facingAllIn
+  const callIsAllIn = view.canCall && view.callAmount >= view.you.stack && view.you.stack > 0
 
   useEffect(() => {
     if (view.pot > 0) lastPotRef.current = view.pot
@@ -153,7 +169,7 @@ function PokerOnlineTable({
     }
   }, [view.board])
 
-  // Opponent action sounds while waiting
+  // Opponent action sounds — only when their status line shows a real action
   useEffect(() => {
     const p = prev.current
     if (view.phase === 'over') {
@@ -163,23 +179,29 @@ function PokerOnlineTable({
       p.oppStack = view.opponent.stack
       p.youStack = view.you.stack
       p.pot = view.pot
+      p.status = view.status
       return
     }
 
-    const becameTheirTurn = p.yourTurn && !view.yourTurn
     const becameYourTurn = !p.yourTurn && view.yourTurn
     const oppBetGrew = view.opponent.streetBet > p.oppStreet
     const oppFoldedNow = !p.oppFolded && view.opponent.folded
-    const potGrew = view.pot > p.pot && !view.yourTurn
+    const statusCore = view.status.replace(/\s*(Ваш ход\.|Ход соперника…)\s*$/u, '').trim()
+    const prevCore = p.status.replace(/\s*(Ваш ход\.|Ход соперника…)\s*$/u, '').trim()
+    const statusChanged = statusCore !== prevCore
 
     if (oppFoldedNow) {
       playUiSound('ok')
-    } else if (oppBetGrew || (becameYourTurn && potGrew && view.toCall > 0)) {
+    } else if (oppBetGrew) {
       playPokerSound('chips')
-    } else if (becameYourTurn && view.toCall <= 0 && !becameTheirTurn) {
+    } else if (becameYourTurn && statusChanged && /^Чек/u.test(statusCore)) {
       playPokerSound('check')
-    } else if (becameTheirTurn && view.opponent.streetBet === p.oppStreet && !oppBetGrew) {
-      // they may still be thinking — no sound yet
+    } else if (
+      becameYourTurn &&
+      statusChanged &&
+      /^(Колл|Рейз|Ставка|All-in)/u.test(statusCore)
+    ) {
+      playPokerSound('chips')
     }
 
     p.yourTurn = view.yourTurn
@@ -188,6 +210,7 @@ function PokerOnlineTable({
     p.oppStack = view.opponent.stack
     p.youStack = view.you.stack
     p.pot = view.pot
+    p.status = view.status
   }, [
     view.yourTurn,
     view.opponent.streetBet,
@@ -197,7 +220,35 @@ function PokerOnlineTable({
     view.pot,
     view.toCall,
     view.phase,
+    view.status,
   ])
+
+  const onActionRef = useRef(onAction)
+  onActionRef.current = onAction
+
+  // Auto next hand like solo (host advances; guest just watches the countdown)
+  useEffect(() => {
+    if (view.phase !== 'over') {
+      setNextHandIn(null)
+      return
+    }
+    setNextHandIn(NEXT_HAND_SEC)
+    const started = Date.now()
+    const tick = window.setInterval(() => {
+      const left = Math.max(0, NEXT_HAND_SEC - Math.floor((Date.now() - started) / 1000))
+      setNextHandIn(left)
+    }, 200)
+    const t =
+      role === 'host'
+        ? window.setTimeout(() => {
+            onActionRef.current({ type: 'nextHand' })
+          }, NEXT_HAND_SEC * 1000)
+        : 0
+    return () => {
+      window.clearInterval(tick)
+      if (t) window.clearTimeout(t)
+    }
+  }, [view.phase, role, dealTick])
 
   // Staggered opponent reveal at showdown
   useEffect(() => {
@@ -327,7 +378,7 @@ function PokerOnlineTable({
   const waitingTurn = view.phase !== 'over' && !view.yourTurn && !allInSpectating
 
   return (
-    <div className={`poker-landscape${landscape ? ' is-landscape' : ' is-portrait'}`}>
+    <div className={`poker-landscape poker-online${landscape ? ' is-landscape' : ' is-portrait'}`}>
       {!landscape && (
         <div className="poker-rotate-hint" role="status">
           <div className="poker-rotate-icon" aria-hidden>
@@ -543,69 +594,66 @@ function PokerOnlineTable({
               aria-disabled={waitingTurn || undefined}
             >
               {view.phase === 'over' ? (
-                <div className="poker-actions-row">
-                  <button type="button" className="poker-btn poker-btn-soft" onClick={onLeave}>
-                    Выйти
-                  </button>
-                  <button
-                    type="button"
-                    className="poker-btn poker-btn-bet"
-                    onClick={() => send({ type: 'nextHand' })}
-                  >
-                    Ещё раздача
-                  </button>
-                </div>
+                <p className="poker-next-hint" aria-live="polite">
+                  {nextHandIn != null && nextHandIn > 0
+                    ? `Новая раздача через ${nextHandIn}…`
+                    : 'Новая раздача…'}
+                </p>
               ) : allInSpectating ? (
                 <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
               ) : (
                 <>
-                  <div className="poker-bet-presets">
-                    <button
-                      type="button"
-                      className="poker-bet-chip"
-                      disabled={!view.yourTurn}
-                      onClick={() => setWager(clampWager(view.minBet))}
-                    >
-                      Мин
-                    </button>
-                    <button
-                      type="button"
-                      className="poker-bet-chip"
-                      disabled={!view.yourTurn}
-                      onClick={() =>
-                        setWager(
-                          clampWager(Math.max(view.minBet, Math.floor(view.pot / 2) || view.minBet)),
-                        )
-                      }
-                    >
-                      ½ банка
-                    </button>
-                    <button
-                      type="button"
-                      className="poker-bet-chip"
-                      disabled={!view.yourTurn}
-                      onClick={() => setWager(clampWager(Math.max(view.minBet, view.pot || view.minBet)))}
-                    >
-                      Банк
-                    </button>
-                    <button
-                      type="button"
-                      className="poker-bet-chip"
-                      disabled={!view.yourTurn}
-                      onClick={() => setWager(clampWager(view.maxBet))}
-                    >
-                      Макс
-                    </button>
-                  </div>
+                  {!facingAllIn && view.canBet ? (
+                    <div className="poker-bet-presets">
+                      <button
+                        type="button"
+                        className="poker-bet-chip"
+                        disabled={!view.yourTurn}
+                        onClick={() => setWager(clampWager(view.minBet))}
+                      >
+                        Мин
+                      </button>
+                      <button
+                        type="button"
+                        className="poker-bet-chip"
+                        disabled={!view.yourTurn}
+                        onClick={() =>
+                          setWager(
+                            clampWager(Math.max(view.minBet, Math.floor(view.pot / 2) || view.minBet)),
+                          )
+                        }
+                      >
+                        ½ банка
+                      </button>
+                      <button
+                        type="button"
+                        className="poker-bet-chip"
+                        disabled={!view.yourTurn}
+                        onClick={() =>
+                          setWager(clampWager(Math.max(view.minBet, view.pot || view.minBet)))
+                        }
+                      >
+                        Банк
+                      </button>
+                      <button
+                        type="button"
+                        className="poker-bet-chip"
+                        disabled={!view.yourTurn}
+                        onClick={() => setWager(clampWager(view.maxBet))}
+                      >
+                        Макс
+                      </button>
+                    </div>
+                  ) : null}
                   <div className="poker-actions-row">
-                    {view.canCall || (view.toCall > 0 && !view.yourTurn) ? (
+                    {view.toCall > 0 || view.canCall ? (
                       <button
                         type="button"
                         className="poker-btn poker-btn-soft"
                         disabled={!view.yourTurn || !view.canCall}
                         onClick={() => send({ type: 'call' })}
                       >
-                        {view.callAmount >= view.you.stack ? (
+                        {callIsAllIn || (view.callAmount >= view.you.stack && view.you.stack > 0) ? (
                           'All In'
                         ) : (
                           <BetActionLabel
@@ -625,29 +673,26 @@ function PokerOnlineTable({
                         Чек
                       </button>
                     )}
-                    <button
-                      type="button"
-                      className="poker-btn poker-btn-bet"
-                      disabled={
-                        !view.yourTurn ||
-                        !view.canBet ||
-                        wager <= 0 ||
-                        (view.toCall > 0 && wager < view.toCall)
-                      }
-                      onClick={() => send({ type: 'bet', amount: clampWager(wager) })}
-                    >
-                      {wager >= view.you.stack && view.you.stack > 0 ? (
-                        'All In'
-                      ) : view.toCall > 0 ? (
-                        wager > view.toCall ? (
+                    {view.canBet && !facingAllIn ? (
+                      <button
+                        type="button"
+                        className="poker-btn poker-btn-bet"
+                        disabled={
+                          !view.yourTurn ||
+                          wager <= 0 ||
+                          (view.toCall > 0 && wager <= view.toCall)
+                        }
+                        onClick={() => send({ type: 'bet', amount: clampWager(wager) })}
+                      >
+                        {wager >= view.you.stack && view.you.stack > 0 ? (
+                          'All In'
+                        ) : view.toCall > 0 ? (
                           <BetActionLabel verb="Рейз" amount={clampWager(wager)} format={formatChips} />
                         ) : (
-                          <BetActionLabel verb="Колл" amount={view.toCall} format={formatChips} />
-                        )
-                      ) : (
-                        <BetActionLabel verb="Ставка" amount={clampWager(wager)} format={formatChips} />
-                      )}
-                    </button>
+                          <BetActionLabel verb="Ставка" amount={clampWager(wager)} format={formatChips} />
+                        )}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="poker-btn poker-btn-fold"
@@ -668,6 +713,72 @@ function PokerOnlineTable({
 }
 
 type Mode = 'menu' | 'host' | 'join'
+
+function OnlineConnectionIssue({
+  opponentLeft,
+  message,
+  onRetry,
+  onLeave,
+  onHaptic,
+}: {
+  opponentLeft: boolean
+  message: string
+  onRetry?: () => void
+  onLeave: () => void
+  onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
+}) {
+  const [leftIn, setLeftIn] = useState(opponentLeft ? 5 : null)
+
+  useEffect(() => {
+    if (!opponentLeft) return
+    onHaptic?.('error')
+    setLeftIn(5)
+    const started = Date.now()
+    const tick = window.setInterval(() => {
+      const n = Math.max(0, 5 - Math.floor((Date.now() - started) / 1000))
+      setLeftIn(n)
+    }, 200)
+    const t = window.setTimeout(() => onLeave(), 5000)
+    return () => {
+      window.clearInterval(tick)
+      window.clearTimeout(t)
+    }
+  }, [opponentLeft, onLeave, onHaptic])
+
+  return (
+    <div className="online-conn-issue" role="status">
+      <p className="online-conn-issue-title">
+        {opponentLeft ? 'Соперник вышел из игры' : 'Нет связи'}
+      </p>
+      <p className="online-conn-issue-msg">{message}</p>
+      {opponentLeft ? (
+        <p className="online-conn-issue-hint">
+          {leftIn != null && leftIn > 0
+            ? `Возврат в лобби через ${leftIn}…`
+            : 'Возврат в лобби…'}
+        </p>
+      ) : (
+        <div className="online-conn-issue-actions">
+          {onRetry ? (
+            <button
+              type="button"
+              className="poker-btn poker-btn-bet"
+              onClick={() => {
+                onHaptic?.('medium')
+                onRetry()
+              }}
+            >
+              Переподключиться
+            </button>
+          ) : null}
+          <button type="button" className="poker-btn poker-btn-soft" onClick={onLeave}>
+            В лобби
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function PokerOnline({
   initialCode,
@@ -695,6 +806,23 @@ export function PokerOnline({
     return () => {
       sessionRef.current += 1
       roomRef.current?.destroy()
+    }
+  }, [])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return
+      const r = roomRef.current
+      if (!r) return
+      if (r.status === 'reconnecting' || r.status === 'disconnected') {
+        if (!r.opponentLeft) r.retryConnection?.()
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', onVis)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('focus', onVis)
     }
   }, [])
 
@@ -807,8 +935,29 @@ export function PokerOnline({
     return (
       <PokerOnlineTable
         view={room.view}
+        role={room.role}
         opponentName={room.opponent?.name ?? 'Соперник'}
         onAction={(action) => room.sendAction(action)}
+        onLeave={leave}
+        onHaptic={onHaptic}
+      />
+    )
+  }
+
+  if (room?.status === 'reconnecting' || room?.status === 'disconnected') {
+    const opponentLeft = !!room.opponentLeft
+    return (
+      <OnlineConnectionIssue
+        opponentLeft={opponentLeft}
+        message={room.error || (opponentLeft ? 'Соперник вышел из игры' : 'Связь с сервером потеряна')}
+        onRetry={
+          opponentLeft
+            ? undefined
+            : () => {
+                room.retryConnection?.()
+                setRoom({ ...room })
+              }
+        }
         onLeave={leave}
         onHaptic={onHaptic}
       />

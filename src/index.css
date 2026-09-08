@@ -4352,10 +4352,72 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   transition: opacity 0.22s ease, filter 0.22s ease;
 }
 
-/* Keep layout height under hole cards during reveal / hand-over */
-.poker-bet-amount-row.is-ghost {
-  visibility: hidden;
-  pointer-events: none;
+/* Online poker — slightly slower deal / chip land than solo */
+.poker-online .poker-hand .pcard.poker-deal-to-you,
+.poker-online .poker-you-cards .poker-hole-card.poker-deal-to-you {
+  animation-duration: 1.05s;
+}
+
+.poker-online .poker-bot-cards .poker-hole-card.poker-deal-to-bot,
+.poker-online .pcard.poker-deal-to-bot {
+  animation-duration: 0.95s;
+}
+
+.poker-online .poker-board-card.poker-deal-board {
+  animation-duration: 0.7s;
+}
+
+.poker-online .poker-chip-pile {
+  animation-duration: 0.62s;
+}
+
+.poker-online .poker-chip-pile.is-flat {
+  animation-duration: 0.55s;
+}
+
+.poker-online .poker-bot-cards.is-revealed .pcard,
+.poker-online .poker-bot-cards.is-revealed .poker-hole-card {
+  animation-duration: 0.75s;
+}
+
+.online-conn-issue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 60vh;
+  padding: 24px 18px;
+  text-align: center;
+}
+
+.online-conn-issue-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: #f0d9a8;
+}
+
+.online-conn-issue-msg,
+.online-conn-issue-hint {
+  margin: 0;
+  max-width: 320px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.online-conn-issue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.online-conn-issue-actions .poker-btn {
+  min-width: 140px;
 }
 
 .poker-allin-wait {
