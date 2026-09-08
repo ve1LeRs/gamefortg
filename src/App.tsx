@@ -28,6 +28,7 @@ export default function App() {
   const [durakRoomCode, setDurakRoomCode] = useState<string | null>(null)
   const [chessRoomCode, setChessRoomCode] = useState<string | null>(null)
   const [checkersRoomCode, setCheckersRoomCode] = useState<string | null>(null)
+  const [pokerRoomCode, setPokerRoomCode] = useState<string | null>(null)
 
   useEffect(() => {
     applySettingsToDom(loadSettings())
@@ -48,6 +49,7 @@ export default function App() {
     const fromTg = getWebApp()?.initDataUnsafe?.start_param
     const params = new URLSearchParams(window.location.search)
     const fromQuery =
+      params.get('pokerRoom') ||
       params.get('durakRoom') ||
       params.get('chessRoom') ||
       params.get('checkersRoom') ||
@@ -55,9 +57,16 @@ export default function App() {
     const raw = fromTg || fromQuery
     if (!raw) return
     const s = String(raw)
+    const poker = s.match(/(?:^|[_\-])poker[_-]?([A-Za-z0-9]{4,8})$/i)
     const chess = s.match(/(?:^|[_\-])chess[_-]?([A-Za-z0-9]{4,8})$/i)
     const checkers = s.match(/(?:^|[_\-])checkers[_-]?([A-Za-z0-9]{4,8})$/i)
     const durak = s.match(/(?:^|[_\-])durak[_-]?([A-Za-z0-9]{4,8})$/i)
+    if (poker?.[1]) {
+      setPokerRoomCode(poker[1].toUpperCase())
+      setActiveGame('poker')
+      enterFullscreen()
+      return
+    }
     if (chess?.[1]) {
       setChessRoomCode(chess[1].toUpperCase())
       setActiveGame('chess')
@@ -85,6 +94,7 @@ export default function App() {
       if (id !== 'durak') setDurakRoomCode(null)
       if (id !== 'chess') setChessRoomCode(null)
       if (id !== 'checkers') setCheckersRoomCode(null)
+      if (id !== 'poker') setPokerRoomCode(null)
       setActiveGame(id as GameId)
       setPlays((p) => ({ ...p, [id]: (p[id] ?? 0) + 1 }))
       haptic('medium')
@@ -97,6 +107,7 @@ export default function App() {
     setDurakRoomCode(null)
     setChessRoomCode(null)
     setCheckersRoomCode(null)
+    setPokerRoomCode(null)
     haptic('light')
   }, [haptic])
 
@@ -141,6 +152,7 @@ export default function App() {
             durakRoomCode={activeGame === 'durak' ? durakRoomCode : null}
             chessRoomCode={activeGame === 'chess' ? chessRoomCode : null}
             checkersRoomCode={activeGame === 'checkers' ? checkersRoomCode : null}
+            pokerRoomCode={activeGame === 'poker' ? pokerRoomCode : null}
           />
         </main>
       </div>
