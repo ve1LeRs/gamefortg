@@ -4593,7 +4593,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
     padding-bottom: 0;
   }
   .poker-bet-amount-row {
-    transform: translate(-14px, 2px);
+    transform: translate(-22px, 4px);
   }
   .poker-actions {
     max-width: min(400px, 56vw);
