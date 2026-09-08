@@ -390,15 +390,17 @@ function PokerOnlineTable({
 
             {view.opponent.streetBet > 0 ? (
               <ChipPile
+                key={`bet-opp-${view.opponent.streetBet}`}
                 amount={view.opponent.streetBet}
                 format={formatChips}
-                className="poker-bet-on-table poker-bet-online-opp"
+                className="poker-bet-on-table poker-bet-s2"
                 flat
               />
             ) : null}
 
             {view.you.streetBet > 0 ? (
               <ChipPile
+                key={`bet-you-${view.you.streetBet}`}
                 amount={view.you.streetBet}
                 format={formatChips}
                 className="poker-bet-on-table poker-bet-s0"
@@ -406,11 +408,11 @@ function PokerOnlineTable({
               />
             ) : null}
 
-            {/* Opponent — top center (HU) */}
+            {/* Opponent — same rail seat as solo bot s2 (top-left; pot keeps top-center) */}
             <div
-              className={`poker-seat-slot poker-seat-s2 poker-seat-online-opp${
-                view.opponent.folded ? ' is-folded' : ''
-              }${showOppCards ? ' is-revealed' : ''}${oppWinner ? ' is-winner' : ''}`}
+              className={`poker-seat-slot poker-seat-s2${view.opponent.folded ? ' is-folded' : ''}${
+                showOppCards ? ' is-revealed' : ''
+              }${oppWinner ? ' is-winner' : ''}`}
             >
               <div
                 className={`poker-bot-cards${showOppCards ? ' is-revealed' : ''}${
