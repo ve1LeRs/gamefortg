@@ -3077,7 +3077,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-brand {
   position: absolute;
-  top: 26%;
+  top: 34%;
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-display);
