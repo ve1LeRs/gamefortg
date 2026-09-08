@@ -3765,6 +3765,39 @@ body.poker-landscape-active .app-main.game-mode {
   transform: none;
 }
 
+.poker-bot-cards.is-flipping {
+  perspective: 420px;
+}
+
+.poker-bot-cards.is-flipping .pcard,
+.poker-bot-cards.is-flipping .poker-hole-card {
+  animation: poker-bot-reveal 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center center;
+}
+
+.poker-bot-cards.is-flipping .pcard:nth-child(2),
+.poker-bot-cards.is-flipping .poker-hole-card:nth-child(2) {
+  animation-delay: 0.07s;
+}
+
+@keyframes poker-bot-reveal {
+  0% {
+    transform: rotateY(86deg) scale(0.9);
+    opacity: 0.25;
+    filter: brightness(0.7);
+  }
+  58% {
+    transform: rotateY(-10deg) scale(1.05);
+    opacity: 1;
+    filter: brightness(1.08);
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+    filter: none;
+  }
+}
+
 .poker-bot-cards .pcard.poker-deal-to-bot {
   animation: poker-deal-to-bot 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -4152,7 +4185,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 .poker-bottom .poker-actions {
   flex: 0 1 auto;
   width: auto;
-  max-width: min(440px, 58vw);
+  max-width: min(560px, 72vw);
   margin: 0;
 }
 
@@ -4294,10 +4327,10 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 3px;
+  gap: 5px;
   flex: 0 1 auto;
-  max-width: min(440px, 58vw);
-  min-width: min(260px, 48vw);
+  max-width: min(560px, 72vw);
+  min-width: min(300px, 56vw);
 }
 
 .poker-allin-wait {
@@ -4316,7 +4349,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 .poker-actions-row {
   display: flex;
   justify-content: stretch;
-  gap: 5px;
+  gap: 6px;
   width: 100%;
 }
 
@@ -4326,8 +4359,8 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   width: 0;
   min-width: 0;
   max-width: none;
-  padding-left: 6px;
-  padding-right: 6px;
+  padding-left: 8px;
+  padding-right: 8px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -4338,7 +4371,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 5px;
   width: 100%;
 }
 
@@ -4355,21 +4388,22 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 .poker-bet-stepper {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 4px;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 12px;
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .poker-bet-nudge {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
   border: 1px solid rgba(232, 168, 56, 0.4);
   background: rgba(0, 0, 0, 0.35);
   color: #f0d9a8;
-  font-size: 16px;
+  font-family: var(--font-body);
+  font-size: 20px;
   font-weight: 700;
   line-height: 1;
   display: grid;
@@ -4381,32 +4415,33 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
 }
 
 .poker-bet-value {
-  min-width: 40px;
+  min-width: 48px;
   text-align: center;
-  font-family: var(--font-display);
-  font-size: 16px;
-  font-weight: 800;
+  font-family: var(--font-body);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   color: #f0d9a8;
   font-variant-numeric: tabular-nums;
 }
 
 .poker-bet-chip {
-  padding: 5px 10px;
+  padding: 7px 12px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.08);
   color: rgba(242, 246, 251, 0.92);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.1;
 }
 
 .poker-btn {
   min-width: 0;
-  min-height: 40px;
-  padding: 9px 10px;
-  border-radius: 11px;
-  font-size: 12px;
+  min-height: 48px;
+  padding: 12px 12px;
+  border-radius: 12px;
+  font-size: 14px;
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -4596,14 +4631,14 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
     transform: translate(-22px, 4px);
   }
   .poker-actions {
-    max-width: min(400px, 56vw);
-    min-width: min(220px, 44vw);
-    gap: 3px;
+    max-width: min(520px, 68vw);
+    min-width: min(260px, 50vw);
+    gap: 4px;
   }
   .poker-btn {
-    min-height: 36px;
-    padding: 7px 8px;
-    font-size: 11px;
+    min-height: 44px;
+    padding: 10px 10px;
+    font-size: 13px;
   }
   .poker-board {
     transform: translateY(12%);
@@ -4634,17 +4669,18 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   .poker-hand .poker-hole-card .pcard-rank {
     font-size: clamp(11px, 2vw, 14px);
   }
-  .poker-btn {
-    min-height: 42px;
-    padding: 11px 10px;
-    font-size: 12px;
-  }
   .poker-bet-nudge {
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
   }
   .poker-bet-value {
-    font-size: 16px;
+    font-size: 17px;
+    font-family: var(--font-body);
+  }
+  .poker-bet-chip {
+    padding: 6px 11px;
+    font-size: 12px;
   }
 }
 
