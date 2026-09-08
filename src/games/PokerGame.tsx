@@ -125,6 +125,8 @@ const BOT_BETWEEN_MS = 780
 const STREET_PAUSE_MS = 1150
 const BOT_REPLY_SOUND_MS = 220
 const FOLD_RUNOUT_MS = 580
+/** Stagger between bot hole-card reveals at showdown. */
+const SHOWDOWN_REVEAL_MS = 520
 
 function formatChips(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
@@ -1075,11 +1077,21 @@ export function PokerGame({
   const potFlightTimerRef = useRef(0)
   const boardLenRef = useRef(0)
   const streetBusyRef = useRef(false)
+  const revealTimersRef = useRef<number[]>([])
+  const [flippingSeat, setFlippingSeat] = useState<number | null>(null)
+  const [revealingHands, setRevealingHands] = useState(false)
 
   const seatsRef = useRef(seats)
   const handRef = useRef({ deck, board, pot, seats })
   seatsRef.current = seats
   handRef.current = { deck, board, pot, seats }
+
+  const clearRevealTimers = useCallback(() => {
+    for (const t of revealTimersRef.current) window.clearTimeout(t)
+    revealTimersRef.current = []
+    setFlippingSeat(null)
+    setRevealingHands(false)
+  }, [])
 
   const player = seats[0]!
   const playerLevelInfo = useMemo(() => levelFromXp(progress.xp), [progress.xp])
@@ -1165,8 +1177,56 @@ export function PokerGame({
       streetBet: 0,
     }))
 
+  /** Face-down → face-up for each live bot, one seat at a time. */
+  const revealBotsThen = useCallback(
+    (seatsBase: Seat[], onDone: (finalSeats: Seat[]) => void) => {
+      clearRevealTimers()
+      setRevealingHands(true)
+      const working = cloneSeats(seatsBase).map((s) => ({
+        ...s,
+        showCards: false,
+        streetBet: 0,
+      }))
+      if (!working[0]!.folded) working[0]!.showCards = true
+      applySeats(working)
+
+      const order = working.map((_, i) => i).filter((i) => i > 0 && !working[i]!.folded)
+      if (order.length === 0) {
+        setRevealingHands(false)
+        onDone(working)
+        return
+      }
+
+      let step = 0
+      const tick = () => {
+        const idx = order[step]!
+        const next = cloneSeats(seatsRef.current)
+        next[idx]!.showCards = true
+        applySeats(next)
+        setFlippingSeat(idx)
+        playPokerSound('card')
+        step += 1
+        if (step >= order.length) {
+          const done = window.setTimeout(() => {
+            setFlippingSeat(null)
+            setRevealingHands(false)
+            onDone(cloneSeats(seatsRef.current))
+          }, 300)
+          revealTimersRef.current.push(done)
+          return
+        }
+        const t = window.setTimeout(tick, SHOWDOWN_REVEAL_MS)
+        revealTimersRef.current.push(t)
+      }
+      const start = window.setTimeout(tick, 240)
+      revealTimersRef.current.push(start)
+    },
+    [applySeats, clearRevealTimers],
+  )
+
   const dealNextHand = useCallback(
     (current: Seat[]) => {
+      clearRevealTimers()
       const rawStacks = current.map((s) => Math.max(0, s.stack))
       const { stacks, topped } = topUpStacks(rawStacks)
       const nextDealer = (dealerIdx + 1) % (BOT_COUNT + 1)
@@ -1213,7 +1273,7 @@ export function PokerGame({
       playPokerSound('cards')
       window.setTimeout(() => playPokerSound('chips'), 140)
     },
-    [applySeats, dealerIdx, onHaptic],
+    [applySeats, clearRevealTimers, dealerIdx, onHaptic],
   )
 
   const [nextHandIn, setNextHandIn] = useState<number | null>(null)
@@ -1242,55 +1302,56 @@ export function PokerGame({
 
   const showdown = useCallback(
     (community: Card[], potAmount: number, seatsNow: Seat[]) => {
-      const next = cloneSeats(seatsNow).map((s) => ({
-        ...s,
-        showCards: !s.folded,
-        streetBet: 0,
-      }))
-      const { idxs, label } = bestSeatIndexes(next, community)
-      awardPotToWinners(next, potAmount, idxs)
-      applySeats(next)
-      setPot(0)
-      setPhase('over')
+      streetBusyRef.current = true
       setToCall(0)
-      playPotWinFx(idxs, potAmount)
+      setStatus('Вскрываем карты…')
 
-      const playerWins = idxs.includes(0)
-      const onlyPlayer = idxs.length === 1 && playerWins
-      const playerTied = playerWins && idxs.length > 1
-      const names = idxs.map((i) => next[i]!.name).join(', ')
+      revealBotsThen(seatsNow, (revealed) => {
+        const next = cloneSeats(revealed)
+        const { idxs, label } = bestSeatIndexes(next, community)
+        awardPotToWinners(next, potAmount, idxs)
+        applySeats(next)
+        setPot(0)
+        setPhase('over')
+        playPotWinFx(idxs, potAmount)
 
-      if (onlyPlayer) {
-        const xpNote = grantXp('win', potAmount)
-        setStatus(`Победа! ${label}. +${formatChips(potAmount)}${xpNote}`)
-        setResultClass('win')
-        onHaptic?.('success')
-        playUiSound('ok')
-      } else if (playerTied) {
-        const xpNote = grantXp('tie', potAmount)
-        setStatus(`Ничья: ${label}. Банк делится (${names}).${xpNote}`)
-        setResultClass('')
-        onHaptic?.('medium')
-        playUiSound('tap')
-      } else if (playerWins) {
-        const xpNote = grantXp('win', potAmount)
-        setStatus(`Вы в числе победителей: ${label}. Банк: ${names}.${xpNote}`)
-        setResultClass('win')
-        onHaptic?.('success')
-        playUiSound('ok')
-      } else {
-        const xpNote = grantXp('lose', potAmount)
-        const yours = next[0]!.folded
-          ? 'фолд'
-          : bestHand(next[0]!.hole, community).label
-        setStatus(`Поражение. ${names}: ${label}. У вас ${yours}.${xpNote}`)
-        setResultClass('lose')
-        onHaptic?.('error')
-        playUiSound('warn')
-      }
-      playPokerSound('card')
+        const playerWins = idxs.includes(0)
+        const onlyPlayer = idxs.length === 1 && playerWins
+        const playerTied = playerWins && idxs.length > 1
+        const names = idxs.map((i) => next[i]!.name).join(', ')
+
+        if (onlyPlayer) {
+          const xpNote = grantXp('win', potAmount)
+          setStatus(`Победа! ${label}. +${formatChips(potAmount)}${xpNote}`)
+          setResultClass('win')
+          onHaptic?.('success')
+          playUiSound('ok')
+        } else if (playerTied) {
+          const xpNote = grantXp('tie', potAmount)
+          setStatus(`Ничья: ${label}. Банк делится (${names}).${xpNote}`)
+          setResultClass('')
+          onHaptic?.('medium')
+          playUiSound('tap')
+        } else if (playerWins) {
+          const xpNote = grantXp('win', potAmount)
+          setStatus(`Вы в числе победителей: ${label}. Банк: ${names}.${xpNote}`)
+          setResultClass('win')
+          onHaptic?.('success')
+          playUiSound('ok')
+        } else {
+          const xpNote = grantXp('lose', potAmount)
+          const yours = next[0]!.folded
+            ? 'фолд'
+            : bestHand(next[0]!.hole, community).label
+          setStatus(`Поражение. ${names}: ${label}. У вас ${yours}.${xpNote}`)
+          setResultClass('lose')
+          onHaptic?.('error')
+          playUiSound('warn')
+        }
+        streetBusyRef.current = false
+      })
     },
-    [applySeats, grantXp, onHaptic, playPotWinFx],
+    [applySeats, grantXp, onHaptic, playPotWinFx, revealBotsThen],
   )
 
   const winUncontested = useCallback(
@@ -1496,8 +1557,6 @@ export function PokerGame({
     onHaptic?.('light')
     playPokerSound('check')
     streetBusyRef.current = true
-    const botsLeft = seats.slice(1).filter((s) => !s.folded).length
-    setStatus(botsLeft > 1 ? 'Боты думают…' : 'Бот думает…')
 
     const result = runBotsAfterCheck(seats, pot, board, phase)
     playBotRound(result, BOT_THINK_MS, phase, deck, board, {
@@ -1553,7 +1612,6 @@ export function PokerGame({
       setPot(potAfter)
       setToCall(0)
       streetBusyRef.current = true
-      setStatus('Боты отвечают…')
 
       const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
       playBotRound(result, BOT_FACE_BET_MS, phase, deck, board, {
@@ -1580,7 +1638,6 @@ export function PokerGame({
     applySeats(next)
     setPot(potAfter)
     streetBusyRef.current = true
-    setStatus('Боты думают…')
 
     const result = runBotsAfterPlayerBet(next, potAfter, board, phase)
     playBotRound(result, BOT_FACE_BET_MS, phase, deck, board, {
@@ -1594,32 +1651,33 @@ export function PokerGame({
 
   const resolveFoldShowdown = useCallback(
     (finalBoard: Card[], seatsNow: Seat[], potAmount: number, wasFacingBet: boolean) => {
-      const next = cloneSeats(seatsNow).map((s) => ({
-        ...s,
-        showCards: !s.folded,
-        streetBet: 0,
-      }))
-      const ranked = bestSeatIndexes(next, finalBoard)
-      const winnerIdxsLocal = ranked.idxs
-      const label = ranked.label
-      awardPotToWinners(next, potAmount, winnerIdxsLocal)
-      applySeats(next)
+      streetBusyRef.current = true
       setBoard(finalBoard)
-      setPot(0)
-      setPhase('over')
       setToCall(0)
-      playPotWinFx(winnerIdxsLocal, potAmount)
-      const xpNote = grantXp('lose', potAmount)
-      const names = winnerIdxsLocal.map((i) => next[i]!.name).join(', ')
-      setStatus(
-        wasFacingBet
-          ? `Вы сбросили. Банк ${formatChips(potAmount)} → ${names}${label ? ` (${label})` : ''}.${xpNote}`
-          : `Вы сбросили. Банк ${formatChips(potAmount)} уходит: ${names}${label ? ` (${label})` : ''}.${xpNote}`,
-      )
-      setResultClass('lose')
-      streetBusyRef.current = false
+      setStatus('Вскрываем карты…')
+
+      revealBotsThen(seatsNow, (revealed) => {
+        const next = cloneSeats(revealed)
+        const ranked = bestSeatIndexes(next, finalBoard)
+        const winnerIdxsLocal = ranked.idxs
+        const label = ranked.label
+        awardPotToWinners(next, potAmount, winnerIdxsLocal)
+        applySeats(next)
+        setPot(0)
+        setPhase('over')
+        playPotWinFx(winnerIdxsLocal, potAmount)
+        const xpNote = grantXp('lose', potAmount)
+        const names = winnerIdxsLocal.map((i) => next[i]!.name).join(', ')
+        setStatus(
+          wasFacingBet
+            ? `Вы сбросили. Банк ${formatChips(potAmount)} → ${names}${label ? ` (${label})` : ''}.${xpNote}`
+            : `Вы сбросили. Банк ${formatChips(potAmount)} уходит: ${names}${label ? ` (${label})` : ''}.${xpNote}`,
+        )
+        setResultClass('lose')
+        streetBusyRef.current = false
+      })
     },
-    [applySeats, grantXp, playPotWinFx],
+    [applySeats, grantXp, playPotWinFx, revealBotsThen],
   )
 
   const fold = () => {
@@ -1642,22 +1700,26 @@ export function PokerGame({
     if (contenders.length <= 1) {
       const winnerIdxsLocal = contenders.length === 1 ? [contenders[0]!.i] : []
       const label = contenders.length === 1 ? contenders[0]!.s.name : ''
-      for (let i = 1; i < next.length; i += 1) {
-        if (!next[i]!.folded) next[i]!.showCards = true
-      }
-      awardPotToWinners(next, potSnap, winnerIdxsLocal)
-      applySeats(next)
-      setPot(0)
-      setPhase('over')
-      playPotWinFx(winnerIdxsLocal, potSnap)
-      const xpNote = grantXp('lose', potSnap)
-      const names = winnerIdxsLocal.map((i) => next[i]!.name).join(', ')
-      setStatus(
-        wasFacingBet
-          ? `Вы сбросили. Банк ${formatChips(potSnap)} → ${names}${label ? ` (${label})` : ''}.${xpNote}`
-          : `Вы сбросили. Банк ${formatChips(potSnap)} уходит: ${names}.${xpNote}`,
-      )
-      setResultClass('lose')
+      streetBusyRef.current = true
+      setToCall(0)
+      setStatus('Вскрываем карты…')
+      revealBotsThen(next, (revealed) => {
+        const awarded = cloneSeats(revealed)
+        awardPotToWinners(awarded, potSnap, winnerIdxsLocal)
+        applySeats(awarded)
+        setPot(0)
+        setPhase('over')
+        playPotWinFx(winnerIdxsLocal, potSnap)
+        const xpNote = grantXp('lose', potSnap)
+        const names = winnerIdxsLocal.map((i) => awarded[i]!.name).join(', ')
+        setStatus(
+          wasFacingBet
+            ? `Вы сбросили. Банк ${formatChips(potSnap)} → ${names}${label ? ` (${label})` : ''}.${xpNote}`
+            : `Вы сбросили. Банк ${formatChips(potSnap)} уходит: ${names}.${xpNote}`,
+        )
+        setResultClass('lose')
+        streetBusyRef.current = false
+      })
       return
     }
 
@@ -1898,7 +1960,9 @@ export function PokerGame({
                   ) : (
                     <>
                       <div
-                        className={`poker-bot-cards${revealed ? ' is-revealed' : ''}`}
+                        className={`poker-bot-cards${revealed ? ' is-revealed' : ''}${
+                          flippingSeat === i ? ' is-flipping' : ''
+                        }`}
                         key={`botcards-${i}-${dealTick}`}
                       >
                         {seat.hole.map((c, ci) => (
@@ -1935,7 +1999,7 @@ export function PokerGame({
           </div>
 
           <div className="poker-bottom">
-            {phase !== 'over' && !allInSpectating ? (
+            {phase !== 'over' && !allInSpectating && !revealingHands ? (
               <div className="poker-bet-amount-row">
                 <div className="poker-bet-stepper" aria-label="Размер ставки">
                   <button
@@ -1963,6 +2027,8 @@ export function PokerGame({
             <div className="poker-actions">
               {phase !== 'over' && allInSpectating ? (
                 <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
+              ) : phase !== 'over' && revealingHands ? (
+                <p className="poker-allin-wait">Вскрываем карты…</p>
               ) : phase !== 'over' ? (
                 <>
                   <div className="poker-bet-presets">
