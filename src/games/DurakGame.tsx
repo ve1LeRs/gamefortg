@@ -96,7 +96,9 @@ function dealWaitMs(cardCount: number, perCard = 80) {
   if (prefersReducedMotion()) return 40
   const { baseMs, gapMs } = getDealTiming()
   const stagger = Math.round(gapMs * (perCard / 110))
-  return baseMs + cardCount * stagger
+  // CSS deal-in is 0.72s + 0.12s base delay + (n-1)*0.14s — don't clear classes early.
+  const cssMs = 720 + 120 + Math.max(0, cardCount - 1) * 140 + 100
+  return Math.max(baseMs + cardCount * stagger, cssMs)
 }
 
 function pickFirstAttacker(): 'player' | 'bot' {
@@ -112,8 +114,8 @@ export function DurakGame({
   const [deck, setDeck] = useState(initial.deck)
   const [player, setPlayer] = useState(initial.player)
   const [bot, setBot] = useState(initial.bot)
-  const [trump] = useState(initial.trump)
-  const [trumpCard] = useState(initial.trumpCard)
+  const [trump, setTrump] = useState(initial.trump)
+  const [trumpCard, setTrumpCard] = useState(initial.trumpCard)
   const [table, setTable] = useState<TablePair[]>([])
   const [attacker, setAttacker] = useState<'player' | 'bot'>(() => pickFirstAttacker())
   const [status, setStatus] = useState('Раздача…')
@@ -279,7 +281,7 @@ export function DurakGame({
         setStatus('Ход бота…')
         setKickoffBot(true)
       } else {
-        setStatus('Ваш ход — ходите картой')
+        setStatus('Ваш ход')
       }
     }, ms)
     return () => window.clearTimeout(t)
@@ -374,6 +376,8 @@ export function DurakGame({
     setDeck(next.deck)
     setPlayer(next.player)
     setBot(next.bot)
+    setTrump(next.trump)
+    setTrumpCard(next.trumpCard)
     setTable([])
     setAttacker(first)
     setStatus('Раздача…')
@@ -394,7 +398,7 @@ export function DurakGame({
         setStatus('Ход бота…')
         setKickoffBot(true)
       } else {
-        setStatus('Ваш ход — ходите картой')
+        setStatus('Ваш ход')
       }
     }, dealWaitMs(next.player.length, 80))
     onHaptic?.('medium')
@@ -670,11 +674,11 @@ export function DurakGame({
     setKickoffBot(false)
     const atk = botAttackCard(bot)
     if (!atk) {
-      setStatus('Ваш ход — ходите картой')
+      setStatus('Ваш ход')
       setAttacker('player')
       return
     }
-    void placeBotAttack(atk, bot, 'Ход бота — отбейтесь картой')
+    void placeBotAttack(atk, bot, 'Ход бота — отбейтесь')
     // placeBotAttack closes over latest waitThrow/state from this render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kickoffBot, busy, over, table.length, bot])
@@ -721,11 +725,15 @@ export function DurakGame({
     setStatus('Бито — карты уходят в сброс')
     const cleared = table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack]))
 
-    // Aim each pair at the visible edge of the bito pile (not a fixed pixel drift)
+    // Aim each pair at the visible edge of the bito pile (compensate table scale)
     const aim: Record<string, { dx: number; dy: number }> = {}
     const pile = bitoPileRef.current
     const board = tableCardsRef.current
     if (pile && board) {
+      const scaleRaw = getComputedStyle(board).getPropertyValue('--table-scale').trim()
+      const scale = Math.max(0.4, Number.parseFloat(scaleRaw) || 1)
+      board.style.setProperty('--table-scale', '1')
+      board.style.margin = '0'
       const br = pile.getBoundingClientRect()
       // Pile hangs off the right — target the on-screen rim
       const tx = br.left + Math.min(18, Math.max(8, br.width * 0.28))
@@ -735,8 +743,8 @@ export function DurakGame({
         if (!id) return
         const r = el.getBoundingClientRect()
         aim[id] = {
-          dx: Math.round(tx - (r.left + r.width / 2)),
-          dy: Math.round(ty - (r.top + r.height / 2)),
+          dx: Math.round((tx - (r.left + r.width / 2)) / scale),
+          dy: Math.round((ty - (r.top + r.height / 2)) / scale),
         }
       })
     }
@@ -763,42 +771,37 @@ export function DurakGame({
       if (atk) {
         void (async () => {
           await sleep(200)
-          await placeBotAttack(atk, drawn.botNow, 'Ход бота — отбейтесь картой')
+          await placeBotAttack(atk, drawn.botNow, 'Ход бота — отбейтесь')
         })()
       }
     } else {
-      setStatus('Ваш ход — ходите картой')
+      setStatus('Ваш ход')
     }
   }
 
   const bitoRef = useRef(bito)
   bitoRef.current = bito
 
-  // Auto-bito when the fight is over and nobody has a toss decision left:
-  // - you defended everything and the bot is done tossing
-  // - you attacked, bot covered all, and you have nothing left to toss
+  // Auto-bito only when the bot was attacking and has nothing left to toss.
+  // If you attacked, you always press «Бито» yourself (even with no podkid).
   useEffect(() => {
     if (busy || over || botTaking || bitoFlying) return
     if (table.length === 0 || table.some((p) => !p.defence)) return
-    const canPlayerToss =
-      attacker === 'player' &&
-      slotsLeft(bot.length, table) > 0 &&
-      player.some((c) => ranksOnTable.has(c.rank))
-    if (canPlayerToss) return
+    if (attacker !== 'bot') return
     const t = window.setTimeout(
       () => {
         void bitoRef.current()
       },
-      prefersReducedMotion() ? 40 : 320,
+      prefersReducedMotion() ? 40 : 360,
     )
     return () => window.clearTimeout(t)
-  }, [busy, over, botTaking, bitoFlying, table, attacker, bot.length, player, ranksOnTable])
+  }, [busy, over, botTaking, bitoFlying, table, attacker])
 
   const startBotAttackIfNeeded = () => {
     if (busy || attacker !== 'bot' || table.length !== 0 || over || botTaking) return
     const atk = botAttackCard(bot)
     if (!atk) return
-    void placeBotAttack(atk, bot, 'Ход бота — отбейтесь картой')
+    void placeBotAttack(atk, bot, 'Ход бота — отбейтесь')
   }
 
   const enterFor = (id: string, fallback: EnterKind = 'deal') => enterMap[id] ?? fallback
@@ -810,9 +813,7 @@ export function DurakGame({
     !bitoFlying &&
     table.length > 0 &&
     table.every((p) => p.defence) &&
-    attacker === 'player' &&
-    slotsLeft(bot.length, table) > 0 &&
-    player.some((c) => ranksOnTable.has(c.rank))
+    attacker === 'player'
   const canTake = !busy && !over && !botTaking && attacker === 'bot' && table.some((p) => !p.defence)
   const canGiveToBot = !busy && !over && botTaking
   const deckLayers = Math.min(5, Math.max(1, Math.ceil(deck.length / 6)))
@@ -888,7 +889,6 @@ export function DurakGame({
             className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}${bitoFlying ? ' is-to-bito' : ''}`}
             data-count={table.length}
           >
-            {table.length === 0 && <span className="durak-empty">Ход картой</span>}
             {table.map((p) => {
               const aim = bitoAim?.[p.attack.id]
               return (
@@ -946,17 +946,28 @@ export function DurakGame({
         </div>
       </div>
 
+      {over && (
+        <div className={`durak-end-overlay is-${over}`} role="status">
+          <div className="durak-end-card">
+            <strong>{over === 'win' ? 'Победа!' : 'Вы — дурак'}</strong>
+            <p>
+              {over === 'win'
+                ? 'Вы скинули все карты.'
+                : 'Бот скинул все карты раньше вас.'}
+            </p>
+            <button type="button" className="durak-btn durak-btn-primary" onClick={reset}>
+              Ещё раз
+            </button>
+          </div>
+        </div>
+      )}
       {botTaking && !tableFlying && (
         <div className="durak-take-banner" role="status">
           Бот берёт — подкиньте карты тех же рангов, потом «Отдать»
         </div>
       )}
       <div className="durak-actions" onClick={(e) => e.stopPropagation()}>
-        {over ? (
-          <button type="button" className="durak-btn durak-btn-primary" onClick={reset}>
-            Ещё раз
-          </button>
-        ) : (
+        {over ? null : (
           <>
             {canTake && (
               <button type="button" className="durak-btn durak-btn-take" onClick={takeCards}>

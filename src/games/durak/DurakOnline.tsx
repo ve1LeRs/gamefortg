@@ -440,7 +440,6 @@ function OnlineTable({
             className={`durak-table-cards${tableFlying ? ' is-bot-taking' : ''}${bitoFlying ? ' is-to-bito' : ''}`}
             data-count={displayTable.length}
           >
-            {displayTable.length === 0 && <span className="durak-empty">Ход картой</span>}
             {displayTable.map((p) => {
               const aim = bitoAim?.[p.attack.id]
               return (
