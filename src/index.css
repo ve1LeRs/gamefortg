@@ -3199,7 +3199,7 @@ body.poker-landscape-active .app-main.game-mode {
   min-height: 180px;
   width: 100%;
   max-width: 1040px;
-  margin: 0 auto;
+  margin: 10px auto 8px;
   overflow: visible;
 }
 
@@ -3338,7 +3338,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-pot {
   position: absolute;
-  top: 12%;
+  top: 16%;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -3428,55 +3428,56 @@ body.poker-landscape-active .app-main.game-mode {
   pointer-events: none;
 }
 
-/* Absolute on the felt near each seat — siblings of seats, not inside them. */
+/* Bet piles sit on the felt, inward from each outside seat — never on the rail/avatar. */
 .poker-bet-s0 {
-  left: 14%;
+  left: 20%;
   top: auto;
-  bottom: 20%;
+  bottom: 28%;
   transform: none;
 }
 
 .poker-bet-s1 {
-  left: 12%;
-  top: 40%;
+  left: 18%;
+  top: 44%;
   bottom: auto;
   transform: none;
 }
 
 .poker-bet-s2 {
-  left: 26%;
-  top: 15%;
+  left: 28%;
+  top: 24%;
   bottom: auto;
   transform: none;
 }
 
 .poker-bet-s3 {
-  left: 52%;
-  top: 15%;
-  bottom: auto;
+  left: auto;
+  right: 18%;
+  top: auto;
+  bottom: 28%;
   transform: none;
 }
 
 .poker-bet-s4 {
   left: auto;
   right: 16%;
-  top: 15%;
+  top: 36%;
   bottom: auto;
   transform: none;
 }
 
 /* Compat aliases for old heads-up class names. */
 .poker-bet-you {
-  left: 14%;
+  left: 20%;
   top: auto;
-  bottom: 20%;
+  bottom: 28%;
   transform: none;
 }
 
 .poker-bet-bot {
   left: auto;
   right: 16%;
-  top: 15%;
+  top: 36%;
   bottom: auto;
   transform: none;
 }
@@ -3492,7 +3493,10 @@ body.poker-landscape-active .app-main.game-mode {
   }
 }
 
-/* Seats outside the oval rim; s4 clear of Telegram close/menu chrome. */
+/*
+  Five seats around the oval — nobody at top-center (pot lives there).
+  Avatars sit fully outside the wooden rail; bot cards face inward.
+*/
 .poker-seat-slot {
   position: absolute;
   z-index: 4;
@@ -3500,16 +3504,16 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-seat-s0 {
-  left: 2%;
-  bottom: 1%;
+  left: 0;
+  bottom: -6%;
   top: auto;
   transform: none;
   z-index: 5;
 }
 
 .poker-seat-s1 {
-  left: 2%;
-  top: 32%;
+  left: -3%;
+  top: 34%;
   bottom: auto;
   transform: none;
   width: auto;
@@ -3521,8 +3525,8 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-seat-s2 {
-  left: 22%;
-  top: max(28px, 4%);
+  left: 8%;
+  top: -7%;
   bottom: auto;
   transform: none;
   width: auto;
@@ -3533,14 +3537,16 @@ body.poker-landscape-active .app-main.game-mode {
   z-index: 5;
 }
 
+/* Was top-center — moved to bottom-right outside the rail. */
 .poker-seat-s3 {
-  left: 48%;
-  top: max(28px, 4%);
-  bottom: auto;
+  left: auto;
+  right: 0;
+  top: auto;
+  bottom: -6%;
   transform: none;
   width: auto;
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   align-items: center;
   gap: 6px;
   z-index: 5;
@@ -3548,13 +3554,13 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-s4 {
   left: auto;
-  right: max(52px, 12%);
-  top: max(28px, 5%);
+  right: -3%;
+  top: 28%;
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   align-items: center;
   gap: 6px;
   z-index: 5;
@@ -3573,8 +3579,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 /* Compat aliases for old heads-up seat classes. */
 .poker-seat-you {
-  left: 2%;
-  bottom: 1%;
+  left: 0;
+  bottom: -6%;
   top: auto;
   transform: none;
   z-index: 5;
@@ -3582,13 +3588,13 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-bot {
   left: auto;
-  right: max(52px, 12%);
-  top: max(28px, 5%);
+  right: -3%;
+  top: 28%;
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   align-items: center;
   gap: 6px;
   z-index: 5;
@@ -4137,51 +4143,56 @@ body.poker-landscape-active .app-main.game-mode {
   }
   .poker-seat-s0,
   .poker-seat-you {
-    left: 1.5%;
-    bottom: 0;
+    left: 0;
+    bottom: -8%;
   }
   .poker-seat-s1 {
-    left: 1.5%;
-    top: 30%;
+    left: -4%;
+    top: 32%;
     gap: 4px;
   }
   .poker-seat-s2 {
-    left: 20%;
-    top: max(22px, 3%);
+    left: 6%;
+    top: -10%;
     gap: 4px;
   }
   .poker-seat-s3 {
-    left: 46%;
-    top: max(22px, 3%);
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: -8%;
     gap: 4px;
   }
   .poker-seat-s4,
   .poker-seat-bot {
-    top: max(22px, 3.5%);
-    right: max(48px, 11%);
+    top: 26%;
+    right: -4%;
+    bottom: auto;
     gap: 4px;
   }
   .poker-bet-s0,
   .poker-bet-you {
-    left: 13%;
-    bottom: 16%;
+    left: 18%;
+    bottom: 24%;
   }
   .poker-bet-s1 {
-    left: 11%;
-    top: 38%;
+    left: 16%;
+    top: 42%;
   }
   .poker-bet-s2 {
-    left: 24%;
-    top: 13%;
+    left: 26%;
+    top: 22%;
   }
   .poker-bet-s3 {
-    left: 50%;
-    top: 13%;
+    left: auto;
+    right: 16%;
+    top: auto;
+    bottom: 24%;
   }
   .poker-bet-s4,
   .poker-bet-bot {
-    right: 15%;
-    top: 13%;
+    right: 14%;
+    top: 32%;
   }
   .poker-bot-cards {
     margin: 0;
@@ -4200,7 +4211,7 @@ body.poker-landscape-active .app-main.game-mode {
     transform: translateY(16%);
   }
   .poker-pot {
-    top: 11%;
+    top: 15%;
     padding: 3px 7px;
   }
   .poker-table-brand-mark {
