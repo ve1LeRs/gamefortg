@@ -13,6 +13,7 @@ import {
   applySettingsToDom,
   loadSettings,
   playUiSound,
+  playPokerSound,
   saveSettings,
 } from '../lib/settings'
 import { BOT_DIFFICULTIES, BOT_DIFFICULTY_HINT, BOT_DIFFICULTY_LABEL, type BotDifficulty } from '../games/botDifficulty'
@@ -155,14 +156,17 @@ export function SettingsPage({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' 
         <div className="settings-row">
           <div>
             <strong>Звуки</strong>
-            <p>Тихие клики и сигналы без файлов — прямо в браузере</p>
+            <p>Клики UI, шелест фишек и слистывание карт — без файлов, в браузере</p>
           </div>
           <Toggle
             label="Звуки"
             on={settings.sounds}
             onChange={(sounds) => {
               patch({ sounds })
-              if (sounds) playUiSound('ok')
+              if (sounds) {
+                playUiSound('ok')
+                window.setTimeout(() => playPokerSound('chips'), 120)
+              }
             }}
           />
         </div>
