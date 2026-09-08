@@ -1857,17 +1857,44 @@ export function PokerGame({
                   }${isWinner ? ' is-winner' : ''}${playerActing ? ' is-acting' : ''}`}
                 >
                   {isHuman ? (
-                    <SeatCard
-                      name={seat.name}
-                      level={playerLevel}
-                      stackText={formatChips(seat.stack)}
-                      dealer={i === dealerIdx && phase !== 'over'}
-                      active={!seat.folded}
-                      accent={seat.accent}
-                      xpFrac={playerLevelInfo.frac}
-                      levelTitle={playerLevelTitle}
-                      hideName
-                    />
+                    <>
+                      <div className="poker-you-cards" key={`hand-${dealTick}`}>
+                        {liveHint ? (
+                          <div className="poker-live-hint" aria-live="polite">
+                            <span className="poker-live-combo">{liveHint.combo}</span>
+                            <span className="poker-live-sep" aria-hidden>
+                              ·
+                            </span>
+                            <span className={`poker-live-odds is-${liveHint.tone}`}>
+                              {liveHint.exact ? `${liveHint.pct}%` : `~${liveHint.pct}%`}
+                            </span>
+                          </div>
+                        ) : null}
+                        <div className="poker-hand">
+                          {seat.hole.map((c, ci) => (
+                            <PlayingCard
+                              key={c.id}
+                              card={c}
+                              index={ci}
+                              enter="none"
+                              className="poker-hole-card poker-deal-to-you"
+                              style={{ animationDelay: `${ci * dealTiming.gapMs}ms` }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <SeatCard
+                        name={seat.name}
+                        level={playerLevel}
+                        stackText={formatChips(seat.stack)}
+                        dealer={i === dealerIdx && phase !== 'over'}
+                        active={!seat.folded}
+                        accent={seat.accent}
+                        xpFrac={playerLevelInfo.frac}
+                        levelTitle={playerLevelTitle}
+                        hideName
+                      />
+                    </>
                   ) : (
                     <>
                       <div
@@ -1907,38 +1934,7 @@ export function PokerGame({
             })}
           </div>
 
-          <div
-            className={`poker-bottom${
-              phase !== 'over' && !player.folded && !allInSpectating ? ' is-acting-hand' : ''
-            }`}
-          >
-            <div className="poker-hand-dock" key={`hand-${dealTick}`}>
-              {liveHint ? (
-                <div className="poker-live-hint" aria-live="polite">
-                  <span className="poker-live-combo">{liveHint.combo}</span>
-                  <span className="poker-live-sep" aria-hidden>
-                    ·
-                  </span>
-                  <span className={`poker-live-odds is-${liveHint.tone}`}>
-                    {liveHint.exact ? `${liveHint.pct}%` : `~${liveHint.pct}%`}
-                  </span>
-                </div>
-              ) : null}
-              <div className="poker-you-cards">
-                <div className="poker-hand">
-                  {player.hole.map((c, ci) => (
-                    <PlayingCard
-                      key={c.id}
-                      card={c}
-                      index={ci}
-                      enter="none"
-                      className="poker-hole-card poker-deal-to-you"
-                      style={{ animationDelay: `${ci * dealTiming.gapMs}ms` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
+          <div className="poker-bottom">
             <div className="poker-actions">
               {phase !== 'over' && allInSpectating ? (
                 <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
