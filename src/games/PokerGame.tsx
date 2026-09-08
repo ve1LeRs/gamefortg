@@ -1600,11 +1600,16 @@ export function PokerGame({
                           faceDown={!revealed}
                           index={ci}
                           enter="none"
-                          className="poker-hole-card poker-deal-to-bot"
+                          className={`poker-hole-card poker-deal-to-bot${
+                            revealed ? ' is-showdown-reveal' : ''
+                          }`}
                           style={{
-                            animationDelay: `${
-                              Math.round(dealTiming.gapMs * (1 + i * 0.35)) + ci * dealTiming.gapMs
-                            }ms`,
+                            animationDelay: revealed
+                              ? `${i * 70 + ci * 110}ms`
+                              : `${
+                                  Math.round(dealTiming.gapMs * (1 + i * 0.35)) +
+                                  ci * dealTiming.gapMs
+                                }ms`,
                           }}
                         />
                       ))}

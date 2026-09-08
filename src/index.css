@@ -1448,7 +1448,8 @@ body.settings-no-motion .pcard.throwing,
 body.settings-no-motion .durak-table-cards.is-to-bito .durak-pair,
 body.settings-no-motion .poker-deal-to-you,
 body.settings-no-motion .poker-deal-to-bot,
-body.settings-no-motion .poker-deal-board {
+body.settings-no-motion .poker-deal-board,
+body.settings-no-motion .poker-bot-cards .pcard.is-showdown-reveal {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
 }
@@ -3611,6 +3612,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-bot-cards.is-revealed {
   gap: 5px;
+  perspective: 680px;
 }
 
 /* Crowded 5-max: compact face-down hole cards beside each bot seat. */
@@ -3624,6 +3626,14 @@ body.poker-landscape-active .app-main.game-mode {
   animation: none;
   overflow: hidden;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transform-origin: center center;
+  transition:
+    width 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+    font-size 0.38s ease,
+    padding 0.38s ease,
+    border-radius 0.38s ease,
+    box-shadow 0.38s ease;
 }
 
 /* Showdown: larger hole cards, readable and not under the avatar. */
@@ -3639,6 +3649,13 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-bot-cards .pcard.poker-deal-to-bot {
   animation: poker-deal-to-bot 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Flip open when bots show hole cards at showdown / fold win. */
+.poker-bot-cards.is-revealed .pcard.is-showdown-reveal {
+  animation: poker-bot-reveal 0.62s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
 }
 
 /* Same corner cleanup as player/board — stops suit glyphs bleeding into the next card. */
@@ -4103,6 +4120,28 @@ body.poker-landscape-active .app-main.game-mode {
   100% {
     opacity: 1;
     transform: none;
+    filter: none;
+  }
+}
+
+@keyframes poker-bot-reveal {
+  0% {
+    opacity: 0.35;
+    transform: rotateY(95deg) translateY(-8px) scale(0.88);
+    filter: brightness(0.65);
+  }
+  42% {
+    opacity: 1;
+    transform: rotateY(-12deg) translateY(-4px) scale(1.04);
+    filter: brightness(1.12);
+  }
+  72% {
+    transform: rotateY(5deg) translateY(-1px) scale(1.01);
+    filter: brightness(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: rotateY(0) translateY(0) scale(1);
     filter: none;
   }
 }
