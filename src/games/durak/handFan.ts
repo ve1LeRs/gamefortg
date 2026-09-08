@@ -8,18 +8,18 @@ export function handFanLayout(n: number, viewportW = 390) {
   const avail = Math.max(180, Math.min(viewportW, 440) - slack)
   const rows = 1
   const perRow = Math.max(1, n)
-  let cardW = n <= 3 ? 118 : n <= 5 ? 112 : n <= 7 ? 104 : 96
+  let cardW = n <= 3 ? 118 : n <= 5 ? 112 : n <= 7 ? 104 : n <= 10 ? 92 : 84
   let cardH = Math.round(cardW * (138 / 98))
-  let peek = n <= 3 ? 36 : n <= 5 ? 30 : n <= 8 ? 26 : 22
+  let peek = n <= 3 ? 36 : n <= 5 ? 30 : n <= 8 ? 26 : n <= 12 ? 20 : 18
   let step = cardW
   if (perRow > 1) {
     const need = cardW + (perRow - 1) * peek
     if (need > avail) {
-      cardW = Math.max(52, Math.floor(avail - (perRow - 1) * peek))
+      cardW = Math.max(64, Math.floor(avail - (perRow - 1) * peek))
       cardH = Math.round(cardW * (138 / 98))
       step = peek
       if (cardW + (perRow - 1) * peek > avail) {
-        peek = Math.max(16, Math.floor((avail - cardW) / (perRow - 1)))
+        peek = Math.max(18, Math.floor((avail - cardW) / (perRow - 1)))
         step = peek
       }
     } else {
@@ -40,14 +40,14 @@ export function handFanLayout(n: number, viewportW = 390) {
   }
 }
 
-/** Vertical fan offset — lift left a bit, never bury the right under the dock. */
+/** Vertical fan offset — lift left a bit, never bury ranks under the dock. */
 export function handFanY(offset: number, n: number) {
-  const arc = n <= 5 ? 2.2 : n <= 8 ? 1.0 : n <= 12 ? 0.3 : 0.1
-  const side = n <= 5 ? 1.0 : n <= 8 ? 1.15 : n <= 12 ? 0.4 : 0.15
-  const liftAll = n >= 12 ? -10 : n >= 9 ? -5 : 0
+  const arc = n <= 5 ? 2.2 : n <= 8 ? 1.0 : n <= 12 ? 0.25 : 0.08
+  const side = n <= 5 ? 1.0 : n <= 8 ? 1.05 : n <= 12 ? 0.25 : 0.08
+  const liftAll = n >= 12 ? -16 : n >= 9 ? -10 : 0
   const y = Math.abs(offset) * arc + offset * side + liftAll
-  const maxSink = n <= 6 ? 12 : n <= 10 ? 5 : 1
-  return Math.min(maxSink, Math.max(-22, y))
+  const maxSink = n <= 6 ? 12 : n <= 10 ? 3 : -4
+  return Math.min(maxSink, Math.max(-24, y))
 }
 
 /** Stable messy offsets for discard pile cards — keep tight so бита only peeks. */

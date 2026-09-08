@@ -90,7 +90,7 @@ function prefersReducedMotion() {
 
 const THROW_MS = 520
 /** Match CSS: fly 0.88s + last stagger 0.175s + settle */
-const BITO_MS = 1120
+const BITO_MS = 920
 
 function dealWaitMs(cardCount: number, perCard = 80) {
   if (prefersReducedMotion()) return 40
@@ -721,19 +721,22 @@ export function DurakGame({
       return
     }
     setBusy(true)
+    busyRef.current = true
     onHaptic?.('medium')
     setStatus('Бито — карты уходят в сброс')
     const cleared = table.flatMap((p) => (p.defence ? [p.attack, p.defence] : [p.attack]))
 
-    // Aim each pair at the visible edge of the bito pile (compensate table scale)
-    const aim: Record<string, { dx: number; dy: number }> = {}
-    const pile = bitoPileRef.current
+    // Flatten table scale first, wait a frame so layout is stable, then aim.
     const board = tableCardsRef.current
-    if (pile && board) {
-      const scaleRaw = getComputedStyle(board).getPropertyValue('--table-scale').trim()
-      const scale = Math.max(0.4, Number.parseFloat(scaleRaw) || 1)
+    if (board) {
       board.style.setProperty('--table-scale', '1')
       board.style.margin = '0'
+    }
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+
+    const aim: Record<string, { dx: number; dy: number }> = {}
+    const pile = bitoPileRef.current
+    if (pile && board) {
       const br = pile.getBoundingClientRect()
       // Pile hangs off the right — target the on-screen rim
       const tx = br.left + Math.min(18, Math.max(8, br.width * 0.28))
@@ -743,8 +746,8 @@ export function DurakGame({
         if (!id) return
         const r = el.getBoundingClientRect()
         aim[id] = {
-          dx: Math.round((tx - (r.left + r.width / 2)) / scale),
-          dy: Math.round((ty - (r.top + r.height / 2)) / scale),
+          dx: Math.round(tx - (r.left + r.width / 2)),
+          dy: Math.round(ty - (r.top + r.height / 2)),
         }
       })
     }
@@ -854,9 +857,11 @@ export function DurakGame({
             ))}
           </div>
         </div>
-        {!botTaking && !tableFlying && !bitoFlying && (
-          <p className={`durak-status ${statusClass}`}>{status}</p>
-        )}
+        <p
+          className={`durak-status ${statusClass}${botTaking || tableFlying || bitoFlying ? ' is-flight-hide' : ''}`}
+        >
+          {status}
+        </p>
       </header>
 
       <div ref={fieldRef} className={`durak-field${bitoFlying ? ' is-bito-flight' : ''}${tableFlying ? ' is-take-flight' : ''}`}>
