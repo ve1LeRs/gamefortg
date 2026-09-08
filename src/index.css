@@ -3541,8 +3541,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-s0 {
   left: 50%;
-  /* Lower than the rail, but not flush with the screen edge */
-  bottom: -16%;
+  /* Fixed px — % of flex-growing table made the seat jump on reveal */
+  bottom: -40px;
   top: auto;
   /* Shift right a bit so cards+avatar stay centered as a pair */
   transform: translateX(calc(-50% + 28px));
@@ -4329,10 +4329,13 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  justify-content: flex-end;
   gap: 5px;
   flex: 0 1 auto;
   max-width: min(560px, 72vw);
   min-width: min(300px, 56vw);
+  /* Match presets + action row so reveal/wait copy does not resize the table */
+  min-height: 92px;
   transition: opacity 0.22s ease, filter 0.22s ease;
 }
 
@@ -4366,6 +4369,12 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   border-radius: 12px;
   border: 1px solid rgba(232, 168, 56, 0.28);
   background: rgba(232, 168, 56, 0.1);
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 100%;
 }
 
 .poker-actions-row {
@@ -4521,6 +4530,12 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   margin: 0;
   padding: 8px 12px;
   text-align: center;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 100%;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -4600,7 +4615,7 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   .poker-seat-s0,
   .poker-seat-you {
     left: 50%;
-    bottom: -18%;
+    bottom: -32px;
     transform: translateX(calc(-50% + 24px));
     gap: 6px;
   }
@@ -4769,7 +4784,7 @@ body.tg-desktop .poker-table {
 }
 
 body.tg-desktop .poker-seat-s0 {
-  bottom: -14%;
+  bottom: -36px;
 }
 
 body.tg-desktop .poker-bottom {
@@ -4785,6 +4800,7 @@ body.tg-desktop .poker-bottom .poker-actions {
   max-width: min(680px, 56vw);
   min-width: min(380px, 40vw);
   gap: 8px;
+  min-height: 108px;
 }
 
 body.tg-desktop .poker-btn {
