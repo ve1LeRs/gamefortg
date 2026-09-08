@@ -18,7 +18,37 @@ type HandRank = {
 }
 
 const START_STACK = 1000
+const TOP_UP = 1000
 const BLIND = 15
+const POKER_STACKS_KEY = 'playfort-poker-stacks'
+
+type SavedStacks = { player: number; bot: number }
+
+function loadPokerStacks(): SavedStacks {
+  try {
+    const raw = localStorage.getItem(POKER_STACKS_KEY)
+    if (!raw) return { player: START_STACK, bot: START_STACK }
+    const parsed = JSON.parse(raw) as { player?: unknown; bot?: unknown }
+    const player = Math.floor(Number(parsed.player))
+    const bot = Math.floor(Number(parsed.bot))
+    return {
+      player: Number.isFinite(player) && player > 0 ? player : START_STACK,
+      bot: Number.isFinite(bot) && bot > 0 ? bot : START_STACK,
+    }
+  } catch {
+    return { player: START_STACK, bot: START_STACK }
+  }
+}
+
+function savePokerStacks(player: number, bot: number) {
+  try {
+    const p = Math.max(0, Math.floor(player))
+    const b = Math.max(0, Math.floor(bot))
+    localStorage.setItem(POKER_STACKS_KEY, JSON.stringify({ player: p, bot: b }))
+  } catch {
+    /* noop */
+  }
+}
 
 function formatChips(n: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
@@ -424,8 +454,12 @@ export function PokerGame({
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
 }) {
   const landscape = useLandscape()
+  const savedStacks = useMemo(() => loadPokerStacks(), [])
   const firstDeal = useMemo(() => dealHole(), [])
-  const firstBlinds = useMemo(() => postBlinds(START_STACK, START_STACK), [])
+  const firstBlinds = useMemo(
+    () => postBlinds(savedStacks.player, savedStacks.bot),
+    [savedStacks.player, savedStacks.bot],
+  )
 
   const [deck, setDeck] = useState(firstDeal.deck)
   const [player, setPlayer] = useState(firstDeal.player)
@@ -441,7 +475,6 @@ export function PokerGame({
   const [showBot, setShowBot] = useState(false)
   const [status, setStatus] = useState(`Блайнды по ${BLIND}. Чек или выберите ставку.`)
   const [resultClass, setResultClass] = useState('')
-  const [matchOver, setMatchOver] = useState(false)
   const [dealTick, setDealTick] = useState(1)
   const [wager, setWager] = useState(() => betSize('preflop'))
   /** Amount the player must put in to continue after a bot bet/raise. 0 = street is open. */
@@ -463,16 +496,21 @@ export function PokerGame({
   const minWager = Math.min(betSize(phase === 'over' ? 'preflop' : phase), Math.max(0, maxWager))
   const facingBot = toCall > 0
   /** No more betting possible — at least one side is all-in and the street is matched. */
-  const allInSpectating = phase !== 'over' && !matchOver && Math.min(stack, botStack) <= 0 && toCall <= 0
+  const allInSpectating = phase !== 'over' && Math.min(stack, botStack) <= 0 && toCall <= 0
 
   useEffect(() => {
-    if (phase === 'over' || matchOver) return
+    // Persist chips behind each seat (street bets already left the stack).
+    savePokerStacks(stack, botStack)
+  }, [stack, botStack])
+
+  useEffect(() => {
+    if (phase === 'over') return
     if (facingBot) {
       setWager(clampBet(toCall + betSize(phase), toCall, maxWager))
       return
     }
     setWager(clampBet(betSize(phase), minWager, maxWager))
-  }, [phase, matchOver, minWager, maxWager, facingBot, toCall])
+  }, [phase, minWager, maxWager, facingBot, toCall])
 
   const nudgeWager = (delta: number) => {
     const lo = facingBot ? toCall : minWager
@@ -507,29 +545,15 @@ export function PokerGame({
 
   const dealNextHand = useCallback(
     (playerStack: number, botChips: number) => {
-      if (playerStack <= 0 || botChips <= 0) {
-        setMatchOver(true)
-        setPhase('over')
-        setShowBot(false)
-        setPot(0)
-        setPlayerBet(0)
-        setBotBet(0)
-        setStack(Math.max(0, playerStack))
-        setBotStack(Math.max(0, botChips))
-        if (playerStack <= 0 && botChips <= 0) {
-          setStatus('Фишки закончились у обоих.')
-        } else if (playerStack <= 0) {
-          setStatus('У вас закончились фишки. Бот забрал стол.')
-          setResultClass('lose')
-        } else {
-          setStatus('У бота закончились фишки. Вы выиграли стол!')
-          setResultClass('win')
-        }
-        return
-      }
+      let nextPlayer = Math.max(0, playerStack)
+      let nextBot = Math.max(0, botChips)
+      const toppedPlayer = nextPlayer <= 0
+      const toppedBot = nextBot <= 0
+      if (toppedPlayer) nextPlayer = TOP_UP
+      if (toppedBot) nextBot = TOP_UP
 
       const hole = dealHole()
-      const blinds = postBlinds(playerStack, botChips)
+      const blinds = postBlinds(nextPlayer, nextBot)
       setDeck(hole.deck)
       setPlayer(hole.player)
       setBot(hole.bot)
@@ -542,23 +566,28 @@ export function PokerGame({
       setBotBet(blinds.bBlind)
       setShowBot(false)
       setResultClass('')
-      setMatchOver(false)
       setDealTick((n) => n + 1)
       setToCall(0)
       setFreshBoardIds([])
       boardLenRef.current = 0
       setWager(betSize('preflop'))
-      setStatus(`Блайнды по ${BLIND}. Ваш ход: чек, ставка или фолд.`)
+      savePokerStacks(blinds.stack, blinds.botStack)
+
+      if (toppedPlayer && toppedBot) {
+        setStatus(`Оба получили +${TOP_UP}. Блайнды по ${BLIND}. Ваш ход.`)
+      } else if (toppedPlayer) {
+        setStatus(`Фишки кончились — +${TOP_UP}. Блайнды по ${BLIND}. Ваш ход.`)
+      } else if (toppedBot) {
+        setStatus(`Бот получил +${TOP_UP}. Блайнды по ${BLIND}. Ваш ход.`)
+      } else {
+        setStatus(`Блайнды по ${BLIND}. Ваш ход: чек, ставка или фолд.`)
+      }
       onHaptic?.('medium')
       playPokerSound('cards')
       window.setTimeout(() => playPokerSound('chips'), 140)
     },
     [onHaptic],
   )
-
-  const resetMatch = useCallback(() => {
-    dealNextHand(START_STACK, START_STACK)
-  }, [dealNextHand])
 
   const nextHand = useCallback(() => {
     dealNextHand(stackRef.current, botStackRef.current)
@@ -695,7 +724,7 @@ export function PokerGame({
   }, [allInSpectating, phase, stack, advance, showdown])
 
   const check = () => {
-    if (phase === 'over' || matchOver || facingBot || allInSpectating) return
+    if (phase === 'over' || facingBot || allInSpectating) return
     onHaptic?.('light')
 
     const decision = botDecide({
@@ -731,7 +760,7 @@ export function PokerGame({
   }
 
   const callBot = () => {
-    if (phase === 'over' || matchOver || !facingBot || stack <= 0) return
+    if (phase === 'over' || !facingBot || stack <= 0) return
     const amount = Math.min(toCall, stack)
     if (amount <= 0) return
     onHaptic?.('medium')
@@ -752,7 +781,7 @@ export function PokerGame({
   }
 
   const bet = () => {
-    if (phase === 'over' || matchOver || allInSpectating) return
+    if (phase === 'over' || allInSpectating) return
 
     // Facing bot bet: wager above toCall is a raise; exactly toCall is call.
     if (facingBot) {
@@ -916,7 +945,7 @@ export function PokerGame({
   }
 
   const fold = () => {
-    if (phase === 'over' || matchOver || allInSpectating) return
+    if (phase === 'over' || allInSpectating) return
     if (loadSettings().confirmFold && !window.confirm('Сбросить карты и отдать банк боту?')) return
     setPhase('over')
     setToCall(0)
@@ -939,7 +968,7 @@ export function PokerGame({
   }, [freshBoardIds])
 
   const liveHint = useMemo(() => {
-    if (player.length < 2 || matchOver) return null
+    if (player.length < 2) return null
     const combo = liveComboLabel(player, board)
     let equity: number
     if (phase === 'over' && showBot && bot.length >= 2) {
@@ -953,7 +982,7 @@ export function PokerGame({
     const tone = pct >= 58 ? 'good' : pct <= 38 ? 'low' : 'mid'
     const exact = phase === 'over' && showBot
     return { combo, pct, tone, exact }
-  }, [player, board, bot, phase, showBot, matchOver])
+  }, [player, board, bot, phase, showBot])
 
   return (
     <div className={`poker-landscape${landscape ? ' is-landscape' : ' is-portrait'}`}>
@@ -1071,9 +1100,9 @@ export function PokerGame({
             </div>
 
             <div className="poker-actions">
-              {phase !== 'over' && !matchOver && allInSpectating ? (
+              {phase !== 'over' && allInSpectating ? (
                 <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
-              ) : phase !== 'over' && !matchOver ? (
+              ) : phase !== 'over' ? (
                 <>
                   <div className="poker-bet-panel">
                     <div className="poker-bet-stepper" aria-label="Размер ставки">
@@ -1147,10 +1176,6 @@ export function PokerGame({
                     </button>
                   </div>
                 </>
-              ) : matchOver ? (
-                <button type="button" className="poker-btn poker-btn-bet" onClick={resetMatch}>
-                  Новый матч
-                </button>
               ) : (
                 <button type="button" className="poker-btn poker-btn-bet" onClick={nextHand}>
                   Новая раздача
