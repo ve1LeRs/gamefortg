@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react'
 
+function formatSeatChips(n: number) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
+  if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`
+  return String(n)
+}
+
 const CHIP_COLORS = [
   { face: '#c62828', rim: '#8e1b1b', pip: '#fff' },
   { face: '#2e7d32', rim: '#1b5e20', pip: '#fff' },
@@ -111,7 +117,7 @@ export function PokerSeatCard({
   active,
   accent,
   hideName,
-  winBadge,
+  winPayout,
 }: {
   name: string
   level?: number
@@ -120,15 +126,18 @@ export function PokerSeatCard({
   active?: boolean
   accent?: string
   hideName?: boolean
-  winBadge?: string
+  /** Chips this seat took from the pot. */
+  winPayout?: number
 }) {
   const initial = (name.trim()[0] || '?').toUpperCase()
+  const won = winPayout != null && winPayout > 0 ? winPayout : 0
+  const winLabel = won > 0 ? `+${formatSeatChips(won)}` : undefined
   return (
-    <div className={`poker-seat${active ? ' is-active' : ''}`}>
+    <div className={`poker-seat${active ? ' is-active' : ''}${won > 0 ? ' has-payout' : ''}`}>
       {!hideName ? <div className="poker-seat-name">{name}</div> : null}
-      <div className={`poker-seat-avatar-wrap${winBadge ? ' has-win-badge' : ''}`}>
+      <div className={`poker-seat-avatar-wrap${winLabel ? ' has-win-badge' : ''}`}>
         {dealer ? <span className="poker-dealer-btn">D</span> : null}
-        {winBadge ? <span className="poker-win-badge">{winBadge}</span> : null}
+        {winLabel ? <span className="poker-win-badge">{winLabel}</span> : null}
         <div className="poker-seat-avatar" style={accent ? { background: accent } : undefined}>
           {initial}
         </div>
@@ -142,6 +151,11 @@ export function PokerSeatCard({
         <span className="poker-seat-chip-dot" aria-hidden />
         <span>{stackText}</span>
       </div>
+      {winLabel ? (
+        <div className="poker-seat-won" aria-label={`Выигрыш ${winLabel}`}>
+          {winLabel}
+        </div>
+      ) : null}
     </div>
   )
 }
