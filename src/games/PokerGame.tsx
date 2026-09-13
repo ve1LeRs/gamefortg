@@ -554,7 +554,7 @@ function SeatCard({
   xpFrac,
   levelTitle,
   hideName,
-  winBadge,
+  winPayout,
 }: {
   name: string
   level: number
@@ -565,15 +565,17 @@ function SeatCard({
   xpFrac?: number
   levelTitle?: string
   hideName?: boolean
-  /** Shown above avatar when this seat won chips (e.g. "+1.2K"). */
-  winBadge?: string
+  /** Chips this seat took from the pot (shown as +amount on the seat). */
+  winPayout?: number
 }) {
+  const won = winPayout != null && winPayout > 0 ? winPayout : 0
+  const winLabel = won > 0 ? `+${formatChips(won)}` : undefined
   return (
-    <div className={`poker-seat${active ? ' is-active' : ''}`}>
+    <div className={`poker-seat${active ? ' is-active' : ''}${won > 0 ? ' has-payout' : ''}`}>
       {!hideName ? <div className="poker-seat-name">{name}</div> : null}
-      <div className={`poker-seat-avatar-wrap${winBadge ? ' has-win-badge' : ''}`}>
+      <div className={`poker-seat-avatar-wrap${winLabel ? ' has-win-badge' : ''}`}>
         {dealer && <span className="poker-dealer-btn">D</span>}
-        {winBadge ? <span className="poker-win-badge">{winBadge}</span> : null}
+        {winLabel ? <span className="poker-win-badge">{winLabel}</span> : null}
         <div className="poker-seat-avatar" style={accent ? { background: accent } : undefined}>
           {name.slice(0, 1)}
         </div>
@@ -585,6 +587,11 @@ function SeatCard({
         <span className="poker-seat-chip-dot" aria-hidden />
         <span>{stackText}</span>
       </div>
+      {winLabel ? (
+        <div className="poker-seat-won" aria-label={`Выигрыш ${winLabel}`}>
+          {winLabel}
+        </div>
+      ) : null}
       {xpFrac != null ? (
         <div className="poker-seat-xp" aria-hidden title={levelTitle}>
           <i style={{ width: `${Math.round(Math.min(1, Math.max(0, xpFrac)) * 100)}%` }} />
@@ -1884,13 +1891,7 @@ export function PokerGame({
               const isHuman = i === 0
               const revealed = seat.showCards && !seat.folded
               const isWinner = winnerIdxs.includes(i)
-              const winAmt = payoutAwards?.[i] ?? 0
-              const winBadge =
-                isWinner && winAmt > 0
-                  ? `+${formatChips(winAmt)}`
-                  : isWinner
-                    ? 'ПОБЕДА'
-                    : undefined
+              const winPayout = isWinner ? payoutAwards?.[i] ?? 0 : 0
               const playerActing =
                 isHuman && phase !== 'over' && !seat.folded && !allInSpectating && !actionLocked && !revealingHands
               return (
@@ -1983,7 +1984,7 @@ export function PokerGame({
                         xpFrac={playerLevelInfo.frac}
                         levelTitle={playerLevelTitle}
                         hideName
-                        winBadge={winBadge}
+                        winPayout={winPayout}
                       />
                     </>
                   ) : (
@@ -2019,7 +2020,7 @@ export function PokerGame({
                         accent={seat.accent}
                         levelTitle={`Уровень ${botLevels[i - 1]!}`}
                         hideName
-                        winBadge={winBadge}
+                        winPayout={winPayout}
                       />
                     </>
                   )}

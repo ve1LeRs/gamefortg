@@ -512,13 +512,7 @@ function PokerOnlineTable({
                 dealer={view.dealer !== view.seat && view.phase !== 'over'}
                 active={!view.opponent.folded}
                 hideName
-                winBadge={
-                  oppWinner
-                    ? view.oppAward > 0
-                      ? `+${formatChips(view.oppAward)}`
-                      : 'ПОБЕДА'
-                    : undefined
-                }
+                winPayout={oppWinner ? view.oppAward : 0}
               />
             </div>
 
@@ -601,13 +595,7 @@ function PokerOnlineTable({
                 dealer={view.dealer === view.seat && view.phase !== 'over'}
                 active={!view.you.folded}
                 hideName
-                winBadge={
-                  youWinner
-                    ? view.youAward > 0
-                      ? `+${formatChips(view.youAward)}`
-                      : 'ПОБЕДА'
-                    : undefined
-                }
+                winPayout={youWinner ? view.youAward : 0}
               />
             </div>
           </div>
