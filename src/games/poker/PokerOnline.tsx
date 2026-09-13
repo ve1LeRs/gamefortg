@@ -10,6 +10,7 @@ import {
   formatChips,
   BLIND,
 } from './engine'
+import { estimateEquity, exactEquity } from './equity'
 import {
   type LobbyListing,
   type PlayerInfo,
@@ -354,20 +355,15 @@ function PokerOnlineTable({
       }
       return hand.label
     })()
-    let pct = 50
+    let equity: number
     let exact = false
     if (view.phase === 'over' && view.opponent.hole && !view.opponent.folded) {
-      const yours = bestHand(view.you.hole, view.board).score
-      const theirs = bestHand(view.opponent.hole, view.board).score
-      pct = yours > theirs ? 100 : yours < theirs ? 0 : 50
+      equity = exactEquity(view.you.hole, view.board, [view.opponent.hole])
       exact = true
-    } else if (view.board.length >= 3) {
-      const score = bestHand(view.you.hole, view.board).score
-      if (score >= 5000) pct = 78
-      else if (score >= 3000) pct = 62
-      else if (score >= 1000) pct = 44
-      else pct = 32
+    } else {
+      equity = estimateEquity(view.you.hole, view.board, { opponents: 1 })
     }
+    const pct = Math.round(equity * 100)
     const tone = pct >= 58 ? 'good' : pct <= 38 ? 'low' : 'mid'
     return { combo, pct, tone, exact }
   }, [view.you.hole, view.board, view.phase, view.opponent.hole, view.opponent.folded])

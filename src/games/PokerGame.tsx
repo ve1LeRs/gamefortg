@@ -18,6 +18,7 @@ import {
   type PokerProgress,
 } from '../lib/pokerProgress'
 import { awardSidePots } from './poker/sidePots'
+import { estimateEquity, exactEquity } from './poker/equity'
 
 type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'over'
 
@@ -218,36 +219,6 @@ function bestHand(hole: Card[], board: Card[]): HandRank {
     }
   }
   return best
-}
-
-function shuffleInPlace<T>(arr: T[]) {
-  for (let i = arr.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j]!, arr[i]!]
-  }
-  return arr
-}
-
-/** Monte Carlo equity vs random opponent hole (+ random runout). */
-function estimateEquity(hole: Card[], board: Card[], trials = 160): number {
-  if (hole.length < 2) return 0.5
-  const used = new Set([...hole, ...board].map((c) => c.id))
-  const remaining = makeDeck(POKER_RANKS as Rank[]).filter((c) => !used.has(c.id))
-  if (remaining.length < 2) return 0.5
-  const needBoard = Math.max(0, 5 - board.length)
-  let wins = 0
-  let ties = 0
-  for (let t = 0; t < trials; t += 1) {
-    const pool = shuffleInPlace(remaining.slice())
-    const opp = [pool[0]!, pool[1]!]
-    const runout = needBoard > 0 ? pool.slice(2, 2 + needBoard) : []
-    const fullBoard = board.length >= 5 ? board : [...board, ...runout]
-    const p = bestHand(hole, fullBoard).score
-    const o = bestHand(opp, fullBoard).score
-    if (p > o) wins += 1
-    else if (p === o) ties += 1
-  }
-  return (wins + ties * 0.5) / trials
 }
 
 function liveComboLabel(hole: Card[], board: Card[]): string {
@@ -1757,24 +1728,24 @@ export function PokerGame({
     if (player.hole.length < 2) return null
     const combo = liveComboLabel(player.hole, board)
     let equity: number
-    const showing = phase === 'over' && seats.some((s, i) => i > 0 && s.showCards && !s.folded)
-    if (showing) {
-      const p = bestHand(player.hole, board).score
-      const oppScores = seats
-        .slice(1)
-        .filter((s) => !s.folded && s.showCards)
-        .map((s) => bestHand(s.hole, board).score)
-      if (oppScores.length === 0) equity = 1
-      else {
-        const bestOpp = Math.max(...oppScores)
-        equity = p > bestOpp ? 1 : p < bestOpp ? 0 : 0.5
-      }
+    const revealedOpps = seats
+      .slice(1)
+      .filter((s) => !s.folded && s.showCards && s.hole.length >= 2)
+    const liveOpps = seats.slice(1).filter((s) => !s.folded).length
+    if (phase === 'over' && revealedOpps.length > 0) {
+      equity = exactEquity(
+        player.hole,
+        board,
+        revealedOpps.map((s) => s.hole),
+      )
     } else {
-      equity = estimateEquity(player.hole, board)
+      equity = estimateEquity(player.hole, board, {
+        opponents: Math.max(1, liveOpps),
+      })
     }
     const pct = Math.round(equity * 100)
     const tone = pct >= 58 ? 'good' : pct <= 38 ? 'low' : 'mid'
-    const exact = phase === 'over' && showing
+    const exact = phase === 'over' && revealedOpps.length > 0
     return { combo, pct, tone, exact }
   }, [player.hole, board, seats, phase])
 
