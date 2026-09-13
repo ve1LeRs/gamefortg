@@ -433,20 +433,6 @@ function PokerOnlineTable({
                 amount={potFlight.amount}
                 format={formatChips}
               />
-            ) : view.phase === 'over' && view.youAward > 0 && view.oppAward > 0 ? (
-              <div className="poker-payout-board" role="status">
-                <div className="poker-payout-title">Кому ушёл банк</div>
-                <ul className="poker-payout-list">
-                  <li className="is-you">
-                    <span className="poker-payout-name">Вы</span>
-                    <span className="poker-payout-amt">+{formatChips(view.youAward)}</span>
-                  </li>
-                  <li>
-                    <span className="poker-payout-name">Соперник</span>
-                    <span className="poker-payout-amt">+{formatChips(view.oppAward)}</span>
-                  </li>
-                </ul>
-              </div>
             ) : null}
 
             {view.opponent.streetBet > 0 ? (

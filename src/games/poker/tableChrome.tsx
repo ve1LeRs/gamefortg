@@ -151,11 +151,6 @@ export function PokerSeatCard({
         <span className="poker-seat-chip-dot" aria-hidden />
         <span>{stackText}</span>
       </div>
-      {winLabel ? (
-        <div className="poker-seat-won" aria-label={`Выигрыш ${winLabel}`}>
-          {winLabel}
-        </div>
-      ) : null}
     </div>
   )
 }
