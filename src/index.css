@@ -6642,23 +6642,30 @@ body.tg-desktop .poker-board .poker-hole-card {
   filter: saturate(0.85);
 }
 
-/* ——— Lobby landscape (phone flipped): reclaim vertical space ——— */
+/* ——— Lobby landscape: fill the wide short viewport ——— */
 @media (orientation: landscape) and (max-height: 500px) {
   :root {
-    --tg-chrome-top: 48px;
-    --nav-h: 52px;
-    --lobby-rail: 56px;
+    --tg-chrome-top: 44px;
+    --nav-h: 0px;
+    --lobby-rail: 52px;
   }
 
   .app-main:not(.game-mode) {
-    /* shell already applies --safe-left/right */
-    padding-top: max(calc(var(--safe-top) + 6px), 48px);
-    padding-left: calc(var(--lobby-rail) + 10px);
-    padding-right: 10px;
-    padding-bottom: calc(10px + var(--safe-bottom));
+    padding-top: max(calc(var(--safe-top) + 4px), 44px);
+    padding-left: calc(var(--lobby-rail) + 8px);
+    padding-right: max(8px, var(--safe-right));
+    padding-bottom: max(6px, var(--safe-bottom));
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
-  /* Side icon rail instead of tall bottom bar */
+  .app-main:not(.game-mode) > * {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* Side icon rail */
   .tab-nav {
     left: 0;
     right: auto;
@@ -6666,21 +6673,22 @@ body.tg-desktop .poker-board .poker-hole-card {
     bottom: 0;
     width: calc(var(--lobby-rail) + var(--safe-left));
     height: auto;
-    padding: calc(var(--safe-top) + 10px) 6px calc(var(--safe-bottom) + 10px) max(6px, var(--safe-left));
+    padding: calc(var(--safe-top) + 8px) 5px calc(var(--safe-bottom) + 8px)
+      max(5px, var(--safe-left));
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(3, minmax(44px, auto));
+    grid-template-rows: repeat(3, minmax(42px, auto));
     align-content: center;
-    gap: 6px;
+    gap: 4px;
     border-top: none;
     border-right: 1px solid var(--line);
-    background: rgba(7, 16, 24, 0.92);
+    background: rgba(7, 16, 24, 0.94);
   }
 
   .tab-btn {
     position: relative;
     gap: 0;
-    min-height: 48px;
-    min-width: 44px;
+    min-height: 44px;
+    min-width: 42px;
     border-radius: 12px;
     padding: 0;
   }
@@ -6695,32 +6703,56 @@ body.tg-desktop .poker-board .poker-hole-card {
   }
 
   .tab-btn svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
   }
 
-  /* Compact brand strip */
-  .store-page {
-    padding: 0 0 8px;
+  /* Undo portrait max-width centering that leaves empty side gutters */
+  .store-page,
+  .profile-page,
+  .settings-page,
+  .section,
+  .brand-bar {
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
 
+  .store-page,
+  .profile-page,
+  .settings-page {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Slim brand bar — full content width */
   .hero {
-    margin: 0 0 8px;
-    padding: 8px 12px;
-    border-radius: 14px;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 6px 12px;
+    border-radius: 12px;
     flex-direction: row;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
+    min-height: 0;
   }
 
   .hero-top {
     margin-bottom: 0;
     flex: 1 1 auto;
     min-width: 0;
+    width: 100%;
   }
 
   .hero-brand {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .hero-copy {
@@ -6728,104 +6760,155 @@ body.tg-desktop .poker-board .poker-hole-card {
   }
 
   .user-chip {
-    height: 28px;
+    height: 26px;
     font-size: 11px;
+    max-width: min(28vw, 140px);
   }
 
   .user-avatar {
-    width: 22px;
-    height: 22px;
-    font-size: 10px;
+    width: 20px;
+    height: 20px;
+    font-size: 9px;
   }
 
   .section {
-    padding: 0 0 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 
   .section-head {
-    margin-bottom: 4px;
+    margin-bottom: 0;
+    flex: 0 0 auto;
   }
 
   .section-head h2 {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .section-head p {
-    font-size: 12px;
+    font-size: 11px;
   }
 
-  /* Two columns — width is free in landscape */
+  /*
+   * 3×2 tile grid that stretches to fill remaining height —
+   * no ultra-wide rows, titles stay readable.
+   */
   .game-list {
+    flex: 1 1 auto;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 18px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: 1fr 1fr;
+    align-content: stretch;
+    gap: 8px;
+    min-height: 0;
   }
 
   .game-row {
-    grid-template-columns: 40px 1fr auto;
-    gap: 8px;
-    padding: 5px 0;
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+      'art text'
+      'art play';
+    column-gap: 10px;
+    row-gap: 6px;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background:
+      linear-gradient(160deg, rgba(232, 168, 56, 0.08), transparent 55%),
+      rgba(255, 255, 255, 0.04);
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+  }
+
+  .game-row:active {
+    background: rgba(255, 255, 255, 0.08);
   }
 
   .game-row-art {
-    width: 40px;
-    height: 40px;
-    border-radius: 9px;
+    grid-area: art;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    align-self: center;
   }
 
   .game-row-art .game-cover {
-    border-radius: 9px;
+    border-radius: 12px;
+  }
+
+  .game-row-text {
+    grid-area: text;
+    min-width: 0;
+    align-self: end;
   }
 
   .game-row-text h3 {
-    font-size: 13px;
-  }
-
-  .game-row-text p {
-    font-size: 11px;
+    font-size: 15px;
+    margin: 0 0 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
+  .game-row-text p {
+    font-size: 11px;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    opacity: 0.88;
+  }
+
   .play-pill {
-    padding: 5px 10px;
+    grid-area: play;
+    justify-self: start;
+    padding: 5px 12px;
     font-size: 12px;
     border-radius: 8px;
+    line-height: 1.2;
   }
 
   .store-refresh {
     display: none;
   }
 
-  /* Profile / settings — shorter heroes, denser content */
+  /* Profile / settings denser */
   .profile-page,
   .settings-page {
-    padding: max(8px, calc(var(--safe-top) * 0.35)) 12px calc(12px + var(--safe-bottom));
+    padding: 0 2px 0 0;
   }
 
   .profile-hero,
   .settings-hero {
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    border-radius: 14px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border-radius: 12px;
+    flex: 0 0 auto;
   }
 
   .profile-hero-glow,
   .settings-hero-glow {
-    width: 90px;
-    height: 90px;
+    width: 72px;
+    height: 72px;
   }
 
   .profile-name,
   .settings-hero h1 {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .profile-lead,
   .settings-lead {
-    font-size: 12px;
-    line-height: 1.3;
+    font-size: 11px;
+    line-height: 1.25;
   }
 
   .profile-stats {
@@ -6833,51 +6916,68 @@ body.tg-desktop .poker-board .poker-hole-card {
   }
 
   .profile-stat {
-    padding: 8px 6px;
+    padding: 6px;
   }
 
   .settings-section {
-    gap: 6px;
+    gap: 4px;
   }
 
   .settings-row,
   .settings-block {
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
 }
 
-/* Very short landscape (small phones) */
-@media (orientation: landscape) and (max-height: 380px) {
+/* Very short landscape */
+@media (orientation: landscape) and (max-height: 360px) {
   :root {
-    --tg-chrome-top: 40px;
-    --lobby-rail: 48px;
+    --tg-chrome-top: 36px;
+    --lobby-rail: 46px;
+  }
+
+  .app-main:not(.game-mode) {
+    padding-top: max(calc(var(--safe-top) + 2px), 36px);
   }
 
   .hero {
-    padding: 6px 10px;
-    margin-bottom: 6px;
+    padding: 4px 10px;
   }
 
   .hero-brand {
-    font-size: 17px;
+    font-size: 16px;
+  }
+
+  .game-list {
+    gap: 4px;
   }
 
   .game-row {
-    padding: 3px 0;
+    padding: 5px 6px;
+    gap: 2px 6px;
   }
 
   .game-row-art {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
   }
 
-  .play-pill {
-    padding: 4px 8px;
+  .game-row-text h3 {
     font-size: 11px;
   }
 
+  .game-row-text p {
+    display: none;
+  }
+
+  .play-pill {
+    padding: 2px 7px;
+    font-size: 10px;
+  }
+
   .tab-btn {
-    min-height: 40px;
+    min-height: 38px;
   }
 }
+
