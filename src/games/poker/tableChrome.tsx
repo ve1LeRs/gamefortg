@@ -111,6 +111,7 @@ export function PokerSeatCard({
   active,
   accent,
   hideName,
+  winBadge,
 }: {
   name: string
   level?: number
@@ -119,13 +120,15 @@ export function PokerSeatCard({
   active?: boolean
   accent?: string
   hideName?: boolean
+  winBadge?: string
 }) {
   const initial = (name.trim()[0] || '?').toUpperCase()
   return (
     <div className={`poker-seat${active ? ' is-active' : ''}`}>
       {!hideName ? <div className="poker-seat-name">{name}</div> : null}
-      <div className="poker-seat-avatar-wrap">
+      <div className={`poker-seat-avatar-wrap${winBadge ? ' has-win-badge' : ''}`}>
         {dealer ? <span className="poker-dealer-btn">D</span> : null}
+        {winBadge ? <span className="poker-win-badge">{winBadge}</span> : null}
         <div className="poker-seat-avatar" style={accent ? { background: accent } : undefined}>
           {initial}
         </div>
