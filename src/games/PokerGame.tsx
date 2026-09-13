@@ -587,11 +587,6 @@ function SeatCard({
         <span className="poker-seat-chip-dot" aria-hidden />
         <span>{stackText}</span>
       </div>
-      {winLabel ? (
-        <div className="poker-seat-won" aria-label={`Выигрыш ${winLabel}`}>
-          {winLabel}
-        </div>
-      ) : null}
       {xpFrac != null ? (
         <div className="poker-seat-xp" aria-hidden title={levelTitle}>
           <i style={{ width: `${Math.round(Math.min(1, Math.max(0, xpFrac)) * 100)}%` }} />
@@ -1840,22 +1835,6 @@ export function PokerGame({
               <div className="poker-pot is-flying-out" aria-hidden>
                 <ChipPile amount={potFlight.amount} compact maxChips={3} />
                 <span className="poker-pot-label">Банк</span>
-              </div>
-            ) : phase === 'over' &&
-              payoutAwards &&
-              payoutAwards.filter((a) => a > 0).length >= 2 ? (
-              <div className="poker-payout-board" role="status">
-                <div className="poker-payout-title">Кому ушёл банк</div>
-                <ul className="poker-payout-list">
-                  {payoutAwards.map((amt, i) =>
-                    amt > 0 ? (
-                      <li key={i} className={i === 0 ? 'is-you' : undefined}>
-                        <span className="poker-payout-name">{seats[i]!.name}</span>
-                        <span className="poker-payout-amt">+{formatChips(amt)}</span>
-                      </li>
-                    ) : null,
-                  )}
-                </ul>
               </div>
             ) : null}
 

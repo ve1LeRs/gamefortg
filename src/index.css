@@ -3948,22 +3948,6 @@ body.poker-landscape-active .app-main.game-mode {
   animation: poker-win-badge-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.poker-seat-won {
-  margin-top: 2px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(20, 28, 18, 0.92);
-  border: 1px solid rgba(246, 213, 106, 0.7);
-  color: #ffe08a;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
-  white-space: nowrap;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.45);
-  z-index: 6;
-  animation: poker-seat-won-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
-}
 
 .poker-seat.has-payout .poker-seat-money {
   color: #f6d56a;
@@ -3974,100 +3958,6 @@ body.poker-landscape-active .app-main.game-mode {
   from {
     opacity: 0;
     transform: translateX(-50%) translateY(4px) scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
-  }
-}
-
-/* seat-won is not absolutely centered — separate keyframes without translateX */
-.poker-seat-won {
-  animation-name: poker-seat-won-pop;
-}
-
-@keyframes poker-seat-won-pop {
-  from {
-    opacity: 0;
-    transform: translateY(4px) scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.poker-payout-board {
-  position: absolute;
-  top: 14%;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 10px 7px;
-  border-radius: 12px;
-  background: rgba(8, 18, 12, 0.88);
-  border: 1px solid rgba(232, 168, 56, 0.55);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
-  z-index: 7;
-  min-width: min(148px, 46%);
-  max-width: min(220px, 58%);
-  pointer-events: none;
-  animation: poker-payout-in 0.35s ease both;
-}
-
-.poker-payout-title {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(246, 213, 106, 0.85);
-  text-align: center;
-}
-
-.poker-payout-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.poker-payout-list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 12px;
-  line-height: 1.2;
-  color: #f3f6f2;
-}
-
-.poker-payout-list li.is-you .poker-payout-name {
-  color: #ffe08a;
-  font-weight: 700;
-}
-
-.poker-payout-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 7.5em;
-}
-
-.poker-payout-amt {
-  font-weight: 800;
-  color: #f6d56a;
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-
-@keyframes poker-payout-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(6px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -4221,12 +4111,6 @@ body.settings-no-motion .poker-pot-flight-chip,
 body.settings-no-motion .poker-pot.is-flying-out,
 body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money,
 body.settings-no-motion .poker-win-badge,
-body.settings-no-motion .poker-seat-won,
-body.settings-no-motion .poker-payout-board {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-}
-
 .poker-seat-name {
   padding: 1px 7px;
   border-radius: 4px;
