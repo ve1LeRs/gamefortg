@@ -1987,10 +1987,8 @@ export function PokerGame({
               }`}
               aria-disabled={actionLocked || undefined}
             >
-              {phase !== 'over' && allInSpectating ? (
-                <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
-              ) : phase !== 'over' && revealingHands ? (
-                <p className="poker-allin-wait">Вскрываем карты…</p>
+              {phase !== 'over' && (allInSpectating || revealingHands) ? (
+                <div className="poker-allin-wait is-quiet" aria-hidden />
               ) : phase !== 'over' ? (
                 <>
                   <div className="poker-bet-presets">

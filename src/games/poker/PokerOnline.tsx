@@ -596,7 +596,7 @@ function PokerOnlineTable({
                     : 'Новая раздача…'}
                 </p>
               ) : allInSpectating ? (
-                <p className="poker-allin-wait">All-in — смотрите, как открываются карты</p>
+                <div className="poker-allin-wait is-quiet" aria-hidden />
               ) : (
                 <>
                   {!facingAllIn && view.canBet ? (
