@@ -554,6 +554,7 @@ function SeatCard({
   xpFrac,
   levelTitle,
   hideName,
+  winBadge,
 }: {
   name: string
   level: number
@@ -564,12 +565,15 @@ function SeatCard({
   xpFrac?: number
   levelTitle?: string
   hideName?: boolean
+  /** Shown above avatar when this seat won chips (e.g. "+1.2K"). */
+  winBadge?: string
 }) {
   return (
     <div className={`poker-seat${active ? ' is-active' : ''}`}>
       {!hideName ? <div className="poker-seat-name">{name}</div> : null}
-      <div className="poker-seat-avatar-wrap">
+      <div className={`poker-seat-avatar-wrap${winBadge ? ' has-win-badge' : ''}`}>
         {dealer && <span className="poker-dealer-btn">D</span>}
+        {winBadge ? <span className="poker-win-badge">{winBadge}</span> : null}
         <div className="poker-seat-avatar" style={accent ? { background: accent } : undefined}>
           {name.slice(0, 1)}
         </div>
@@ -939,23 +943,29 @@ function settleShowdownPots(seats: Seat[], board: Card[], potAmount: number) {
   return { ...result, total: result.total + Math.max(0, dust), label }
 }
 
+/** "Вы +1.2K, Бот 1 +800" — who took how much from the pot. */
+function formatPayoutShares(seats: Seat[], awards: number[]): string {
+  return awards
+    .map((amt, i) => (amt > 0 ? `${seats[i]!.name} +${formatChips(amt)}` : null))
+    .filter((x): x is string => x != null)
+    .join(', ')
+}
+
 function formatSidePotStatus(
   seats: Seat[],
   settlement: ReturnType<typeof settleShowdownPots>,
-  potAmount: number,
+  _potAmount: number,
 ): string {
-  if (settlement.pots.length <= 1) {
-    const names = settlement.winnerIdxs.map((i) => seats[i]!.name).join(', ')
-    const won = settlement.winnerIdxs.length === 1 ? settlement.awards[settlement.winnerIdxs[0]!]! : potAmount
-    return settlement.winnerIdxs.length === 1
-      ? `${names}: ${settlement.label}. +${formatChips(won)}`
-      : `${settlement.label}. Банк делится (${names}).`
+  const shares = formatPayoutShares(seats, settlement.awards)
+  if (settlement.winnerIdxs.length === 1) {
+    const i = settlement.winnerIdxs[0]!
+    const won = settlement.awards[i] ?? 0
+    return `${seats[i]!.name}: ${settlement.label}. +${formatChips(won)}`
   }
-  const parts = settlement.pots.map((p) => {
-    const names = p.winners.map((i) => seats[i]!.name).join('/')
-    return `${formatChips(p.amount)}→${names}`
-  })
-  return `Сайд-поты: ${parts.join(', ')}.`
+  if (settlement.pots.length <= 1) {
+    return `${settlement.label}. Делёж: ${shares}.`
+  }
+  return `Раздел банка: ${shares}.`
 }
 
 function bestSeatIndexes(seats: Seat[], board: Card[]): { idxs: number[]; label: string } {
@@ -1000,6 +1010,8 @@ export function PokerGame({
   const [freshBoardIds, setFreshBoardIds] = useState<string[]>([])
   const [progress, setProgress] = useState<PokerProgress>(() => loadPokerProgress())
   const [winnerIdxs, setWinnerIdxs] = useState<number[]>([])
+  /** Chips each seat took from the pot this hand (null while hand is live). */
+  const [payoutAwards, setPayoutAwards] = useState<number[] | null>(null)
   const [potFlight, setPotFlight] = useState<{
     id: number
     targets: number[]
@@ -1175,6 +1187,7 @@ export function PokerGame({
       setPot(hand.pot)
       setResultClass('')
       setWinnerIdxs([])
+      setPayoutAwards(null)
       setPotFlight(null)
       window.clearTimeout(potFlightTimerRef.current)
       setDealTick((n) => n + 1)
@@ -1251,6 +1264,7 @@ export function PokerGame({
         applySeats(next)
         setPot(0)
         setPhase('over')
+        setPayoutAwards(settlement.awards)
         playPotWinFx(idxs, potAmount)
 
         const playerWins = playerAward > 0
@@ -1304,6 +1318,7 @@ export function PokerGame({
       setPot(0)
       setPhase('over')
       setToCall(0)
+      setPayoutAwards(next.map((_, i) => (i === 0 ? potAmount : 0)))
       playPotWinFx([0], potAmount)
       const xpNote = grantXp('win', potAmount)
       setStatus(`${msg}${xpNote}`)
@@ -1601,6 +1616,7 @@ export function PokerGame({
         applySeats(next)
         setPot(0)
         setPhase('over')
+        setPayoutAwards(settlement.awards)
         playPotWinFx(winnerIdxsLocal, potAmount)
         const xpNote = grantXp('lose', potAmount)
         const potLine = formatSidePotStatus(next, settlement, potAmount)
@@ -1635,7 +1651,6 @@ export function PokerGame({
 
     if (contenders.length <= 1) {
       const winnerIdxsLocal = contenders.length === 1 ? [contenders[0]!.i] : []
-      const label = contenders.length === 1 ? contenders[0]!.s.name : ''
       setStreetBusy(true)
       setToCall(0)
       setStatus('Вскрываем карты…')
@@ -1645,13 +1660,21 @@ export function PokerGame({
         applySeats(awarded)
         setPot(0)
         setPhase('over')
+        const share = Math.floor(potSnap / Math.max(1, winnerIdxsLocal.length))
+        let rem = potSnap - share * winnerIdxsLocal.length
+        const exactAwards = awarded.map(() => 0)
+        for (const idx of winnerIdxsLocal) {
+          exactAwards[idx] = share + (rem > 0 ? 1 : 0)
+          if (rem > 0) rem -= 1
+        }
+        setPayoutAwards(exactAwards)
         playPotWinFx(winnerIdxsLocal, potSnap)
         const xpNote = grantXp('lose', potSnap)
-        const names = winnerIdxsLocal.map((i) => awarded[i]!.name).join(', ')
+        const names = formatPayoutShares(awarded, exactAwards)
         setStatus(
           wasFacingBet
-            ? `Вы сбросили. Банк ${formatChips(potSnap)} → ${names}${label ? ` (${label})` : ''}.${xpNote}`
-            : `Вы сбросили. Банк ${formatChips(potSnap)} уходит: ${names}.${xpNote}`,
+            ? `Вы сбросили. Банк → ${names || '—'}.${xpNote}`
+            : `Вы сбросили. Банк уходит: ${names || '—'}.${xpNote}`,
         )
         setResultClass('lose')
         setStreetBusy(false)
@@ -1811,6 +1834,22 @@ export function PokerGame({
                 <ChipPile amount={potFlight.amount} compact maxChips={3} />
                 <span className="poker-pot-label">Банк</span>
               </div>
+            ) : phase === 'over' &&
+              payoutAwards &&
+              payoutAwards.filter((a) => a > 0).length >= 2 ? (
+              <div className="poker-payout-board" role="status">
+                <div className="poker-payout-title">Кому ушёл банк</div>
+                <ul className="poker-payout-list">
+                  {payoutAwards.map((amt, i) =>
+                    amt > 0 ? (
+                      <li key={i} className={i === 0 ? 'is-you' : undefined}>
+                        <span className="poker-payout-name">{seats[i]!.name}</span>
+                        <span className="poker-payout-amt">+{formatChips(amt)}</span>
+                      </li>
+                    ) : null,
+                  )}
+                </ul>
+              </div>
             ) : null}
 
             {potFlight ? (
@@ -1845,6 +1884,13 @@ export function PokerGame({
               const isHuman = i === 0
               const revealed = seat.showCards && !seat.folded
               const isWinner = winnerIdxs.includes(i)
+              const winAmt = payoutAwards?.[i] ?? 0
+              const winBadge =
+                isWinner && winAmt > 0
+                  ? `+${formatChips(winAmt)}`
+                  : isWinner
+                    ? 'ПОБЕДА'
+                    : undefined
               const playerActing =
                 isHuman && phase !== 'over' && !seat.folded && !allInSpectating && !actionLocked && !revealingHands
               return (
@@ -1937,6 +1983,7 @@ export function PokerGame({
                         xpFrac={playerLevelInfo.frac}
                         levelTitle={playerLevelTitle}
                         hideName
+                        winBadge={winBadge}
                       />
                     </>
                   ) : (
@@ -1972,6 +2019,7 @@ export function PokerGame({
                         accent={seat.accent}
                         levelTitle={`Уровень ${botLevels[i - 1]!}`}
                         hideName
+                        winBadge={winBadge}
                       />
                     </>
                   )}

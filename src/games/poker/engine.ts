@@ -46,6 +46,8 @@ export type PokerState = {
   status: string
   winner: Seat | null
   handLabel: string
+  /** Chips each seat took from the pot this hand. */
+  awards: [number, number]
   /** Seats that already acted this betting round. */
   acted: Seat[]
   lastAggressor: Seat | null
@@ -72,6 +74,10 @@ export type PokerSeatView = {
   winner: Seat | null
   youWon: boolean | null
   handLabel: string
+  /** Chips you took from this pot (0 if none). */
+  youAward: number
+  /** Chips the opponent took from this pot. */
+  oppAward: number
   canCheck: boolean
   canCall: boolean
   callAmount: number
@@ -166,6 +172,7 @@ function cloneState(state: PokerState): PokerState {
     deck: [...state.deck],
     board: [...state.board],
     acted: [...state.acted],
+    awards: [state.awards[0], state.awards[1]],
     seats: [
       { ...state.seats[0], hole: [...state.seats[0].hole] },
       { ...state.seats[1], hole: [...state.seats[1].hole] },
@@ -230,6 +237,7 @@ export function createPokerGame(stacks: [number, number] = [START_STACK, START_S
     status: `Блайнды ${BLIND}.`,
     winner: null,
     handLabel: '',
+    awards: [0, 0],
     acted: [],
     lastAggressor: null,
   }
@@ -304,13 +312,17 @@ function showdown(state: PokerState) {
   clearStreet(state)
   const live = ([0, 1] as Seat[]).filter((i) => !state.seats[i].folded)
   for (const i of live) state.seats[i].showCards = true
+  const potAmount = state.pot
+  const awards: [number, number] = [0, 0]
 
   if (live.length === 1) {
     const w = live[0]!
-    state.seats[w].stack += state.pot
+    state.seats[w].stack += potAmount
+    awards[w] = potAmount
+    state.awards = awards
     state.winner = w
     state.handLabel = ''
-    state.status = `Банк ${formatChips(state.pot)}.`
+    state.status = `Банк ${formatChips(potAmount)}.`
     state.pot = 0
     return
   }
@@ -319,18 +331,24 @@ function showdown(state: PokerState) {
   ranks.sort((a, b) => b.hand.score - a.hand.score)
   const best = ranks[0]!.hand.score
   const winners = ranks.filter((r) => r.hand.score === best).map((r) => r.i)
-  const share = Math.floor(state.pot / winners.length)
-  let rem = state.pot - share * winners.length
+  const share = Math.floor(potAmount / winners.length)
+  let rem = potAmount - share * winners.length
   for (const w of winners) {
-    state.seats[w].stack += share + (rem > 0 ? 1 : 0)
+    const got = share + (rem > 0 ? 1 : 0)
     if (rem > 0) rem -= 1
+    state.seats[w].stack += got
+    awards[w] = got
   }
+  state.awards = awards
   state.winner = winners.length === 1 ? winners[0]! : null
   state.handLabel = ranks[0]!.hand.label
-  state.status =
-    winners.length > 1
-      ? `Ничья: ${ranks[0]!.hand.label}. Банк делится.`
-      : `${ranks[0]!.hand.label}. Банк ${formatChips(state.pot)}.`
+  if (winners.length > 1) {
+    const parts = winners.map((w) => `${w === 0 ? 'Вы' : 'соперник'} +${formatChips(awards[w]!)}`)
+    // Absolute labels; seatView rewrites for each perspective.
+    state.status = `Ничья: ${ranks[0]!.hand.label}. ${parts.join(', ')}.`
+  } else {
+    state.status = `${ranks[0]!.hand.label}. Банк ${formatChips(potAmount)}.`
+  }
   state.pot = 0
 }
 
@@ -338,10 +356,12 @@ function winUncontested(state: PokerState, winner: Seat, msg: string) {
   state.phase = 'over'
   state.acting = null
   state.toCall = 0
-  state.seats[winner].stack += state.pot
+  const potAmount = state.pot
+  state.seats[winner].stack += potAmount
   state.seats[other(winner)].showCards = false
   state.winner = winner
   state.handLabel = ''
+  state.awards = winner === 0 ? [potAmount, 0] : [0, potAmount]
   state.status = msg
   state.pot = 0
 }
@@ -468,13 +488,23 @@ export function seatView(state: PokerState, seat: Seat): PokerSeatView {
   /** HU: once the opponent is all-in, only call/fold — no re-raise into empty stack. */
   const oppAllIn = opp.stack <= 0 && !opp.folded
   const canRaise = toCall === 0 ? maxBet > 0 : maxBet > toCall && !oppAllIn
+  const youAward = state.awards?.[seat] ?? 0
+  const oppAward = state.awards?.[other(seat)] ?? 0
+  let overStatus = state.status
+  if (state.phase === 'over' && state.winner == null && youAward > 0 && oppAward > 0) {
+    overStatus = `Ничья: ${state.handLabel}. Вы +${formatChips(youAward)}, соперник +${formatChips(oppAward)}.`
+  } else if (state.phase === 'over' && state.winner === seat && youAward > 0) {
+    overStatus = state.handLabel
+      ? `${state.handLabel}. +${formatChips(youAward)}.`
+      : state.status
+  }
   const status =
     state.phase === 'over'
       ? state.winner === seat
-        ? `Победа! ${state.status}`
+        ? `Победа! ${overStatus}`
         : state.winner === other(seat)
-          ? `Поражение. ${state.status}`
-          : state.status
+          ? `Поражение. ${overStatus}`
+          : overStatus
       : yourTurn
         ? `${state.status} Ваш ход.`
         : `${state.status} Ход соперника…`
@@ -500,6 +530,8 @@ export function seatView(state: PokerState, seat: Seat): PokerSeatView {
     winner: state.winner,
     youWon: state.phase === 'over' ? state.winner === seat || (state.winner === null && !you.folded) : null,
     handLabel: state.handLabel,
+    youAward: state.phase === 'over' ? youAward : 0,
+    oppAward: state.phase === 'over' ? oppAward : 0,
     canCheck: yourTurn && toCall <= 0,
     canCall: yourTurn && toCall > 0,
     callAmount: Math.min(toCall, you.stack),
