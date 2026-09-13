@@ -3830,19 +3830,22 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-bot-cards.is-revealed .pcard .pcard-rank,
 .poker-bot-cards.is-revealed .poker-hole-card .pcard-rank {
   font-size: clamp(12px, 2vw, 15px);
+  position: relative;
+  z-index: 2;
 }
 
 .poker-bot-cards .pcard .suit-lg,
 .poker-bot-cards .poker-hole-card .suit-lg {
-  inset: 24% 10% 14% 10%;
-  font-size: clamp(12px, 2.2vw, 16px);
+  inset: 28% 14% 16% 14%;
+  font-size: clamp(11px, 1.9vw, 14px);
   opacity: 1;
 }
 
 .poker-bot-cards.is-revealed .pcard .suit-lg,
 .poker-bot-cards.is-revealed .poker-hole-card .suit-lg {
-  inset: 22% 10% 14% 10%;
-  font-size: clamp(16px, 3.2vw, 24px);
+  /* Keep center suit clear of the corner rank on showdown reveals */
+  inset: 34% 18% 18% 18%;
+  font-size: clamp(11px, 2vw, 15px);
 }
 
 /* Bot names stay hidden — avatar initial is enough at 5-max. */
@@ -4437,6 +4440,13 @@ body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money {
   justify-content: center;
   box-sizing: border-box;
   min-height: 100%;
+}
+
+.poker-allin-wait.is-quiet {
+  visibility: hidden;
+  border-color: transparent;
+  background: transparent;
+  padding: 8px 10px;
 }
 
 .poker-actions-row {
