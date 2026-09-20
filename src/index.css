@@ -3341,9 +3341,9 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-board .poker-board-card,
 .poker-board .pcard {
-  width: clamp(56px, 9vw, 80px);
-  height: clamp(78px, 12.5vw, 112px);
-  font-size: clamp(14px, 2.5vw, 20px);
+  width: clamp(58px, 9.5vw, 86px) !important;
+  height: clamp(80px, 13vw, 118px) !important;
+  font-size: clamp(14px, 2.6vw, 21px) !important;
   animation: none;
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
 }
@@ -4878,6 +4878,37 @@ body.settings-no-motion .poker-win-badge,
   100% {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* All landscape viewports — keep seats outside the rail (not only short phones). */
+@media (orientation: landscape) {
+  .poker-table-rail {
+    inset: 3.5% 4% 4.5% 4%;
+  }
+  .poker-table-felt {
+    inset: 7.5% 7.5% 8.5% 7.5%;
+  }
+  .poker-seat-s1 {
+    left: max(-72px, -10%);
+  }
+  .poker-seat-s2 {
+    left: max(-28px, -3.5%);
+    top: max(4px, -1%);
+  }
+  .poker-seat-s3 {
+    right: max(-28px, -3.5%);
+    top: max(4px, -1%);
+  }
+  .poker-seat-s4,
+  .poker-seat-bot {
+    right: max(-72px, -10%);
+  }
+  .poker-board .poker-board-card,
+  .poker-board .pcard {
+    width: clamp(58px, 9.5vw, 86px) !important;
+    height: clamp(80px, 13vw, 118px) !important;
+    font-size: clamp(14px, 2.6vw, 21px) !important;
   }
 }
 
