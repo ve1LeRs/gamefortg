@@ -753,13 +753,18 @@ function botActAtSeat(
  * Continue the betting round after the human (seat 0) has acted.
  * Stops as soon as action returns to the player so they can answer each raise —
  * bots must not keep re-raising among themselves past the player's turn.
+ *
+ * `matchedAlreadyActed`: after the player calls a raise, seats that already
+ * matched currentMax are seeded into `acted` so the raiser is not asked to
+ * check again — but seats still short of the raise keep facing it (correct
+ * when action returned to the player before bots on their left had acted).
  */
 function runBotsUntilPlayerOrClose(
   seatsIn: Seat[],
   potIn: number,
   board: Card[],
   phase: Phase,
-  opts: { playerOpened: boolean },
+  opts: { playerOpened: boolean; matchedAlreadyActed?: boolean },
 ): BotRoundResult {
   const seats = cloneSeats(seatsIn)
   let pot = potIn
@@ -767,6 +772,14 @@ function runBotsUntilPlayerOrClose(
   const steps: BotRoundStep[] = []
   const n = seats.length
   const acted = new Set<number>([0])
+  if (opts.matchedAlreadyActed) {
+    for (let i = 0; i < n; i += 1) {
+      const seat = seats[i]!
+      if (seat.folded) continue
+      const need = Math.max(0, currentMax - seat.streetBet)
+      if (need === 0 || seat.stack <= 0) acted.add(i)
+    }
+  }
   let lastRaiseName: string | null = opts.playerOpened ? seats[0]!.name : null
   let cursor = 1
   let guard = 0
@@ -812,7 +825,13 @@ function runBotsUntilPlayerOrClose(
     if (found < 0) break
 
     // Action is on the human — hand control back so they can raise/call now.
+    // If they already folded, skip and keep closing the round among bots.
     if (found === 0) {
+      if (seats[0]!.folded) {
+        acted.add(0)
+        cursor = 1
+        continue
+      }
       const facing = playerFacing()
       if (facing) return facing
       acted.add(0)
@@ -889,6 +908,19 @@ function runBotsAfterPlayerBet(
   phase: Phase,
 ): BotRoundResult {
   return runBotsUntilPlayerOrClose(seatsIn, potIn, board, phase, { playerOpened: true })
+}
+
+/** After player calls — finish unmatched seats left of the raiser, then close. */
+function runBotsAfterPlayerCall(
+  seatsIn: Seat[],
+  potIn: number,
+  board: Card[],
+  phase: Phase,
+): BotRoundResult {
+  return runBotsUntilPlayerOrClose(seatsIn, potIn, board, phase, {
+    playerOpened: false,
+    matchedAlreadyActed: true,
+  })
 }
 
 function awardPotToWinners(seats: Seat[], potAmount: number, winnerIdxs: number[]) {
@@ -1530,12 +1562,22 @@ export function PokerGame({
     applySeats(next)
     setPot(nextPot)
     setToCall(0)
+    setStreetBusy(true)
     setStatus(
       next[0]!.stack <= 0
         ? `All-in ${formatChips(paid)}. Доигрываем раздачу…`
         : `Вы коллируете ${formatChips(paid)}.`,
     )
-    queueContinue(STREET_PAUSE_MS, phase, deck, board, nextPot, next)
+    // Do not advance the street yet — bots left of the raiser may still need
+    // to call/fold. Only finishBotRound advances when toCall settles to 0.
+    const result = runBotsAfterPlayerCall(next, nextPot, board, phase)
+    playBotRound(result, BOT_FACE_BET_MS, phase, deck, board, {
+      uncontestedMsg: `Боты сбросили. Банк ${formatChips(result.pot)} ваш.`,
+      settledStatus:
+        next[0]!.stack <= 0
+          ? `All-in ${formatChips(paid)}. Доигрываем…`
+          : result.status || `Колл ${formatChips(paid)}. Боты ответили.`,
+    })
   }
 
   const bet = () => {
@@ -1679,62 +1721,127 @@ export function PokerGame({
       return
     }
 
-    // Multiway after fold — always run the board out to five cards before ranking.
+    // Multiway after fold — finish any unmatched bets among bots first (same
+    // gap as call: seats left of the raiser may still need to call/fold), then
+    // run the board out so side pots match real contributions.
     setStreetBusy(true)
     applySeats(next)
-    setStatus('Вы сбросили. Открываем карты до ривера…')
 
-    let deckNow = [...deck]
-    let boardNow = [...board]
-
-    const dealNext = () => {
-      if (boardNow.length >= 5) {
-        resolveFoldShowdown(boardNow, next, potSnap, wasFacingBet)
+    const startFoldRunout = (seatsNow: Seat[], potNow: number) => {
+      const live = seatsNow.filter((s) => !s.folded)
+      if (live.length <= 1) {
+        const winnerIdxsLocal = live.length === 1 ? [seatsNow.findIndex((s) => !s.folded)] : []
+        setStatus('Вскрываем карты…')
+        revealBotsThen(seatsNow, (revealed) => {
+          const awarded = cloneSeats(revealed)
+          awardPotToWinners(awarded, potNow, winnerIdxsLocal)
+          applySeats(awarded)
+          setPot(0)
+          setPhase('over')
+          const share = Math.floor(potNow / Math.max(1, winnerIdxsLocal.length))
+          let rem = potNow - share * winnerIdxsLocal.length
+          const exactAwards = awarded.map(() => 0)
+          for (const idx of winnerIdxsLocal) {
+            if (idx < 0) continue
+            exactAwards[idx] = share + (rem > 0 ? 1 : 0)
+            if (rem > 0) rem -= 1
+          }
+          setPayoutAwards(exactAwards)
+          playPotWinFx(winnerIdxsLocal.filter((i) => i >= 0), potNow)
+          const xpNote = grantXp('lose', potNow)
+          const names = formatPayoutShares(awarded, exactAwards)
+          setStatus(`Вы сбросили. Банк → ${names || '—'}.${xpNote}`)
+          setResultClass('lose')
+          setStreetBusy(false)
+        })
         return
       }
 
-      if (boardNow.length === 0) {
-        deckNow.pop()
-        const flop = [deckNow.pop()!, deckNow.pop()!, deckNow.pop()!]
-        boardNow = flop
-        boardLenRef.current = 0
-        setFreshBoardIds(flop.map((c) => c.id))
-        setBoard(flop)
-        setDeck(deckNow)
-        setPhase('flop')
-        playPokerSound('cards')
-        window.setTimeout(dealNext, FOLD_RUNOUT_MS)
-        return
-      }
+      setStatus('Вы сбросили. Открываем карты до ривера…')
+      let deckNow = [...deck]
+      let boardNow = [...board]
 
-      if (boardNow.length === 3) {
+      const dealNext = () => {
+        if (boardNow.length >= 5) {
+          resolveFoldShowdown(boardNow, seatsNow, potNow, wasFacingBet)
+          return
+        }
+
+        if (boardNow.length === 0) {
+          deckNow.pop()
+          const flop = [deckNow.pop()!, deckNow.pop()!, deckNow.pop()!]
+          boardNow = flop
+          boardLenRef.current = 0
+          setFreshBoardIds(flop.map((c) => c.id))
+          setBoard(flop)
+          setDeck(deckNow)
+          setPhase('flop')
+          playPokerSound('cards')
+          window.setTimeout(dealNext, FOLD_RUNOUT_MS)
+          return
+        }
+
+        if (boardNow.length === 3) {
+          deckNow.pop()
+          const card = deckNow.pop()!
+          boardNow = [...boardNow, card]
+          boardLenRef.current = 3
+          setFreshBoardIds([card.id])
+          setBoard(boardNow)
+          setDeck(deckNow)
+          setPhase('turn')
+          playPokerSound('card')
+          window.setTimeout(dealNext, FOLD_RUNOUT_MS)
+          return
+        }
+
         deckNow.pop()
         const card = deckNow.pop()!
         boardNow = [...boardNow, card]
-        boardLenRef.current = 3
+        boardLenRef.current = 4
         setFreshBoardIds([card.id])
         setBoard(boardNow)
         setDeck(deckNow)
-        setPhase('turn')
+        setPhase('river')
         playPokerSound('card')
         window.setTimeout(dealNext, FOLD_RUNOUT_MS)
-        return
       }
 
-      // 4 → river
-      deckNow.pop()
-      const card = deckNow.pop()!
-      boardNow = [...boardNow, card]
-      boardLenRef.current = 4
-      setFreshBoardIds([card.id])
-      setBoard(boardNow)
-      setDeck(deckNow)
-      setPhase('river')
-      playPokerSound('card')
-      window.setTimeout(dealNext, FOLD_RUNOUT_MS)
+      window.setTimeout(dealNext, 420)
     }
 
-    window.setTimeout(dealNext, 420)
+    if (!wasFacingBet) {
+      startFoldRunout(next, potSnap)
+      return
+    }
+
+    const result = runBotsAfterPlayerCall(next, potSnap, board, phase)
+    setStatus('Вы сбросили. Боты закрывают круг…')
+    const steps = result.steps
+    if (steps.length === 0) {
+      window.setTimeout(() => {
+        applySeats(result.seats)
+        setPot(result.pot)
+        startFoldRunout(result.seats, result.pot)
+      }, 420)
+      return
+    }
+
+    let i = 0
+    const tick = () => {
+      const step = steps[i]!
+      applySeats(step.seats)
+      setPot(step.pot)
+      if (step.line) setStatus(step.line)
+      if (step.sound) playPokerSound(step.sound)
+      i += 1
+      if (i >= steps.length) {
+        window.setTimeout(() => startFoldRunout(result.seats, result.pot), BOT_BETWEEN_MS)
+        return
+      }
+      window.setTimeout(tick, BOT_BETWEEN_MS)
+    }
+    window.setTimeout(tick, BOT_FACE_BET_MS)
   }
 
   useEffect(() => {
