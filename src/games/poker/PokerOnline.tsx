@@ -533,23 +533,6 @@ function PokerOnlineTable({
                     />
                   ))}
                 </div>
-                {view.you.hole.length >= 2 ? (
-                  <div
-                    className={`poker-bet-amount-row${
-                      view.phase === 'over' || allInSpectating ? ' is-ghost' : waitingTurn ? ' is-dimmed' : ''
-                    }`}
-                    aria-hidden={view.phase === 'over' || allInSpectating}
-                  >
-                    <BetRoulette
-                      value={wager}
-                      min={view.minBet}
-                      max={Math.max(view.minBet, view.maxBet)}
-                      disabled={view.phase === 'over' || allInSpectating || !view.yourTurn}
-                      format={formatChips}
-                      onChange={(next) => setWager(clampWager(next))}
-                    />
-                  </div>
-                ) : null}
               </div>
               <PokerSeatCard
                 name="Вы"
@@ -621,7 +604,20 @@ function PokerOnlineTable({
                       </button>
                     </div>
                   ) : null}
-                  <div className="poker-actions-row">
+                  <div className="poker-actions-main">
+                    {!facingAllIn && view.canBet ? (
+                      <div className={`poker-bet-amount-row${waitingTurn ? ' is-dimmed' : ''}`}>
+                        <BetRoulette
+                          value={wager}
+                          min={view.minBet}
+                          max={Math.max(view.minBet, view.maxBet)}
+                          disabled={!view.yourTurn}
+                          format={formatChips}
+                          onChange={(next) => setWager(clampWager(next))}
+                        />
+                      </div>
+                    ) : null}
+                    <div className="poker-actions-row">
                     {view.toCall > 0 || view.canCall ? (
                       <button
                         type="button"
@@ -677,6 +673,7 @@ function PokerOnlineTable({
                     >
                       Сброс
                     </button>
+                  </div>
                   </div>
                 </>
               )}
