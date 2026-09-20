@@ -20,6 +20,7 @@ import {
   watchPokerLobby,
 } from './peerRoom'
 import { BetActionLabel, ChipPile, PokerSeatCard, PotFlightOverlay } from './tableChrome'
+import { BetRoulette } from './BetRoulette'
 
 const REVEAL_STAGGER_MS = 720
 const NEXT_HAND_SEC = 5
@@ -532,46 +533,6 @@ function PokerOnlineTable({
                     />
                   ))}
                 </div>
-                {view.you.hole.length >= 2 ? (
-                  <div
-                    className={`poker-bet-amount-row${
-                      view.phase === 'over' || allInSpectating ? ' is-ghost' : waitingTurn ? ' is-dimmed' : ''
-                    }`}
-                    aria-hidden={view.phase === 'over' || allInSpectating}
-                  >
-                    <div className="poker-bet-stepper" aria-label="Размер ставки">
-                      <button
-                        type="button"
-                        className="poker-bet-nudge"
-                        aria-label="Уменьшить ставку"
-                        disabled={
-                          view.phase === 'over' ||
-                          allInSpectating ||
-                          !view.yourTurn ||
-                          wager <= view.minBet
-                        }
-                        onClick={() => setWager((w) => clampWager(w - 10))}
-                      >
-                        −
-                      </button>
-                      <span className="poker-bet-value">{formatChips(wager)}</span>
-                      <button
-                        type="button"
-                        className="poker-bet-nudge"
-                        aria-label="Увеличить ставку"
-                        disabled={
-                          view.phase === 'over' ||
-                          allInSpectating ||
-                          !view.yourTurn ||
-                          wager >= view.maxBet
-                        }
-                        onClick={() => setWager((w) => clampWager(w + 10))}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
               </div>
               <PokerSeatCard
                 name="Вы"
@@ -643,7 +604,20 @@ function PokerOnlineTable({
                       </button>
                     </div>
                   ) : null}
-                  <div className="poker-actions-row">
+                  <div className="poker-actions-main">
+                    {!facingAllIn && view.canBet ? (
+                      <div className={`poker-bet-amount-row${waitingTurn ? ' is-dimmed' : ''}`}>
+                        <BetRoulette
+                          value={wager}
+                          min={view.minBet}
+                          max={Math.max(view.minBet, view.maxBet)}
+                          disabled={!view.yourTurn}
+                          format={formatChips}
+                          onChange={(next) => setWager(clampWager(next))}
+                        />
+                      </div>
+                    ) : null}
+                    <div className="poker-actions-row">
                     {view.toCall > 0 || view.canCall ? (
                       <button
                         type="button"
@@ -699,6 +673,7 @@ function PokerOnlineTable({
                     >
                       Сброс
                     </button>
+                  </div>
                   </div>
                 </>
               )}
