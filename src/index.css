@@ -3220,7 +3220,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-rail {
   position: absolute;
-  inset: 1.5% 1.5% 2.5% 1.5%;
+  /* Inset enough that edge seats sit outside the brown rim */
+  inset: 3.5% 4% 4.5% 4%;
   border-radius: 50% / 48%;
   background:
     linear-gradient(145deg, #5a3a28, #2a1810 45%, #1a100c);
@@ -3232,7 +3233,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-felt {
   position: absolute;
-  inset: 5% 4.5% 6% 4.5%;
+  inset: 7.5% 7.5% 8.5% 7.5%;
   border-radius: 50% / 48%;
   background:
     radial-gradient(ellipse at 50% 40%, #8b2a36 0%, #6a1c28 42%, #4a121c 100%);
