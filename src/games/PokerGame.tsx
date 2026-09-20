@@ -2115,73 +2115,71 @@ export function PokerGame({
                       Макс
                     </button>
                   </div>
-                  <div className="poker-actions-main">
-                    <div
-                      className={`poker-bet-amount-row${actionLocked ? ' is-dimmed' : ''}`}
-                    >
-                      <BetRoulette
-                        value={wager}
-                        min={facingBet ? Math.max(toCall, minWager) : minWager}
-                        max={Math.max(facingBet ? toCall : minWager, maxWager)}
-                        disabled={actionLocked}
-                        format={formatChips}
-                        onChange={(next) =>
-                          setWager(clampBet(next, facingBet ? toCall : minWager, maxWager))
-                        }
-                        onTick={() => onHaptic?.('light')}
-                      />
-                    </div>
-                    <div className="poker-actions-row">
-                      {facingBet ? (
-                        <button
-                          type="button"
-                          className="poker-btn poker-btn-soft"
-                          disabled={actionLocked}
-                          onClick={callBet}
-                        >
-                          {toCall >= player.stack ? (
-                            'All In'
-                          ) : (
-                            <BetActionLabel verb="Колл" amount={toCall} />
-                          )}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="poker-btn poker-btn-soft"
-                          disabled={actionLocked}
-                          onClick={check}
-                        >
-                          Чек
-                        </button>
-                      )}
+                  <div
+                    className={`poker-bet-amount-row${actionLocked ? ' is-dimmed' : ''}`}
+                  >
+                    <BetRoulette
+                      value={wager}
+                      min={facingBet ? Math.max(toCall, minWager) : minWager}
+                      max={Math.max(facingBet ? toCall : minWager, maxWager)}
+                      disabled={actionLocked}
+                      format={formatChips}
+                      onChange={(next) =>
+                        setWager(clampBet(next, facingBet ? toCall : minWager, maxWager))
+                      }
+                      onTick={() => onHaptic?.('light')}
+                    />
+                  </div>
+                  <div className="poker-actions-row">
+                    {facingBet ? (
                       <button
                         type="button"
-                        className="poker-btn poker-btn-bet"
-                        onClick={bet}
-                        disabled={actionLocked || wager <= 0 || (facingBet && wager < toCall)}
+                        className="poker-btn poker-btn-soft"
+                        disabled={actionLocked}
+                        onClick={callBet}
                       >
-                        {wager >= player.stack && player.stack > 0 ? (
+                        {toCall >= player.stack ? (
                           'All In'
-                        ) : facingBet ? (
-                          wager > toCall ? (
-                            <BetActionLabel verb="Рейз" amount={wager} />
-                          ) : (
-                            <BetActionLabel verb="Колл" amount={toCall} />
-                          )
                         ) : (
-                          <BetActionLabel verb="Ставка" amount={wager} />
+                          <BetActionLabel verb="Колл" amount={toCall} />
                         )}
                       </button>
+                    ) : (
                       <button
                         type="button"
-                        className="poker-btn poker-btn-fold"
+                        className="poker-btn poker-btn-soft"
                         disabled={actionLocked}
-                        onClick={fold}
+                        onClick={check}
                       >
-                        Сброс
+                        Чек
                       </button>
-                    </div>
+                    )}
+                    <button
+                      type="button"
+                      className="poker-btn poker-btn-bet"
+                      onClick={bet}
+                      disabled={actionLocked || wager <= 0 || (facingBet && wager < toCall)}
+                    >
+                      {wager >= player.stack && player.stack > 0 ? (
+                        'All In'
+                      ) : facingBet ? (
+                        wager > toCall ? (
+                          <BetActionLabel verb="Рейз" amount={wager} />
+                        ) : (
+                          <BetActionLabel verb="Колл" amount={toCall} />
+                        )
+                      ) : (
+                        <BetActionLabel verb="Ставка" amount={wager} />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="poker-btn poker-btn-fold"
+                      disabled={actionLocked}
+                      onClick={fold}
+                    >
+                      Сброс
+                    </button>
                   </div>
                 </>
               ) : (
