@@ -20,6 +20,7 @@ import {
   watchPokerLobby,
 } from './peerRoom'
 import { BetActionLabel, ChipPile, PokerSeatCard, PotFlightOverlay } from './tableChrome'
+import { BetRoulette } from './BetRoulette'
 
 const REVEAL_STAGGER_MS = 720
 const NEXT_HAND_SEC = 5
@@ -539,37 +540,14 @@ function PokerOnlineTable({
                     }`}
                     aria-hidden={view.phase === 'over' || allInSpectating}
                   >
-                    <div className="poker-bet-stepper" aria-label="Размер ставки">
-                      <button
-                        type="button"
-                        className="poker-bet-nudge"
-                        aria-label="Уменьшить ставку"
-                        disabled={
-                          view.phase === 'over' ||
-                          allInSpectating ||
-                          !view.yourTurn ||
-                          wager <= view.minBet
-                        }
-                        onClick={() => setWager((w) => clampWager(w - 10))}
-                      >
-                        −
-                      </button>
-                      <span className="poker-bet-value">{formatChips(wager)}</span>
-                      <button
-                        type="button"
-                        className="poker-bet-nudge"
-                        aria-label="Увеличить ставку"
-                        disabled={
-                          view.phase === 'over' ||
-                          allInSpectating ||
-                          !view.yourTurn ||
-                          wager >= view.maxBet
-                        }
-                        onClick={() => setWager((w) => clampWager(w + 10))}
-                      >
-                        +
-                      </button>
-                    </div>
+                    <BetRoulette
+                      value={wager}
+                      min={view.minBet}
+                      max={Math.max(view.minBet, view.maxBet)}
+                      disabled={view.phase === 'over' || allInSpectating || !view.yourTurn}
+                      format={formatChips}
+                      onChange={(next) => setWager(clampWager(next))}
+                    />
                   </div>
                 ) : null}
               </div>

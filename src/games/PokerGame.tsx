@@ -19,6 +19,7 @@ import {
 } from '../lib/pokerProgress'
 import { awardSidePots } from './poker/sidePots'
 import { estimateEquity, exactEquity } from './poker/equity'
+import { BetRoulette } from './poker/BetRoulette'
 
 type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'over'
 
@@ -1104,12 +1105,6 @@ export function PokerGame({
     setWager(clampBet(betSize(phase), minWager, maxWager))
   }, [phase, minWager, maxWager, facingBet, toCall])
 
-  const nudgeWager = (delta: number) => {
-    const lo = facingBet ? toCall : minWager
-    setWager((w) => clampBet(w + delta, lo, maxWager))
-    onHaptic?.('light')
-  }
-
   const setWagerPreset = (value: number) => {
     const lo = facingBet ? toCall : minWager
     setWager(clampBet(value, lo, maxWager))
@@ -1917,39 +1912,20 @@ export function PokerGame({
                             }`}
                             aria-hidden={phase === 'over' || allInSpectating || revealingHands}
                           >
-                            <div className="poker-bet-stepper" aria-label="Размер ставки">
-                              <button
-                                type="button"
-                                className="poker-bet-nudge"
-                                aria-label="Уменьшить ставку"
-                                disabled={
-                                  phase === 'over' ||
-                                  allInSpectating ||
-                                  revealingHands ||
-                                  actionLocked ||
-                                  wager <= (facingBet ? toCall : minWager)
-                                }
-                                onClick={() => nudgeWager(-10)}
-                              >
-                                −
-                              </button>
-                              <span className="poker-bet-value">{formatChips(wager)}</span>
-                              <button
-                                type="button"
-                                className="poker-bet-nudge"
-                                aria-label="Увеличить ставку"
-                                disabled={
-                                  phase === 'over' ||
-                                  allInSpectating ||
-                                  revealingHands ||
-                                  actionLocked ||
-                                  wager >= maxWager
-                                }
-                                onClick={() => nudgeWager(10)}
-                              >
-                                +
-                              </button>
-                            </div>
+                            <BetRoulette
+                              value={wager}
+                              min={facingBet ? Math.max(toCall, minWager) : minWager}
+                              max={Math.max(facingBet ? toCall : minWager, maxWager)}
+                              disabled={
+                                phase === 'over' ||
+                                allInSpectating ||
+                                revealingHands ||
+                                actionLocked
+                              }
+                              format={formatChips}
+                              onChange={(next) => setWager(clampBet(next, facingBet ? toCall : minWager, maxWager))}
+                              onTick={() => onHaptic?.('light')}
+                            />
                           </div>
                         ) : null}
                       </div>
