@@ -604,20 +604,19 @@ function PokerOnlineTable({
                       </button>
                     </div>
                   ) : null}
-                  <div className="poker-actions-main">
-                    {!facingAllIn && view.canBet ? (
-                      <div className={`poker-bet-amount-row${waitingTurn ? ' is-dimmed' : ''}`}>
-                        <BetRoulette
-                          value={wager}
-                          min={view.minBet}
-                          max={Math.max(view.minBet, view.maxBet)}
-                          disabled={!view.yourTurn}
-                          format={formatChips}
-                          onChange={(next) => setWager(clampWager(next))}
-                        />
-                      </div>
-                    ) : null}
-                    <div className="poker-actions-row">
+                  {!facingAllIn && view.canBet ? (
+                    <div className={`poker-bet-amount-row${waitingTurn ? ' is-dimmed' : ''}`}>
+                      <BetRoulette
+                        value={wager}
+                        min={view.minBet}
+                        max={Math.max(view.minBet, view.maxBet)}
+                        disabled={!view.yourTurn}
+                        format={formatChips}
+                        onChange={(next) => setWager(clampWager(next))}
+                      />
+                    </div>
+                  ) : null}
+                  <div className="poker-actions-row">
                     {view.toCall > 0 || view.canCall ? (
                       <button
                         type="button"
@@ -673,7 +672,6 @@ function PokerOnlineTable({
                     >
                       Сброс
                     </button>
-                  </div>
                   </div>
                 </>
               )}
