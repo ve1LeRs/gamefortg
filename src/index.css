@@ -4891,10 +4891,10 @@ body.settings-no-motion .poker-win-badge,
     margin: 2px auto 0;
   }
   .poker-table-rail {
-    inset: 1% 1.2% 2% 1.2%;
+    inset: 3.2% 3.8% 4.2% 3.8%;
   }
   .poker-table-felt {
-    inset: 4.5% 4% 5.5% 4%;
+    inset: 7% 7% 8% 7%;
   }
   .poker-seat-s0,
   .poker-seat-you {
