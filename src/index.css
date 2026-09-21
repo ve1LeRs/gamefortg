@@ -3503,35 +3503,32 @@ body.poker-landscape-active .app-main.game-mode {
   pointer-events: none;
 }
 
-/* Bet piles sit on the felt, inward from each outside seat — never on the rail/avatar. */
+/* Bet piles on the felt, clear of seat avatar/cards — left↔right mirrored. */
 .poker-bet-s0 {
   left: 50%;
   top: auto;
-  /* Closer to the player at the bottom rim */
-  bottom: 14%;
+  bottom: 18%;
   transform: translateX(-50%);
 }
 
 .poker-bet-s1 {
-  /* Closer to mid-left seat */
-  left: 11%;
-  top: 54%;
+  left: 20%;
+  top: 50%;
   bottom: auto;
   transform: none;
 }
 
 .poker-bet-s2 {
-  /* Closer to top-left seat */
-  left: 16%;
-  top: 16%;
+  left: 24%;
+  top: 22%;
   bottom: auto;
   transform: none;
 }
 
 .poker-bet-s3 {
   left: auto;
-  right: 28%;
-  top: 24%;
+  right: 24%;
+  top: 22%;
   bottom: auto;
   transform: none;
 }
@@ -3539,7 +3536,7 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-bet-s4 {
   left: auto;
   right: 20%;
-  top: 58%;
+  top: 50%;
   bottom: auto;
   transform: none;
 }
@@ -3593,29 +3590,29 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-bet-flight-s0 {
   left: 50%;
-  bottom: 14%;
+  bottom: 18%;
 }
 
 .poker-bet-flight-s1 {
-  left: 11%;
-  top: 54%;
+  left: 20%;
+  top: 50%;
 }
 
 .poker-bet-flight-s2 {
-  left: 16%;
-  top: 16%;
+  left: 24%;
+  top: 22%;
 }
 
 .poker-bet-flight-s3 {
   left: auto;
-  right: 28%;
-  top: 24%;
+  right: 24%;
+  top: 22%;
 }
 
 .poker-bet-flight-s4 {
   left: auto;
   right: 20%;
-  top: 58%;
+  top: 50%;
 }
 
 .poker-bet-flight-chip,
@@ -3652,23 +3649,23 @@ body.poker-landscape-active .app-main.game-mode {
 /* Start offset = seat relative to bet spot (chips fly inward onto the felt). */
 .poker-bet-flight-s0 .poker-bet-flight-chip {
   --from-x: 0vw;
-  --from-y: 12vh;
+  --from-y: 10vh;
 }
 .poker-bet-flight-s1 .poker-bet-flight-chip {
-  --from-x: -11vw;
-  --from-y: 3vh;
+  --from-x: -14vw;
+  --from-y: 2vh;
 }
 .poker-bet-flight-s2 .poker-bet-flight-chip {
-  --from-x: -9vw;
-  --from-y: -7vh;
+  --from-x: -12vw;
+  --from-y: -8vh;
 }
 .poker-bet-flight-s3 .poker-bet-flight-chip {
-  --from-x: 9vw;
-  --from-y: -7vh;
+  --from-x: 12vw;
+  --from-y: -8vh;
 }
 .poker-bet-flight-s4 .poker-bet-flight-chip {
-  --from-x: 11vw;
-  --from-y: 3vh;
+  --from-x: 14vw;
+  --from-y: 2vh;
 }
 
 @keyframes poker-bet-fly {
@@ -3701,7 +3698,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-s0 {
   left: 50%;
-  bottom: -14%;
+  /* Slightly raised so stack stays clear of the screen edge */
+  bottom: -8%;
   top: auto;
   /* Shift right a bit so cards+avatar stay centered as a pair */
   transform: translateX(calc(-50% + 26px));
@@ -3759,64 +3757,59 @@ body.poker-landscape-active .app-main.game-mode {
   flex: 0 0 auto;
 }
 
-/* Left seats: just outside the rail, fully on-screen.
-   s1 (mid-left) sits a bit lower toward the player.
-   s2 (top-left) sits higher/inward so Telegram chrome does not cover the win badge. */
+/* Bot seats: mirrored left↔right, avatar just outside the rail.
+   Order: avatar outside, hole cards toward felt, bets further on felt. */
 .poker-seat-s1 {
-  left: max(4px, 1.2%);
-  top: 50%;
+  left: max(-4px, -0.6%);
+  top: 52%;
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
   z-index: 5;
 }
 
 .poker-seat-s2 {
-  /* Further from Telegram top-left chrome so win badge stays readable */
-  left: max(68px, 13%);
-  top: max(30px, 6.5%);
+  left: max(2px, 0.6%);
+  top: max(2px, 0.6%);
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
   z-index: 5;
 }
 
-/* Right seats: just outside the rail, fully on-screen.
-   s3 (top-right) sits a touch higher/left so Telegram’s minimize
-   chrome does not cover the win badge. */
 .poker-seat-s3 {
   left: auto;
-  right: max(48px, 8.5%);
-  top: max(16px, 3%);
+  right: max(2px, 0.6%);
+  top: max(2px, 0.6%);
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
   z-index: 5;
 }
 
 .poker-seat-s4 {
   left: auto;
-  right: max(4px, 1.2%);
-  top: 50%;
+  right: max(-4px, -0.6%);
+  top: 52%;
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 3px;
+  gap: 8px;
   z-index: 5;
 }
 
@@ -3867,7 +3860,8 @@ body.poker-landscape-active .app-main.game-mode {
   z-index: 2;
   overflow: visible;
   flex-shrink: 0;
-  width: clamp(26px, 4.2vw, 34px);
+  /* Wide enough for the rotated face-down stack without bleeding into the avatar */
+  width: clamp(30px, 4.8vw, 38px);
 }
 
 .poker-bot-cards.is-revealed {
@@ -3902,14 +3896,44 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(1),
 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(1) {
-  transform: rotate(-14deg) translate(-2px, 1px) !important;
+  transform: rotate(-12deg) translate(0, 1px) !important;
   z-index: 1;
 }
 
 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(2),
 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(2) {
-  transform: rotate(12deg) translate(5px, -1px) !important;
+  transform: rotate(11deg) translate(5px, -1px) !important;
   z-index: 2;
+}
+
+/* Left bots: stack spills toward felt (away from outside avatar). */
+.poker-seat-s1 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(1),
+.poker-seat-s1 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(1),
+.poker-seat-s2 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(1),
+.poker-seat-s2 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(1) {
+  transform: rotate(-10deg) translate(1px, 1px) !important;
+}
+
+.poker-seat-s1 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(2),
+.poker-seat-s1 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(2),
+.poker-seat-s2 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(2),
+.poker-seat-s2 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(2) {
+  transform: rotate(12deg) translate(6px, -1px) !important;
+}
+
+/* Right bots: stack spills toward felt (away from outside avatar). */
+.poker-seat-s3 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(1),
+.poker-seat-s3 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(1),
+.poker-seat-s4 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(1),
+.poker-seat-s4 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(1) {
+  transform: rotate(-12deg) translate(-6px, 1px) !important;
+}
+
+.poker-seat-s3 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(2),
+.poker-seat-s3 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(2),
+.poker-seat-s4 .poker-bot-cards:not(.is-revealed) .pcard:nth-child(2),
+.poker-seat-s4 .poker-bot-cards:not(.is-revealed) .poker-hole-card:nth-child(2) {
+  transform: rotate(10deg) translate(-1px, -1px) !important;
 }
 
 /* Legacy seat-specific spreads — only for revealed / flipping faces. */
@@ -4158,14 +4182,14 @@ body.poker-landscape-active .app-main.game-mode {
   animation: poker-win-badge-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Top seats: keep payout clear of Telegram’s minimize control */
+/* Top seats: keep payout readable above the avatar */
 .poker-seat-s2 .poker-win-badge {
-  left: 70%;
-  top: -16px;
+  left: 50%;
+  top: -18px;
 }
 
 .poker-seat-s3 .poker-win-badge {
-  left: 38%;
+  left: 50%;
   top: -18px;
 }
 
@@ -5155,21 +5179,25 @@ body.settings-no-motion .poker-win-badge,
     inset: 4.6% 5% 3.4% 5%;
   }
   .poker-seat-s1 {
-    left: max(4px, 1.2%);
-    top: 50%;
+    left: max(-4px, -0.6%);
+    top: 52%;
+    gap: 8px;
   }
   .poker-seat-s2 {
-    left: max(68px, 13%);
-    top: max(30px, 6.5%);
+    left: max(2px, 0.6%);
+    top: max(2px, 0.6%);
+    gap: 8px;
   }
   .poker-seat-s3 {
-    right: max(48px, 8.5%);
-    top: max(16px, 3%);
+    right: max(2px, 0.6%);
+    top: max(2px, 0.6%);
+    gap: 8px;
   }
   .poker-seat-s4,
   .poker-seat-bot {
-    right: max(4px, 1.2%);
-    top: 50%;
+    right: max(-4px, -0.6%);
+    top: 52%;
+    gap: 8px;
   }
   .poker-board .poker-board-card,
   .poker-board .pcard {
@@ -5197,79 +5225,79 @@ body.settings-no-motion .poker-win-badge,
   .poker-seat-s0,
   .poker-seat-you {
     left: 50%;
-    bottom: -12%;
+    bottom: -7%;
     transform: translateX(calc(-50% + 22px));
     gap: 6px;
   }
   .poker-seat-s1 {
-    left: max(3px, 0.8%);
-    top: 48%;
-    gap: 2px;
+    left: max(-4px, -0.8%);
+    top: 50%;
+    gap: 7px;
   }
   .poker-seat-s2 {
-    left: max(60px, 12%);
-    top: max(26px, 5.5%);
-    gap: 2px;
+    left: max(2px, 0.5%);
+    top: max(2px, 0.5%);
+    gap: 7px;
   }
   .poker-seat-s3 {
     left: auto;
-    right: max(44px, 8%);
-    top: max(12px, 2.2%);
+    right: max(2px, 0.5%);
+    top: max(2px, 0.5%);
     bottom: auto;
-    gap: 2px;
+    gap: 7px;
   }
   .poker-seat-s4,
   .poker-seat-bot {
-    top: 48%;
-    right: max(3px, 0.8%);
+    top: 50%;
+    right: max(-4px, -0.8%);
     bottom: auto;
-    gap: 2px;
+    gap: 7px;
   }
   .poker-bet-s0,
   .poker-bet-you {
     left: 50%;
-    bottom: 16%;
+    bottom: 18%;
     transform: translateX(-50%);
   }
   .poker-bet-flight-s0 {
     left: 50%;
-    bottom: 16%;
+    bottom: 18%;
   }
   .poker-bet-s1 {
-    left: 10%;
-    top: 52%;
+    left: 20%;
+    top: 50%;
   }
   .poker-bet-flight-s1 {
-    left: 10%;
-    top: 52%;
+    left: 20%;
+    top: 50%;
   }
   .poker-bet-s2 {
-    left: 15%;
-    top: 15%;
+    left: 24%;
+    top: 20%;
   }
   .poker-bet-flight-s2 {
-    left: 15%;
-    top: 15%;
+    left: 24%;
+    top: 20%;
   }
   .poker-bet-s3 {
     left: auto;
     right: 24%;
-    top: 22%;
+    top: 20%;
     bottom: auto;
   }
   .poker-bet-flight-s3 {
     left: auto;
     right: 24%;
-    top: 22%;
+    top: 20%;
   }
   .poker-bet-s4,
   .poker-bet-bot {
-    right: 16%;
-    top: 54%;
+    right: 20%;
+    top: 50%;
   }
   .poker-bet-flight-s4 {
-    right: 16%;
-    top: 54%;
+    right: 20%;
+    top: 50%;
   }
   .poker-bot-cards {
     margin: 0;
@@ -5404,7 +5432,7 @@ body.tg-desktop .poker-table {
 }
 
 body.tg-desktop .poker-seat-s0 {
-  bottom: -15%;
+  bottom: -9%;
 }
 
 body.tg-desktop .poker-bottom {
