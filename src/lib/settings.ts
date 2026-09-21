@@ -290,8 +290,8 @@ export function playUiSound(kind: 'tap' | 'ok' | 'warn' | 'deal' = 'tap') {
   })()
 }
 
-/** Poker table FX: chip rustle / card slide / check knocks — synthesized, no assets. */
-export function playPokerSound(kind: 'chips' | 'card' | 'cards' | 'check') {
+/** Poker table FX: chip rustle / card slide / check knocks / turn ping — synthesized, no assets. */
+export function playPokerSound(kind: 'chips' | 'card' | 'cards' | 'check' | 'turn') {
   void (async () => {
     try {
       const s = loadSettings()
@@ -357,6 +357,24 @@ export function playPokerSound(kind: 'chips' | 'card' | 'cards' | 'check') {
       if (kind === 'check') {
         tableKnock(now)
         tableKnock(now + 0.1)
+        return
+      }
+
+      /** Soft “your turn / action moves” ping — distinct from check knocks. */
+      if (kind === 'turn') {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'triangle'
+        osc.frequency.setValueAtTime(392, now)
+        osc.frequency.exponentialRampToValueAtTime(523, now + 0.09)
+        gain.gain.setValueAtTime(0.0001, now)
+        gain.gain.exponentialRampToValueAtTime(0.045, now + 0.012)
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16)
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start(now)
+        osc.stop(now + 0.18)
+        noiseBurst(now + 0.01, 0.04, 0.012, { hp: 400, lp: 1800, peakAt: 0.008 })
         return
       }
 

@@ -19,7 +19,7 @@ import {
   joinPokerRoom,
   watchPokerLobby,
 } from './peerRoom'
-import { BetActionLabel, ChipPile, PokerSeatCard, PotFlightOverlay } from './tableChrome'
+import { BetActionLabel, BetFlightOverlay, ChipPile, PokerSeatCard, PotFlightOverlay, streetBetChipCount } from './tableChrome'
 import { WpcRaiseSlider } from './WpcRaiseSlider'
 
 const REVEAL_STAGGER_MS = 720
@@ -108,6 +108,7 @@ function PokerOnlineTable({
   const [potFlight, setPotFlight] = useState<{ id: number; targets: number[]; amount: number } | null>(
     null,
   )
+  const [betFlights, setBetFlights] = useState<{ id: number; seat: number; count: number }[]>([])
   const [nextHandIn, setNextHandIn] = useState<number | null>(null)
 
   const prev = useRef({
@@ -123,7 +124,12 @@ function PokerOnlineTable({
     youStack: view.you.stack,
     status: view.status,
   })
+  const prevBetStreetsRef = useRef({
+    you: view.you.streetBet,
+    opp: view.opponent.streetBet,
+  })
   const potFlightTimerRef = useRef(0)
+  const betFlightTimersRef = useRef<number[]>([])
   const revealTimerRef = useRef(0)
   const lastPotRef = useRef(view.pot)
   const dealTiming = useMemo(() => onlineDealTiming(), [dealTick])
@@ -204,6 +210,9 @@ function PokerOnlineTable({
       /^(Колл|Рейз|Ставка|All-in)/u.test(statusCore)
     ) {
       playPokerSound('chips')
+    } else if (becameYourTurn) {
+      // Street advanced / action returned — soft turn cue, not a check knock
+      playPokerSound('turn')
     }
 
     p.yourTurn = view.yourTurn
@@ -224,6 +233,36 @@ function PokerOnlineTable({
     view.phase,
     view.status,
   ])
+
+  // Fly chips seat → bet spot when street bets grow
+  useEffect(() => {
+    const p = prevBetStreetsRef.current
+    const spawned: { id: number; seat: number; count: number }[] = []
+    const base = Date.now()
+    if (view.you.streetBet > p.you) {
+      spawned.push({
+        id: base,
+        seat: 0,
+        count: streetBetChipCount(view.you.streetBet - p.you),
+      })
+    }
+    if (view.opponent.streetBet > p.opp) {
+      spawned.push({
+        id: base + 1,
+        seat: 2,
+        count: streetBetChipCount(view.opponent.streetBet - p.opp),
+      })
+    }
+    p.you = view.you.streetBet
+    p.opp = view.opponent.streetBet
+    if (spawned.length === 0) return
+    setBetFlights((cur) => [...cur, ...spawned])
+    const clearId = window.setTimeout(() => {
+      setBetFlights((cur) => cur.filter((f) => !spawned.some((s) => s.id === f.id)))
+    }, 620)
+    betFlightTimersRef.current.push(clearId)
+    return () => window.clearTimeout(clearId)
+  }, [view.you.streetBet, view.opponent.streetBet])
 
   const onActionRef = useRef(onAction)
   onActionRef.current = onAction
@@ -438,7 +477,7 @@ function PokerOnlineTable({
 
             {view.opponent.streetBet > 0 ? (
               <ChipPile
-                key={`bet-opp-${view.opponent.streetBet}`}
+                key="bet-opp"
                 amount={view.opponent.streetBet}
                 format={formatChips}
                 className="poker-bet-on-table poker-bet-s2"
@@ -448,13 +487,15 @@ function PokerOnlineTable({
 
             {view.you.streetBet > 0 ? (
               <ChipPile
-                key={`bet-you-${view.you.streetBet}`}
+                key="bet-you"
                 amount={view.you.streetBet}
                 format={formatChips}
                 className="poker-bet-on-table poker-bet-s0"
                 flat
               />
             ) : null}
+
+            <BetFlightOverlay flights={betFlights} />
 
             {/* Opponent — same rail seat as solo bot s2 (top-left; pot keeps top-center) */}
             <div

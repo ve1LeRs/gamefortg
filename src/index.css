@@ -3412,16 +3412,18 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-chip-pile.is-flat {
   flex-direction: row;
-  align-items: center;
+  align-items: flex-end;
   gap: 5px;
   animation: poker-chip-land 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.poker-chip-pile.is-flat .poker-chip-disk.is-flat-disk {
-  position: static;
-  left: auto;
-  bottom: auto;
-  transform: none;
+.poker-chip-pile.is-flat .poker-chip-stack {
+  width: 18px;
+  height: calc(12px + (var(--chip-n, 1) - 1) * 3.5px);
+}
+
+.poker-chip-pile.is-flat .poker-chip-disk {
+  bottom: calc(var(--chip-i, 0) * 3.5px);
 }
 
 .poker-chip-pile.is-flat .poker-chip-amt {
@@ -3429,6 +3431,7 @@ body.poker-landscape-active .app-main.game-mode {
   font-weight: 800;
   color: #fff;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+  padding-bottom: 1px;
 }
 
 .poker-chip-disk {
@@ -3440,6 +3443,8 @@ body.poker-landscape-active .app-main.game-mode {
   place-items: center;
   line-height: 0;
   filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+  animation: poker-chip-disk-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--chip-i, 0) * 35ms);
 }
 
 .poker-chip-pile.is-compact .poker-chip-disk {
@@ -3527,6 +3532,125 @@ body.poker-landscape-active .app-main.game-mode {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes poker-chip-disk-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+/* Street-bet chip flight: seat → bet spot on the felt */
+.poker-bet-flight {
+  position: absolute;
+  z-index: 8;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.poker-bet-flight-s0 {
+  left: 50%;
+  bottom: 27%;
+}
+
+.poker-bet-flight-s1 {
+  left: 18%;
+  top: 48%;
+}
+
+.poker-bet-flight-s2 {
+  left: 26%;
+  top: 22%;
+}
+
+.poker-bet-flight-s3 {
+  left: auto;
+  right: 26%;
+  top: 22%;
+}
+
+.poker-bet-flight-s4 {
+  left: auto;
+  right: 18%;
+  top: 48%;
+}
+
+.poker-bet-flight-chip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  animation: poker-bet-fly 0.55s cubic-bezier(0.22, 0.82, 0.25, 1) forwards;
+  opacity: 0;
+}
+
+.poker-bet-flight-chip.is-c0 {
+  background: radial-gradient(circle at 30% 28%, #ff8a80, #c62828 55%, #8e1b1b);
+}
+.poker-bet-flight-chip.is-c1 {
+  background: radial-gradient(circle at 30% 28%, #81c784, #2e7d32 55%, #1b5e20);
+}
+.poker-bet-flight-chip.is-c2 {
+  background: radial-gradient(circle at 30% 28%, #64b5f6, #1565c0 55%, #0d47a1);
+}
+.poker-bet-flight-chip.is-c3 {
+  background: radial-gradient(circle at 30% 28%, #ffd54f, #f9a825 55%, #c17900);
+}
+.poker-bet-flight-chip.is-c4 {
+  background: radial-gradient(circle at 30% 28%, #90a4ae, #263238 55%, #0d1214);
+}
+
+/* Start offset = seat relative to bet spot (chips fly inward onto the felt). */
+.poker-bet-flight-s0 .poker-bet-flight-chip {
+  --from-x: 0vw;
+  --from-y: 12vh;
+}
+.poker-bet-flight-s1 .poker-bet-flight-chip {
+  --from-x: -11vw;
+  --from-y: 3vh;
+}
+.poker-bet-flight-s2 .poker-bet-flight-chip {
+  --from-x: -9vw;
+  --from-y: -7vh;
+}
+.poker-bet-flight-s3 .poker-bet-flight-chip {
+  --from-x: 9vw;
+  --from-y: -7vh;
+}
+.poker-bet-flight-s4 .poker-bet-flight-chip {
+  --from-x: 11vw;
+  --from-y: 3vh;
+}
+
+@keyframes poker-bet-fly {
+  0% {
+    opacity: 0;
+    transform: translate(var(--from-x, 0), var(--from-y, 0)) scale(0.55);
+  }
+  14% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--chip-scatter, 0px), calc(var(--chip-scatter, 0px) * 0.4))
+      scale(0.92);
   }
 }
 
@@ -4155,6 +4279,7 @@ body.poker-landscape-active .app-main.game-mode {
 body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-avatar,
 body.settings-no-motion .poker-seat-slot.is-winner .poker-seat,
 body.settings-no-motion .poker-pot-flight-chip,
+body.settings-no-motion .poker-bet-flight-chip,
 body.settings-no-motion .poker-pot.is-flying-out,
 body.settings-no-motion .poker-seat-slot.is-winner .poker-seat-money,
 body.settings-no-motion .poker-win-badge,
@@ -5059,11 +5184,23 @@ body.settings-no-motion .poker-win-badge,
     bottom: 25%;
     transform: translateX(-50%);
   }
+  .poker-bet-flight-s0 {
+    left: 50%;
+    bottom: 25%;
+  }
   .poker-bet-s1 {
     left: 16%;
     top: 46%;
   }
+  .poker-bet-flight-s1 {
+    left: 16%;
+    top: 46%;
+  }
   .poker-bet-s2 {
+    left: 24%;
+    top: 22%;
+  }
+  .poker-bet-flight-s2 {
     left: 24%;
     top: 22%;
   }
@@ -5073,8 +5210,17 @@ body.settings-no-motion .poker-win-badge,
     top: 22%;
     bottom: auto;
   }
+  .poker-bet-flight-s3 {
+    left: auto;
+    right: 24%;
+    top: 22%;
+  }
   .poker-bet-s4,
   .poker-bet-bot {
+    right: 16%;
+    top: 46%;
+  }
+  .poker-bet-flight-s4 {
     right: 16%;
     top: 46%;
   }
