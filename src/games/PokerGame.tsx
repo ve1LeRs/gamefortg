@@ -20,6 +20,7 @@ import {
 import { awardSidePots } from './poker/sidePots'
 import { estimateEquity, exactEquity } from './poker/equity'
 import { WpcRaiseSlider } from './poker/WpcRaiseSlider'
+import { BetFlightOverlay } from './poker/tableChrome'
 
 type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'over'
 
@@ -270,14 +271,15 @@ function topUpStacks(stacks: number[]): { stacks: number[]; topped: boolean[] } 
   return { stacks: next, topped }
 }
 
-function chipCountFor(amount: number, maxChips = 6) {
+function chipCountFor(amount: number, maxChips = 7) {
   if (amount <= 0) return 0
   let n = 1
   if (amount >= 20) n = 2
-  if (amount >= 50) n = 3
-  if (amount >= 100) n = 4
-  if (amount >= 200) n = 5
-  if (amount >= 400) n = 6
+  if (amount >= 45) n = 3
+  if (amount >= 90) n = 4
+  if (amount >= 180) n = 5
+  if (amount >= 350) n = 6
+  if (amount >= 700) n = 7
   return Math.min(n, maxChips)
 }
 
@@ -337,33 +339,21 @@ function ChipPile({
   amount: number
   className?: string
   compact?: boolean
-  /** Single chip + amount row — World Poker Club style street bets. */
+  /** Horizontal layout (stack + amount) — street bets on the felt. */
   flat?: boolean
   maxChips?: number
 }) {
   if (amount <= 0) return null
   const uid = `pile-${amount}-${flat ? 'f' : compact ? 'c' : 's'}-${className}`
-  if (flat) {
-    return (
-      <div
-        className={`poker-chip-pile is-flat ${className}`.trim()}
-        title={formatChips(amount)}
-      >
-        <span className="poker-chip-disk is-flat-disk" aria-hidden>
-          <PokerChipSvg colorIndex={0} size={20} uid={`${uid}-0`} />
-        </span>
-        <span className="poker-chip-amt">{formatChips(amount)}</span>
-      </div>
-    )
-  }
-  const n = chipCountFor(amount, maxChips ?? (compact ? 4 : 6))
-  const size = compact ? 18 : 28
+  const n = chipCountFor(amount, maxChips ?? (flat ? 6 : compact ? 4 : 7))
+  const size = flat ? 18 : compact ? 18 : 28
   return (
     <div
-      className={`poker-chip-pile${compact ? ' is-compact' : ''} ${className}`.trim()}
+      className={`poker-chip-pile${compact ? ' is-compact' : ''}${flat ? ' is-flat' : ''} ${className}`.trim()}
       title={formatChips(amount)}
+      style={{ ['--chip-n' as string]: n }}
     >
-      <div className="poker-chip-stack" aria-hidden style={{ ['--chip-n' as string]: n }}>
+      <div className="poker-chip-stack" aria-hidden>
         {Array.from({ length: n }, (_, i) => (
           <span key={i} className="poker-chip-disk" style={{ ['--chip-i' as string]: i }}>
             <PokerChipSvg colorIndex={i} size={size} uid={`${uid}-${i}`} />
@@ -1053,6 +1043,9 @@ export function PokerGame({
     amount: number
   } | null>(null)
   const potFlightTimerRef = useRef(0)
+  const [betFlights, setBetFlights] = useState<{ id: number; seat: number; count: number }[]>([])
+  const prevStreetBetsRef = useRef<number[]>(seats.map((s) => s.streetBet))
+  const betFlightTimersRef = useRef<number[]>([])
   const boardLenRef = useRef(0)
   const streetBusyRef = useRef(false)
   const [actionLocked, setActionLocked] = useState(false)
@@ -1068,6 +1061,43 @@ export function PokerGame({
   const handRef = useRef({ deck, board, pot, seats })
   seatsRef.current = seats
   handRef.current = { deck, board, pot, seats }
+
+  // Fly chips from seat → street bet when a wager grows
+  useEffect(() => {
+    const prev = prevStreetBetsRef.current
+    const next = seats.map((s) => s.streetBet)
+    const spawned: { id: number; seat: number; count: number }[] = []
+    const base = Date.now()
+    for (let i = 0; i < next.length; i += 1) {
+      const before = prev[i] ?? 0
+      const after = next[i] ?? 0
+      if (after > before) {
+        const delta = after - before
+        spawned.push({
+          id: base + i,
+          seat: i,
+          count: chipCountFor(delta, 5),
+        })
+      }
+    }
+    prevStreetBetsRef.current = next
+    if (spawned.length === 0) return
+    setBetFlights((cur) => [...cur, ...spawned])
+    const clearId = window.setTimeout(() => {
+      setBetFlights((cur) => cur.filter((f) => !spawned.some((s) => s.id === f.id)))
+    }, 620)
+    betFlightTimersRef.current.push(clearId)
+    return () => {
+      window.clearTimeout(clearId)
+    }
+  }, [seats])
+
+  useEffect(() => {
+    return () => {
+      for (const t of betFlightTimersRef.current) window.clearTimeout(t)
+      betFlightTimersRef.current = []
+    }
+  }, [])
 
   const clearRevealTimers = useCallback(() => {
     for (const t of revealTimersRef.current) window.clearTimeout(t)
@@ -1460,7 +1490,7 @@ export function PokerGame({
       phaseNow: Phase,
       deckNow: Card[],
       boardNow: Card[],
-      opts?: { uncontestedMsg?: string; settledStatus?: string; finalSound?: 'chips' | 'check' },
+      opts?: { uncontestedMsg?: string; settledStatus?: string; finalSound?: 'chips' | 'check' | 'turn' | null },
     ) => {
       applySeats(result.seats)
       setPot(result.pot)
@@ -1486,14 +1516,21 @@ export function PokerGame({
         )
         setStatus(result.status)
         onHaptic?.('medium')
-        window.setTimeout(() => playPokerSound('chips'), BOT_REPLY_SOUND_MS)
+        // Action returned to you after a raise — turn cue, not another chip rustle
+        window.setTimeout(() => playPokerSound('turn'), BOT_REPLY_SOUND_MS)
         setStreetBusy(false)
         return
       }
 
       setToCall(0)
       setStatus(opts?.settledStatus ?? result.status)
-      window.setTimeout(() => playPokerSound(opts?.finalSound ?? 'chips'), BOT_REPLY_SOUND_MS)
+      const lastStepSound = result.steps[result.steps.length - 1]?.sound ?? null
+      const finalSound =
+        opts?.finalSound === undefined ? ('chips' as const) : opts.finalSound
+      // Skip duplicate settle FX when the last bot step already played the same cue
+      if (finalSound && finalSound !== lastStepSound) {
+        window.setTimeout(() => playPokerSound(finalSound), BOT_REPLY_SOUND_MS)
+      }
       queueContinue(STREET_PAUSE_MS, phaseNow, deckNow, boardNow, result.pot, result.seats)
     },
     [applySeats, maxOppStack, maxWager, onHaptic, queueContinue, winUncontested],
@@ -1506,7 +1543,7 @@ export function PokerGame({
       phaseNow: Phase,
       deckNow: Card[],
       boardNow: Card[],
-      opts?: { uncontestedMsg?: string; settledStatus?: string; finalSound?: 'chips' | 'check' },
+      opts?: { uncontestedMsg?: string; settledStatus?: string; finalSound?: 'chips' | 'check' | 'turn' | null },
     ) => {
       const steps = result.steps
       if (steps.length === 0) {
@@ -1544,9 +1581,11 @@ export function PokerGame({
     playBotRound(result, BOT_THINK_MS, phase, deck, board, {
       uncontestedMsg: `Все сбросили. Банк ${formatChips(result.pot)} ваш.`,
       settledStatus: result.status || 'Все чекают.',
-      finalSound: result.allChecked && result.toCall === 0 && !result.steps.some((s) => s.sound === 'chips')
-        ? 'check'
-        : 'chips',
+      // Round closed — soft turn cue, not another check knock
+      finalSound:
+        result.allChecked && result.toCall === 0 && !result.steps.some((s) => s.sound === 'chips')
+          ? 'turn'
+          : null,
     })
   }
 
@@ -1960,13 +1999,15 @@ export function PokerGame({
             {seats.map((seat, i) =>
               seat.streetBet > 0 ? (
                 <ChipPile
-                  key={`bet-${i}-${seat.streetBet}`}
+                  key={`bet-${i}`}
                   amount={seat.streetBet}
                   className={`poker-bet-on-table poker-bet-s${i}`}
                   flat
                 />
               ) : null,
             )}
+
+            <BetFlightOverlay flights={betFlights} />
 
             {seats.map((seat, i) => {
               const isHuman = i === 0

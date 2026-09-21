@@ -14,14 +14,15 @@ const CHIP_COLORS = [
   { face: '#263238', rim: '#0d1214', pip: '#fff' },
 ] as const
 
-function chipCountFor(amount: number, maxChips = 6) {
+function chipCountFor(amount: number, maxChips = 7) {
   if (amount <= 0) return 0
   let n = 1
   if (amount >= 20) n = 2
-  if (amount >= 50) n = 3
-  if (amount >= 100) n = 4
-  if (amount >= 200) n = 5
-  if (amount >= 400) n = 6
+  if (amount >= 45) n = 3
+  if (amount >= 90) n = 4
+  if (amount >= 180) n = 5
+  if (amount >= 350) n = 6
+  if (amount >= 700) n = 7
   return Math.min(n, maxChips)
 }
 
@@ -75,29 +76,21 @@ export function ChipPile({
   format: (n: number) => string
   className?: string
   compact?: boolean
+  /** Horizontal layout (stack + amount) — street bets on the felt. */
   flat?: boolean
   maxChips?: number
 }) {
   if (amount <= 0) return null
   const uid = `pile-${amount}-${flat ? 'f' : compact ? 'c' : 's'}-${className}`
-  if (flat) {
-    return (
-      <div className={`poker-chip-pile is-flat ${className}`.trim()} title={format(amount)}>
-        <span className="poker-chip-disk is-flat-disk" aria-hidden>
-          <PokerChipSvg colorIndex={0} size={20} uid={`${uid}-0`} />
-        </span>
-        <span className="poker-chip-amt">{format(amount)}</span>
-      </div>
-    )
-  }
-  const n = chipCountFor(amount, maxChips ?? (compact ? 4 : 6))
-  const size = compact ? 18 : 28
+  const n = chipCountFor(amount, maxChips ?? (flat ? 6 : compact ? 4 : 7))
+  const size = flat ? 18 : compact ? 18 : 28
   return (
     <div
-      className={`poker-chip-pile${compact ? ' is-compact' : ''} ${className}`.trim()}
+      className={`poker-chip-pile${compact ? ' is-compact' : ''}${flat ? ' is-flat' : ''} ${className}`.trim()}
       title={format(amount)}
+      style={{ ['--chip-n' as string]: n }}
     >
-      <div className="poker-chip-stack" aria-hidden style={{ ['--chip-n' as string]: n }}>
+      <div className="poker-chip-stack" aria-hidden>
         {Array.from({ length: n }, (_, i) => (
           <span key={i} className="poker-chip-disk" style={{ ['--chip-i' as string]: i }}>
             <PokerChipSvg colorIndex={i} size={size} uid={`${uid}-${i}`} />
@@ -197,4 +190,40 @@ export function PotFlightOverlay({
       </div>
     </>
   )
+}
+
+/** Chips flying from a seat toward its street-bet spot on the felt. */
+export function BetFlightOverlay({
+  flights,
+}: {
+  flights: { id: number; seat: number; count: number }[]
+}): ReactNode {
+  if (flights.length === 0) return null
+  return (
+    <>
+      {flights.map((f) => (
+        <div
+          key={f.id}
+          className={`poker-bet-flight poker-bet-flight-s${f.seat}`}
+          aria-hidden
+        >
+          {Array.from({ length: Math.max(1, Math.min(5, f.count)) }, (_, ci) => (
+            <span
+              key={ci}
+              className={`poker-bet-flight-chip is-c${ci % 5}`}
+              style={{
+                animationDelay: `${ci * 45}ms`,
+                ['--chip-scatter' as string]: `${(ci % 3) * 5 - 5}px`,
+              }}
+            />
+          ))}
+        </div>
+      ))}
+    </>
+  )
+}
+
+/** How many disks to show for a bet amount (shared by flight count). */
+export function streetBetChipCount(amount: number) {
+  return chipCountFor(amount, 6)
 }
