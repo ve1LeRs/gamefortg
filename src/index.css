@@ -3213,9 +3213,9 @@ body.poker-landscape-active .app-main.game-mode {
   position: relative;
   flex: 1 1 0;
   min-height: min(280px, 72vh);
-  /* Shorter left-right; deeper toward the player at the bottom */
-  width: min(96%, 195vh, 960px);
-  max-width: 960px;
+  /* Leave side room so bot avatars sit in the dark outside the rail */
+  width: min(86%, 170vh, 900px);
+  max-width: 900px;
   margin: 2px auto -6px;
   overflow: visible;
   touch-action: manipulation;
@@ -3762,7 +3762,7 @@ body.poker-landscape-active .app-main.game-mode {
 /* Bot seats: mirrored left↔right, avatar in the dark outside the rail.
    Order: avatar outside, hole cards toward felt, bets further on felt. */
 .poker-seat-s1 {
-  left: max(-34px, -5%);
+  left: max(-28px, -4.5%);
   top: 52%;
   bottom: auto;
   transform: none;
@@ -3803,7 +3803,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-s4 {
   left: auto;
-  right: max(-34px, -5%);
+  right: max(-28px, -4.5%);
   top: 52%;
   bottom: auto;
   transform: none;
@@ -5181,7 +5181,7 @@ body.settings-no-motion .poker-win-badge,
     inset: 4.6% 5% 3.4% 5%;
   }
   .poker-seat-s1 {
-    left: max(-34px, -5%);
+    left: max(-28px, -4.5%);
     top: 52%;
     gap: 12px;
   }
@@ -5197,7 +5197,7 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-seat-s4,
   .poker-seat-bot {
-    right: max(-34px, -5%);
+    right: max(-28px, -4.5%);
     top: 52%;
     gap: 12px;
   }
@@ -5215,7 +5215,7 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-table {
     min-height: min(255px, 68vh);
-    width: min(96%, 185vh, 900px);
+    width: min(84%, 160vh, 840px);
     margin: 2px auto -4px;
   }
   .poker-table-rail {
@@ -5232,7 +5232,7 @@ body.settings-no-motion .poker-win-badge,
     gap: 6px;
   }
   .poker-seat-s1 {
-    left: max(-28px, -4.2%);
+    left: max(-24px, -4%);
     top: 50%;
     gap: 10px;
   }
@@ -5251,7 +5251,7 @@ body.settings-no-motion .poker-win-badge,
   .poker-seat-s4,
   .poker-seat-bot {
     top: 50%;
-    right: max(-28px, -4.2%);
+    right: max(-24px, -4%);
     bottom: auto;
     gap: 10px;
   }
