@@ -5260,52 +5260,52 @@ body.settings-no-motion .poker-win-badge,
     bottom: auto;
     gap: 10px;
   }
-  /* Bets follow seats, same inward offset from the rail. */
+  /* Street bets on the felt — red-circle zones in front of each seat. */
   .poker-bet-s0,
   .poker-bet-you {
     left: 50%;
-    bottom: 22%;
+    bottom: 28%;
     transform: translateX(-50%);
   }
   .poker-bet-flight-s0 {
     left: 50%;
-    bottom: 22%;
+    bottom: 28%;
   }
   .poker-bet-s1 {
-    left: 13%;
-    top: 70%;
+    left: 16%;
+    top: 68%;
   }
   .poker-bet-flight-s1 {
-    left: 13%;
-    top: 70%;
+    left: 16%;
+    top: 68%;
   }
   .poker-bet-s2 {
-    left: 14%;
-    top: 14%;
+    left: 17%;
+    top: 16%;
   }
   .poker-bet-flight-s2 {
-    left: 14%;
-    top: 14%;
+    left: 17%;
+    top: 16%;
   }
   .poker-bet-s3 {
     left: auto;
-    right: 14%;
-    top: 14%;
+    right: 17%;
+    top: 16%;
     bottom: auto;
   }
   .poker-bet-flight-s3 {
     left: auto;
-    right: 14%;
-    top: 14%;
+    right: 17%;
+    top: 16%;
   }
   .poker-bet-s4,
   .poker-bet-bot {
-    right: 13%;
-    top: 70%;
+    right: 16%;
+    top: 68%;
   }
   .poker-bet-flight-s4 {
-    right: 13%;
-    top: 70%;
+    right: 16%;
+    top: 68%;
   }
   .poker-bot-cards {
     margin: 0;
