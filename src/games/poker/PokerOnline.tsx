@@ -20,7 +20,7 @@ import {
   watchPokerLobby,
 } from './peerRoom'
 import { BetActionLabel, ChipPile, PokerSeatCard, PotFlightOverlay } from './tableChrome'
-import { BetRoulette } from './BetRoulette'
+import { WpcRaiseSlider } from './WpcRaiseSlider'
 
 const REVEAL_STAGGER_MS = 720
 const NEXT_HAND_SEC = 5
@@ -562,60 +562,54 @@ function PokerOnlineTable({
                 <div className="poker-allin-wait is-quiet" aria-hidden />
               ) : (
                 <>
-                  {!facingAllIn && view.canBet ? (
-                    <div className={`poker-bet-amount-row${waitingTurn ? ' is-dimmed' : ''}`}>
-                      <BetRoulette
-                        value={wager}
-                        min={view.minBet}
-                        max={Math.max(view.minBet, view.maxBet)}
-                        disabled={!view.yourTurn}
-                        format={formatChips}
-                        onChange={(next) => setWager(clampWager(next))}
-                      />
-                    </div>
-                  ) : null}
-                  {!facingAllIn && view.canBet ? (
-                    <div className="poker-bet-presets">
-                      <button
-                        type="button"
-                        className="poker-bet-chip"
-                        disabled={!view.yourTurn}
-                        onClick={() => setWager(clampWager(view.minBet))}
-                      >
-                        Мин
-                      </button>
-                      <button
-                        type="button"
-                        className="poker-bet-chip"
-                        disabled={!view.yourTurn}
-                        onClick={() =>
-                          setWager(
-                            clampWager(Math.max(view.minBet, Math.floor(view.pot / 2) || view.minBet)),
-                          )
-                        }
-                      >
-                        ½ банка
-                      </button>
-                      <button
-                        type="button"
-                        className="poker-bet-chip"
-                        disabled={!view.yourTurn}
-                        onClick={() =>
-                          setWager(clampWager(Math.max(view.minBet, view.pot || view.minBet)))
-                        }
-                      >
-                        Банк
-                      </button>
-                      <button
-                        type="button"
-                        className="poker-bet-chip"
-                        disabled={!view.yourTurn}
-                        onClick={() => setWager(clampWager(view.maxBet))}
-                      >
-                        Макс
-                      </button>
-                    </div>
-                  ) : null}
+                  <div
+                    className="poker-bet-presets"
+                    aria-hidden={facingAllIn || !view.canBet ? true : undefined}
+                    style={
+                      facingAllIn || !view.canBet
+                        ? { visibility: 'hidden', pointerEvents: 'none' }
+                        : undefined
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      disabled={!view.yourTurn || facingAllIn || !view.canBet}
+                      onClick={() => setWager(clampWager(view.minBet))}
+                    >
+                      Мин
+                    </button>
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      disabled={!view.yourTurn || facingAllIn || !view.canBet}
+                      onClick={() =>
+                        setWager(
+                          clampWager(Math.max(view.minBet, Math.floor(view.pot / 2) || view.minBet)),
+                        )
+                      }
+                    >
+                      ½ банка
+                    </button>
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      disabled={!view.yourTurn || facingAllIn || !view.canBet}
+                      onClick={() =>
+                        setWager(clampWager(Math.max(view.minBet, view.pot || view.minBet)))
+                      }
+                    >
+                      Банк
+                    </button>
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      disabled={!view.yourTurn || facingAllIn || !view.canBet}
+                      onClick={() => setWager(clampWager(view.maxBet))}
+                    >
+                      Макс
+                    </button>
+                  </div>
                   <div className="poker-actions-row">
                     {view.toCall > 0 || view.canCall ? (
                       <button
@@ -645,25 +639,31 @@ function PokerOnlineTable({
                       </button>
                     )}
                     {view.canBet && !facingAllIn ? (
-                      <button
-                        type="button"
-                        className="poker-btn poker-btn-bet"
+                      <WpcRaiseSlider
+                        min={view.minBet}
+                        max={Math.max(view.minBet, view.maxBet)}
+                        value={wager}
                         disabled={
                           !view.yourTurn ||
-                          wager <= 0 ||
-                          (view.toCall > 0 && wager <= view.toCall)
+                          view.maxBet <= 0 ||
+                          (view.toCall > 0 && view.maxBet <= view.toCall)
                         }
-                        onClick={() => send({ type: 'bet', amount: clampWager(wager) })}
-                      >
-                        {wager >= view.you.stack && view.you.stack > 0 ? (
-                          'All In'
-                        ) : view.toCall > 0 ? (
-                          <BetActionLabel verb="Рейз" amount={clampWager(wager)} format={formatChips} />
-                        ) : (
-                          <BetActionLabel verb="Ставка" amount={clampWager(wager)} format={formatChips} />
-                        )}
-                      </button>
-                    ) : null}
+                        format={formatChips}
+                        onChange={(next) => setWager(clampWager(next))}
+                        onConfirm={(amount) => send({ type: 'bet', amount: clampWager(amount) })}
+                        label={
+                          wager >= view.you.stack && view.you.stack > 0 ? (
+                            'All In'
+                          ) : view.toCall > 0 ? (
+                            <BetActionLabel verb="Рейз" amount={clampWager(wager)} format={formatChips} />
+                          ) : (
+                            <BetActionLabel verb="Ставка" amount={clampWager(wager)} format={formatChips} />
+                          )
+                        }
+                      />
+                    ) : (
+                      <span className="poker-btn poker-btn-bet poker-btn-slot" aria-hidden />
+                    )}
                     <button
                       type="button"
                       className="poker-btn poker-btn-fold"
