@@ -18,6 +18,9 @@ type WpcRaiseSliderProps = {
 
 const OPEN_PX = 14
 const TRACK_H = 168
+/** Keep thumb fully inside the track (padding + thumb height). */
+const THUMB_INSET = 8
+const THUMB_H = 28
 
 /**
  * World Poker Club–style raise control:
@@ -54,13 +57,31 @@ export function WpcRaiseSlider({
     setAmount(value)
   }, [value, open])
 
+  const nearestIdx = (v: number) => {
+    let best = 0
+    let bestDist = Infinity
+    for (let i = 0; i < stops.length; i += 1) {
+      const d = Math.abs(stops[i]! - v)
+      if (d < bestDist) {
+        bestDist = d
+        best = i
+      }
+    }
+    return best
+  }
+
   const pickAmount = (clientY: number) => {
     const el = btnRef.current
     if (!el) return stops[0]!
     const rect = el.getBoundingClientRect()
-    const top = rect.top - TRACK_H
-    const bottom = rect.top - 8
-    const t = Math.max(0, Math.min(1, (bottom - clientY) / Math.max(1, bottom - top)))
+    // Match visual thumb travel: padded inset inside the track
+    const trackBottom = rect.top - 8
+    const travelTop = trackBottom - TRACK_H + THUMB_INSET
+    const travelBottom = trackBottom - THUMB_INSET - THUMB_H
+    const t = Math.max(
+      0,
+      Math.min(1, (travelBottom - clientY) / Math.max(1, travelBottom - travelTop)),
+    )
     const idx = Math.round(t * (stops.length - 1))
     return stops[Math.max(0, Math.min(stops.length - 1, idx))]!
   }
@@ -133,9 +154,9 @@ export function WpcRaiseSlider({
   }
 
   const fill =
-    stops.length <= 1
-      ? 0
-      : Math.max(0, Math.min(1, stops.indexOf(amount) / (stops.length - 1)))
+    stops.length <= 1 ? 0 : Math.max(0, Math.min(1, nearestIdx(amount) / (stops.length - 1)))
+  const thumbBottom = THUMB_INSET + fill * (TRACK_H - THUMB_INSET * 2 - THUMB_H)
+  const fillHeight = thumbBottom + THUMB_H / 2
 
   return (
     <>
@@ -174,8 +195,11 @@ export function WpcRaiseSlider({
               aria-hidden
             >
               <div className="poker-wpc-raise-track">
-                <div className="poker-wpc-raise-fill" style={{ height: `${fill * 100}%` }} />
-                <div className="poker-wpc-raise-thumb" style={{ bottom: `${fill * 100}%` }}>
+                <div className="poker-wpc-raise-fill" style={{ height: fillHeight }} />
+                <div
+                  className="poker-wpc-raise-thumb"
+                  style={{ bottom: thumbBottom, height: THUMB_H }}
+                >
                   <span className="poker-wpc-raise-amt">{format(amount)}</span>
                 </div>
                 <div className="poker-wpc-raise-marks" aria-hidden>
