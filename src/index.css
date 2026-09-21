@@ -3752,11 +3752,13 @@ body.poker-landscape-active .app-main.game-mode {
   z-index: 5;
 }
 
-/* Right seats: just outside the rail, fully on-screen. */
+/* Right seats: just outside the rail, fully on-screen.
+   s3 (top-right) sits a touch higher/left so Telegram’s minimize
+   chrome does not cover the win badge. */
 .poker-seat-s3 {
   left: auto;
-  right: max(36px, 6%);
-  top: max(28px, 5%);
+  right: max(52px, 9%);
+  top: max(14px, 2.2%);
   bottom: auto;
   transform: none;
   width: auto;
@@ -4117,6 +4119,12 @@ body.poker-landscape-active .app-main.game-mode {
   z-index: 14;
   pointer-events: none;
   animation: poker-win-badge-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Top-right seat: keep payout clear of Telegram’s minimize control */
+.poker-seat-s3 .poker-win-badge {
+  left: 38%;
+  top: -18px;
 }
 
 
@@ -4552,14 +4560,14 @@ body.settings-no-motion .poker-win-badge,
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-end;
-  gap: 5px;
+  gap: 6px;
   flex: 0 1 auto;
   max-width: min(560px, 72vw);
   min-width: min(300px, 56vw);
   /* Fixed slot so table does not jump when controls ↔ wait ↔ next-hand */
-  height: 96px;
-  min-height: 96px;
-  max-height: 96px;
+  height: 108px;
+  min-height: 108px;
+  max-height: 108px;
   box-sizing: border-box;
   overflow: visible;
   transition: opacity 0.22s ease, filter 0.22s ease;
@@ -4813,14 +4821,14 @@ body.settings-no-motion .poker-win-badge,
 }
 
 .poker-btn-verb {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
   opacity: 0.88;
 }
 
 .poker-btn-amt {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -4992,22 +5000,22 @@ body.settings-no-motion .poker-win-badge,
 }
 
 .poker-bet-chip {
-  padding: 7px 12px;
+  padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.08);
   color: rgba(242, 246, 251, 0.92);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.1;
 }
 
 .poker-btn {
   min-width: 0;
-  min-height: 48px;
-  padding: 12px 12px;
+  min-height: 52px;
+  padding: 13px 12px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
@@ -5117,8 +5125,8 @@ body.settings-no-motion .poker-win-badge,
     top: max(28px, 5%);
   }
   .poker-seat-s3 {
-    right: max(36px, 6%);
-    top: max(28px, 5%);
+    right: max(52px, 9%);
+    top: max(14px, 2.2%);
   }
   .poker-seat-s4,
   .poker-seat-bot {
@@ -5166,8 +5174,8 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-seat-s3 {
     left: auto;
-    right: max(32px, 5.5%);
-    top: max(22px, 4%);
+    right: max(48px, 8.5%);
+    top: max(10px, 1.8%);
     bottom: auto;
     gap: 2px;
   }
@@ -5254,16 +5262,16 @@ body.settings-no-motion .poker-win-badge,
   .poker-actions {
     max-width: min(520px, 68vw);
     min-width: min(260px, 50vw);
-    height: 92px;
-    min-height: 92px;
-    max-height: 92px;
-    gap: 4px;
+    height: 100px;
+    min-height: 100px;
+    max-height: 100px;
+    gap: 5px;
   }
   .poker-btn {
-    min-height: 44px;
-    max-height: 48px;
-    padding: 10px 10px;
-    font-size: 13px;
+    min-height: 48px;
+    max-height: 52px;
+    padding: 11px 11px;
+    font-size: 14px;
   }
   .poker-board {
     transform: translateY(10%);
@@ -5317,14 +5325,14 @@ body.settings-no-motion .poker-win-badge,
     font-family: var(--font-body), 'Manrope', sans-serif !important;
   }
   .poker-bet-chip {
-    padding: 6px 11px;
-    font-size: 12px;
+    padding: 7px 13px;
+    font-size: 13px;
   }
   .poker-btn-verb {
-    font-size: 9px;
+    font-size: 10px;
   }
   .poker-btn-amt {
-    font-size: 12px;
+    font-size: 13px;
   }
 }
 
@@ -5373,14 +5381,14 @@ body.tg-desktop .poker-bottom .poker-actions {
   max-width: min(680px, 56vw);
   min-width: min(380px, 40vw);
   gap: 8px;
-  height: 108px;
-  min-height: 108px;
-  max-height: 108px;
+  height: 116px;
+  min-height: 116px;
+  max-height: 116px;
 }
 
 body.tg-desktop .poker-btn {
-  min-height: 52px;
-  padding: 12px 14px;
+  min-height: 54px;
+  padding: 13px 14px;
   font-size: 15px;
   border-radius: 13px;
 }
