@@ -3210,18 +3210,18 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-table {
   position: relative;
   flex: 1 1 0;
-  min-height: min(220px, 56vh);
+  min-height: min(260px, 68vh);
   /* Cap width vs height so the oval stays a club table, not a flat strip */
-  width: min(100%, 200vh, 1040px);
-  max-width: 1040px;
-  margin: 4px auto 0;
+  width: min(100%, 220vh, 1120px);
+  max-width: 1120px;
+  margin: 2px auto 0;
   overflow: visible;
 }
 
 .poker-table-rail {
   position: absolute;
-  /* Inset enough that edge seats sit outside the brown rim */
-  inset: 3.5% 4% 4.5% 4%;
+  /* Tight inset — large felt, seats stay just outside the rim */
+  inset: 1.2% 1.4% 2% 1.4%;
   border-radius: 50% / 48%;
   background:
     linear-gradient(145deg, #5a3a28, #2a1810 45%, #1a100c);
@@ -3233,7 +3233,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-felt {
   position: absolute;
-  inset: 7.5% 7.5% 8.5% 7.5%;
+  inset: 4.2% 4% 5% 4%;
   border-radius: 50% / 48%;
   background:
     radial-gradient(ellipse at 50% 40%, #8b2a36 0%, #6a1c28 42%, #4a121c 100%);
@@ -3601,59 +3601,59 @@ body.poker-landscape-active .app-main.game-mode {
   flex: 0 0 auto;
 }
 
-/* Left seats: avatar fully clear of the rail. */
+/* Left seats: just outside the rail, fully on-screen. */
 .poker-seat-s1 {
-  left: max(-72px, -10%);
-  top: 34%;
+  left: max(2px, 0.4%);
+  top: 36%;
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   z-index: 5;
 }
 
 .poker-seat-s2 {
-  left: max(-28px, -3.5%);
-  top: max(4px, -1%);
+  left: max(36px, 6%);
+  top: max(28px, 5%);
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   z-index: 5;
 }
 
-/* Right seats: avatar fully clear of the rail. */
+/* Right seats: just outside the rail, fully on-screen. */
 .poker-seat-s3 {
   left: auto;
-  right: max(-28px, -3.5%);
-  top: max(4px, -1%);
+  right: max(36px, 6%);
+  top: max(28px, 5%);
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   z-index: 5;
 }
 
 .poker-seat-s4 {
   left: auto;
-  right: max(-72px, -10%);
-  top: 34%;
+  right: max(2px, 0.4%);
+  top: 36%;
   bottom: auto;
   transform: none;
   width: auto;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   z-index: 5;
 }
 
@@ -4600,13 +4600,33 @@ body.settings-no-motion .poker-win-badge,
   width: 100%;
 }
 
-/* Roulette sits above the action buttons, right-aligned */
+.poker-bet-top {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.poker-bet-presets.is-primary {
+  width: auto;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+.poker-bet-presets.is-secondary {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+/* Roulette sits in the top row (right), swapped with ½ / Макс */
 .poker-bet-amount-row {
   display: flex;
   justify-content: flex-end;
   align-items: center;
   flex: 0 0 auto;
-  width: 100%;
+  width: auto;
   margin: 0;
   transform: none;
   z-index: 9;
@@ -4614,10 +4634,10 @@ body.settings-no-motion .poker-win-badge,
 }
 
 .poker-bet-roulette {
-  --roulette-h: 64px;
-  --roulette-item: 26px;
+  --roulette-h: 52px;
+  --roulette-item: 24px;
   position: relative;
-  width: min(148px, 42vw);
+  width: min(120px, 34vw);
   height: var(--roulette-h);
   border-radius: 12px;
   background:
@@ -4868,28 +4888,28 @@ body.settings-no-motion .poker-win-badge,
   }
 }
 
-/* All landscape viewports — keep seats outside the rail (not only short phones). */
+/* All landscape viewports — seats near the rail, large felt. */
 @media (orientation: landscape) {
   .poker-table-rail {
-    inset: 3.5% 4% 4.5% 4%;
+    inset: 1.2% 1.4% 2% 1.4%;
   }
   .poker-table-felt {
-    inset: 7.5% 7.5% 8.5% 7.5%;
+    inset: 4.2% 4% 5% 4%;
   }
   .poker-seat-s1 {
-    left: max(-72px, -10%);
+    left: max(2px, 0.4%);
   }
   .poker-seat-s2 {
-    left: max(-28px, -3.5%);
-    top: max(4px, -1%);
+    left: max(36px, 6%);
+    top: max(28px, 5%);
   }
   .poker-seat-s3 {
-    right: max(-28px, -3.5%);
-    top: max(4px, -1%);
+    right: max(36px, 6%);
+    top: max(28px, 5%);
   }
   .poker-seat-s4,
   .poker-seat-bot {
-    right: max(-72px, -10%);
+    right: max(2px, 0.4%);
   }
   .poker-board .poker-board-card,
   .poker-board .pcard {
@@ -4904,46 +4924,46 @@ body.settings-no-motion .poker-win-badge,
     font-size: 12px;
   }
   .poker-table {
-    min-height: min(200px, 54vh);
-    width: min(100%, 195vh, 980px);
+    min-height: min(240px, 64vh);
+    width: min(100%, 210vh, 1040px);
     margin: 2px auto 0;
   }
   .poker-table-rail {
-    inset: 3.2% 3.8% 4.2% 3.8%;
+    inset: 1% 1.2% 1.8% 1.2%;
   }
   .poker-table-felt {
-    inset: 7% 7% 8% 7%;
+    inset: 3.8% 3.6% 4.6% 3.6%;
   }
   .poker-seat-s0,
   .poker-seat-you {
     left: 50%;
-    bottom: -21%;
+    bottom: -18%;
     transform: translateX(calc(-50% + 24px));
     gap: 6px;
   }
   .poker-seat-s1 {
-    left: max(-78px, -11%);
-    top: 32%;
-    gap: 3px;
+    left: max(2px, 0.3%);
+    top: 34%;
+    gap: 2px;
   }
   .poker-seat-s2 {
-    left: max(-32px, -4%);
-    top: max(0px, -1.5%);
-    gap: 3px;
+    left: max(32px, 5.5%);
+    top: max(22px, 4%);
+    gap: 2px;
   }
   .poker-seat-s3 {
     left: auto;
-    right: max(-32px, -4%);
-    top: max(0px, -1.5%);
+    right: max(32px, 5.5%);
+    top: max(22px, 4%);
     bottom: auto;
-    gap: 3px;
+    gap: 2px;
   }
   .poker-seat-s4,
   .poker-seat-bot {
-    top: 32%;
-    right: max(-78px, -11%);
+    top: 34%;
+    right: max(2px, 0.3%);
     bottom: auto;
-    gap: 3px;
+    gap: 2px;
   }
   .poker-bet-s0,
   .poker-bet-you {
@@ -5021,9 +5041,12 @@ body.settings-no-motion .poker-win-badge,
     font-size: clamp(13px, 2.2vw, 18px);
   }
   .poker-bet-roulette {
-    --roulette-h: 56px;
-    --roulette-item: 24px;
-    width: min(132px, 38vw);
+    --roulette-h: 48px;
+    --roulette-item: 22px;
+    width: min(112px, 32vw);
+  }
+  .poker-bet-top {
+    gap: 6px;
   }
   .poker-pot {
     top: 15%;
