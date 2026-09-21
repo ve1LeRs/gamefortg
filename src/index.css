@@ -3709,7 +3709,7 @@ body.poker-landscape-active .app-main.game-mode {
   display: flex;
   flex-direction: row;
   align-items: flex-end;
-  gap: 8px;
+  gap: 12px;
   z-index: 6;
 }
 
@@ -3762,7 +3762,7 @@ body.poker-landscape-active .app-main.game-mode {
 /* Bot seats: mirrored left↔right, avatar in the dark outside the rail.
    Order: avatar outside, hole cards toward felt, bets further on felt. */
 .poker-seat-s1 {
-  left: max(-22px, -3.2%);
+  left: max(-34px, -5%);
   top: 52%;
   bottom: auto;
   transform: none;
@@ -3803,7 +3803,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-s4 {
   left: auto;
-  right: max(-22px, -3.2%);
+  right: max(-34px, -5%);
   top: 52%;
   bottom: auto;
   transform: none;
@@ -5181,7 +5181,7 @@ body.settings-no-motion .poker-win-badge,
     inset: 4.6% 5% 3.4% 5%;
   }
   .poker-seat-s1 {
-    left: max(-22px, -3.2%);
+    left: max(-34px, -5%);
     top: 52%;
     gap: 12px;
   }
@@ -5197,7 +5197,7 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-seat-s4,
   .poker-seat-bot {
-    right: max(-22px, -3.2%);
+    right: max(-34px, -5%);
     top: 52%;
     gap: 12px;
   }
@@ -5232,7 +5232,7 @@ body.settings-no-motion .poker-win-badge,
     gap: 6px;
   }
   .poker-seat-s1 {
-    left: max(-18px, -2.8%);
+    left: max(-28px, -4.2%);
     top: 50%;
     gap: 10px;
   }
@@ -5251,7 +5251,7 @@ body.settings-no-motion .poker-win-badge,
   .poker-seat-s4,
   .poker-seat-bot {
     top: 50%;
-    right: max(-18px, -2.8%);
+    right: max(-28px, -4.2%);
     bottom: auto;
     gap: 10px;
   }
