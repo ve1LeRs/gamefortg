@@ -179,12 +179,18 @@ export function PotFlightOverlay({
           [0, 1, 2, 3, 4, 5].map((ci) => (
             <span
               key={`${seatIdx}-${ci}`}
-              className={`poker-pot-flight-chip is-c${ci % 5} poker-fly-to-s${seatIdx}`}
+              className={`poker-pot-flight-chip poker-fly-to-s${seatIdx}`}
               style={{
                 animationDelay: `${80 + ti * 70 + ci * 55}ms`,
                 ['--chip-scatter' as string]: `${(ci % 3) * 6 - 6}px`,
               }}
-            />
+            >
+              <PokerChipSvg
+                colorIndex={ci % 5}
+                size={18}
+                uid={`pot-fly-${id}-${seatIdx}-${ci}`}
+              />
+            </span>
           )),
         )}
       </div>
@@ -210,12 +216,18 @@ export function BetFlightOverlay({
           {Array.from({ length: Math.max(1, Math.min(5, f.count)) }, (_, ci) => (
             <span
               key={ci}
-              className={`poker-bet-flight-chip is-c${ci % 5}`}
+              className="poker-bet-flight-chip"
               style={{
                 animationDelay: `${ci * 45}ms`,
                 ['--chip-scatter' as string]: `${(ci % 3) * 5 - 5}px`,
               }}
-            />
+            >
+              <PokerChipSvg
+                colorIndex={ci % 5}
+                size={18}
+                uid={`bet-fly-${f.id}-${ci}`}
+              />
+            </span>
           ))}
         </div>
       ))}
