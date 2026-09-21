@@ -290,7 +290,7 @@ export function playUiSound(kind: 'tap' | 'ok' | 'warn' | 'deal' = 'tap') {
   })()
 }
 
-/** Poker table FX: chip rustle / card slide / check knocks / turn ping — synthesized, no assets. */
+/** Poker table FX: chip rustle / card slide / check knocks / turn cue — synthesized, no assets. */
 export function playPokerSound(kind: 'chips' | 'card' | 'cards' | 'check' | 'turn') {
   void (async () => {
     try {
@@ -360,21 +360,22 @@ export function playPokerSound(kind: 'chips' | 'card' | 'cards' | 'check' | 'tur
         return
       }
 
-      /** Soft “your turn / action moves” ping — distinct from check knocks. */
+      /** Soft felt “attention” cue — muted, no rising beep. */
       if (kind === 'turn') {
+        noiseBurst(now, 0.055, 0.032, { hp: 80, lp: 620, peakAt: 0.005 })
+        noiseBurst(now + 0.028, 0.07, 0.02, { hp: 220, lp: 1600, peakAt: 0.012 })
         const osc = ctx.createOscillator()
         const gain = ctx.createGain()
-        osc.type = 'triangle'
-        osc.frequency.setValueAtTime(392, now)
-        osc.frequency.exponentialRampToValueAtTime(523, now + 0.09)
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(210, now)
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.11)
         gain.gain.setValueAtTime(0.0001, now)
-        gain.gain.exponentialRampToValueAtTime(0.045, now + 0.012)
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16)
+        gain.gain.exponentialRampToValueAtTime(0.018, now + 0.01)
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.14)
         osc.connect(gain)
         gain.connect(ctx.destination)
         osc.start(now)
-        osc.stop(now + 0.18)
-        noiseBurst(now + 0.01, 0.04, 0.012, { hp: 400, lp: 1800, peakAt: 0.008 })
+        osc.stop(now + 0.15)
         return
       }
 
