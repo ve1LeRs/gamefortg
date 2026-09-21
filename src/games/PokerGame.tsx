@@ -19,7 +19,7 @@ import {
 } from '../lib/pokerProgress'
 import { awardSidePots } from './poker/sidePots'
 import { estimateEquity, exactEquity } from './poker/equity'
-import { BetRoulette } from './poker/BetRoulette'
+import { WpcRaiseSlider } from './poker/WpcRaiseSlider'
 
 type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'over'
 
@@ -1580,12 +1580,12 @@ export function PokerGame({
     })
   }
 
-  const bet = () => {
+  const bet = (amountOverride?: number) => {
     if (phase === 'over' || allInSpectating || streetBusyRef.current) return
     if (player.folded) return
 
     if (facingBet) {
-      const amount = clampBet(wager, toCall, maxWager)
+      const amount = clampBet(amountOverride ?? wager, toCall, maxWager)
       if (amount < toCall || player.stack < amount) {
         setStatus('Недостаточно фишек.')
         return
@@ -1616,7 +1616,7 @@ export function PokerGame({
       return
     }
 
-    const amount = clampBet(wager, minWager, maxWager)
+    const amount = clampBet(amountOverride ?? wager, minWager, maxWager)
     if (amount <= 0 || player.stack < amount) {
       setStatus('Недостаточно фишек для ставки — нажмите чек.')
       return
@@ -2075,21 +2075,6 @@ export function PokerGame({
                 <div className="poker-allin-wait is-quiet" aria-hidden />
               ) : phase !== 'over' ? (
                 <>
-                  <div
-                    className={`poker-bet-amount-row${actionLocked ? ' is-dimmed' : ''}`}
-                  >
-                    <BetRoulette
-                      value={wager}
-                      min={facingBet ? Math.max(toCall, minWager) : minWager}
-                      max={Math.max(facingBet ? toCall : minWager, maxWager)}
-                      disabled={actionLocked}
-                      format={formatChips}
-                      onChange={(next) =>
-                        setWager(clampBet(next, facingBet ? toCall : minWager, maxWager))
-                      }
-                      onTick={() => onHaptic?.('light')}
-                    />
-                  </div>
                   <div className="poker-bet-presets">
                     <button
                       type="button"
@@ -2154,24 +2139,31 @@ export function PokerGame({
                         Чек
                       </button>
                     )}
-                    <button
-                      type="button"
-                      className="poker-btn poker-btn-bet"
-                      onClick={bet}
-                      disabled={actionLocked || wager <= 0 || (facingBet && wager < toCall)}
-                    >
-                      {wager >= player.stack && player.stack > 0 ? (
-                        'All In'
-                      ) : facingBet ? (
-                        wager > toCall ? (
-                          <BetActionLabel verb="Рейз" amount={wager} />
+                    <WpcRaiseSlider
+                      min={facingBet ? Math.max(toCall, minWager) : minWager}
+                      max={Math.max(facingBet ? toCall : minWager, maxWager)}
+                      value={wager}
+                      disabled={actionLocked || maxWager <= 0}
+                      format={formatChips}
+                      onChange={(next) =>
+                        setWager(clampBet(next, facingBet ? toCall : minWager, maxWager))
+                      }
+                      onConfirm={(amount) => bet(amount)}
+                      onTick={() => onHaptic?.('light')}
+                      label={
+                        wager >= player.stack && player.stack > 0 ? (
+                          'All In'
+                        ) : facingBet ? (
+                          wager > toCall ? (
+                            <BetActionLabel verb="Рейз" amount={wager} />
+                          ) : (
+                            <BetActionLabel verb="Колл" amount={toCall} />
+                          )
                         ) : (
-                          <BetActionLabel verb="Колл" amount={toCall} />
+                          <BetActionLabel verb="Ставка" amount={wager} />
                         )
-                      ) : (
-                        <BetActionLabel verb="Ставка" amount={wager} />
-                      )}
-                    </button>
+                      }
+                    />
                     <button
                       type="button"
                       className="poker-btn poker-btn-fold"
