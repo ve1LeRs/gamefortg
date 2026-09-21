@@ -26,6 +26,49 @@ function chipCountFor(amount: number, maxChips = 7) {
   return Math.min(n, maxChips)
 }
 
+/** Split chips into 1–4 side-by-side stacks for big bets. */
+function chipStacksFor(
+  amount: number,
+  opts?: { flat?: boolean; compact?: boolean },
+): number[] {
+  if (amount <= 0) return []
+  let total = 1
+  if (amount >= 15) total = 2
+  if (amount >= 35) total = 3
+  if (amount >= 55) total = 4
+  if (amount >= 90) total = 6
+  if (amount >= 140) total = 9
+  if (amount >= 220) total = 12
+  if (amount >= 350) total = 16
+  if (amount >= 550) total = 20
+  if (amount >= 900) total = 24
+
+  let cols = 1
+  if (total >= 5) cols = 2
+  if (total >= 10) cols = 3
+  if (total >= 16) cols = 4
+
+  const maxPer = opts?.flat || opts?.compact ? 6 : 7
+  total = Math.min(total, cols * maxPer)
+
+  const stacks = Array.from({ length: cols }, () => 0)
+  let left = total
+  let col = 0
+  while (left > 0) {
+    if (stacks[col]! < maxPer) {
+      stacks[col]! += 1
+      left -= 1
+    }
+    col = (col + 1) % cols
+  }
+  if (cols >= 3 && stacks[0]! > stacks[1]!) {
+    const t = stacks[0]!
+    stacks[0] = stacks[1]!
+    stacks[1] = t
+  }
+  return stacks.filter((n) => n > 0)
+}
+
 function PokerChipSvg({ colorIndex, size, uid }: { colorIndex: number; size: number; uid: string }) {
   const c = CHIP_COLORS[colorIndex % CHIP_COLORS.length]!
   const shineId = `${uid}-shine-${colorIndex}`
@@ -76,25 +119,44 @@ export function ChipPile({
   format: (n: number) => string
   className?: string
   compact?: boolean
-  /** Horizontal layout (stack + amount) — street bets on the felt. */
+  /** Horizontal layout (stacks + amount) — street bets on the felt. */
   flat?: boolean
   maxChips?: number
 }) {
   if (amount <= 0) return null
   const uid = `pile-${amount}-${flat ? 'f' : compact ? 'c' : 's'}-${className}`
-  const n = chipCountFor(amount, maxChips ?? (flat ? 6 : compact ? 4 : 7))
-  const size = flat ? 18 : compact ? 18 : 28
+  const stacks = chipStacksFor(amount, { flat, compact })
+  const capped =
+    maxChips != null && stacks.length === 1
+      ? [Math.min(stacks[0]!, maxChips)]
+      : stacks
+  const size = flat ? 16 : compact ? 16 : 26
+  const multi = capped.length > 1
   return (
     <div
-      className={`poker-chip-pile${compact ? ' is-compact' : ''}${flat ? ' is-flat' : ''} ${className}`.trim()}
+      className={`poker-chip-pile${compact ? ' is-compact' : ''}${flat ? ' is-flat' : ''}${
+        multi ? ' is-multi' : ''
+      } ${className}`.trim()}
       title={format(amount)}
-      style={{ ['--chip-n' as string]: n }}
+      style={{ ['--chip-cols' as string]: capped.length }}
     >
-      <div className="poker-chip-stack" aria-hidden>
-        {Array.from({ length: n }, (_, i) => (
-          <span key={i} className="poker-chip-disk" style={{ ['--chip-i' as string]: i }}>
-            <PokerChipSvg colorIndex={i} size={size} uid={`${uid}-${i}`} />
-          </span>
+      <div className="poker-chip-stacks" aria-hidden>
+        {capped.map((n, si) => (
+          <div
+            key={si}
+            className="poker-chip-stack"
+            style={{ ['--chip-n' as string]: n, ['--stack-i' as string]: si }}
+          >
+            {Array.from({ length: n }, (_, i) => (
+              <span key={i} className="poker-chip-disk" style={{ ['--chip-i' as string]: i }}>
+                <PokerChipSvg
+                  colorIndex={(si * 2 + i) % 5}
+                  size={size}
+                  uid={`${uid}-s${si}-${i}`}
+                />
+              </span>
+            ))}
+          </div>
         ))}
       </div>
       <span className="poker-chip-amt">{format(amount)}</span>
