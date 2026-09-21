@@ -5224,84 +5224,90 @@ body.settings-no-motion .poker-win-badge,
   .poker-table-felt {
     inset: 4.2% 4.6% 3% 4.6%;
   }
-  /* Phone landscape only: nudge everyone a bit lower. */
+  /*
+    Phone landscape only.
+    Equal avatar↔rail clearance on the oval:
+      mid seats sit just outside the side rail;
+      top seats sit just outside the curve (not in the far corner).
+    Equal bet↔rail inset (~same visual gap as player chips↔live-hint).
+  */
   .poker-seat-s0,
   .poker-seat-you {
     left: 50%;
-    bottom: -11%;
+    bottom: -14%;
     transform: translateX(calc(-50% + 22px));
     gap: 10px;
   }
   .poker-seat-s1 {
-    left: max(-24px, -4%);
-    top: 56%;
+    left: max(-20px, -3.2%);
+    top: 60%;
     gap: 10px;
   }
   .poker-seat-s2 {
-    left: max(-8px, -1%);
-    top: max(10px, 4.5%);
+    left: max(72px, 16%);
+    top: max(12px, 8%);
     gap: 10px;
   }
   .poker-seat-s3 {
     left: auto;
-    right: max(-8px, -1%);
-    top: max(10px, 4.5%);
+    right: max(72px, 16%);
+    top: max(12px, 8%);
     bottom: auto;
     gap: 10px;
   }
   .poker-seat-s4,
   .poker-seat-bot {
-    top: 56%;
-    right: max(-24px, -4%);
+    top: 60%;
+    right: max(-20px, -3.2%);
     bottom: auto;
     gap: 10px;
   }
-  /* Player bet further up the felt; mid-left bet closer to that seat. */
+  /* Bets: same inward offset from the rail for every seat. */
   .poker-bet-s0,
   .poker-bet-you {
     left: 50%;
-    bottom: 28%;
+    bottom: 22%;
     transform: translateX(-50%);
   }
   .poker-bet-flight-s0 {
     left: 50%;
-    bottom: 28%;
+    bottom: 22%;
   }
   .poker-bet-s1 {
-    left: 11%;
-    top: 58%;
+    left: 12%;
+    top: 62%;
   }
   .poker-bet-flight-s1 {
-    left: 11%;
-    top: 58%;
+    left: 12%;
+    top: 62%;
   }
   .poker-bet-s2 {
-    left: 20%;
-    top: 24%;
+    left: 24%;
+    top: 18%;
   }
   .poker-bet-flight-s2 {
-    left: 20%;
-    top: 24%;
+    left: 24%;
+    top: 18%;
   }
   .poker-bet-s3 {
     left: auto;
-    right: 20%;
-    top: 24%;
+    right: 24%;
+    top: 18%;
     bottom: auto;
   }
   .poker-bet-flight-s3 {
     left: auto;
-    right: 20%;
-    top: 24%;
+    right: 24%;
+    top: 18%;
   }
   .poker-bet-s4,
   .poker-bet-bot {
-    right: 17%;
-    top: 58%;
+    right: 12%;
+    top: 62%;
   }
   .poker-bet-flight-s4 {
-    right: 17%;
-    top: 58%;
+    right: 12%;
+    top: 62%;
   }
   .poker-bot-cards {
     margin: 0;
