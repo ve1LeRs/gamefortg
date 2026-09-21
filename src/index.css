@@ -3480,7 +3480,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-bet-s1 {
   left: 18%;
-  top: 48%;
+  top: 56%;
   bottom: auto;
   transform: none;
 }
@@ -3503,7 +3503,7 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-bet-s4 {
   left: auto;
   right: 18%;
-  top: 48%;
+  top: 56%;
   bottom: auto;
   transform: none;
 }
@@ -3562,7 +3562,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-bet-flight-s1 {
   left: 18%;
-  top: 48%;
+  top: 56%;
 }
 
 .poker-bet-flight-s2 {
@@ -3579,7 +3579,7 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-bet-flight-s4 {
   left: auto;
   right: 18%;
-  top: 48%;
+  top: 56%;
 }
 
 .poker-bet-flight-chip {
@@ -3725,10 +3725,12 @@ body.poker-landscape-active .app-main.game-mode {
   flex: 0 0 auto;
 }
 
-/* Left seats: just outside the rail, fully on-screen. */
+/* Left seats: just outside the rail, fully on-screen.
+   s1 (mid-left) sits a bit lower toward the player.
+   s2 (top-left) sits higher/inward so Telegram chrome does not cover the win badge. */
 .poker-seat-s1 {
   left: max(2px, 0.4%);
-  top: 36%;
+  top: 48%;
   bottom: auto;
   transform: none;
   width: auto;
@@ -3740,8 +3742,8 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-seat-s2 {
-  left: max(36px, 6%);
-  top: max(28px, 5%);
+  left: max(52px, 9%);
+  top: max(14px, 2.2%);
   bottom: auto;
   transform: none;
   width: auto;
@@ -3772,7 +3774,7 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-seat-s4 {
   left: auto;
   right: max(2px, 0.4%);
-  top: 36%;
+  top: 48%;
   bottom: auto;
   transform: none;
   width: auto;
@@ -3806,7 +3808,7 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-seat-bot {
   left: auto;
   right: max(4px, 1%);
-  top: 38%;
+  top: 48%;
   bottom: auto;
   transform: none;
   width: auto;
@@ -4121,7 +4123,12 @@ body.poker-landscape-active .app-main.game-mode {
   animation: poker-win-badge-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Top-right seat: keep payout clear of Telegram’s minimize control */
+/* Top seats: keep payout clear of Telegram’s minimize control */
+.poker-seat-s2 .poker-win-badge {
+  left: 62%;
+  top: -18px;
+}
+
 .poker-seat-s3 .poker-win-badge {
   left: 38%;
   top: -18px;
@@ -4204,19 +4211,19 @@ body.poker-landscape-active .app-main.game-mode {
 }
 .poker-fly-to-s1 {
   --fly-x: -36vw;
-  --fly-y: 12vh;
+  --fly-y: 22vh;
 }
 .poker-fly-to-s2 {
   --fly-x: -26vw;
-  --fly-y: -16vh;
+  --fly-y: -18vh;
 }
 .poker-fly-to-s3 {
   --fly-x: 26vw;
-  --fly-y: -16vh;
+  --fly-y: -18vh;
 }
 .poker-fly-to-s4 {
   --fly-x: 36vw;
-  --fly-y: 12vh;
+  --fly-y: 22vh;
 }
 
 @keyframes poker-winner-pulse {
@@ -5119,10 +5126,11 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-seat-s1 {
     left: max(2px, 0.4%);
+    top: 48%;
   }
   .poker-seat-s2 {
-    left: max(36px, 6%);
-    top: max(28px, 5%);
+    left: max(52px, 9%);
+    top: max(14px, 2.2%);
   }
   .poker-seat-s3 {
     right: max(52px, 9%);
@@ -5131,6 +5139,7 @@ body.settings-no-motion .poker-win-badge,
   .poker-seat-s4,
   .poker-seat-bot {
     right: max(2px, 0.4%);
+    top: 48%;
   }
   .poker-board .poker-board-card,
   .poker-board .pcard {
@@ -5164,12 +5173,12 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-seat-s1 {
     left: max(2px, 0.3%);
-    top: 34%;
+    top: 46%;
     gap: 2px;
   }
   .poker-seat-s2 {
-    left: max(32px, 5.5%);
-    top: max(22px, 4%);
+    left: max(48px, 8.5%);
+    top: max(10px, 1.8%);
     gap: 2px;
   }
   .poker-seat-s3 {
@@ -5181,7 +5190,7 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-seat-s4,
   .poker-seat-bot {
-    top: 34%;
+    top: 46%;
     right: max(2px, 0.3%);
     bottom: auto;
     gap: 2px;
@@ -5198,11 +5207,11 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-bet-s1 {
     left: 16%;
-    top: 46%;
+    top: 54%;
   }
   .poker-bet-flight-s1 {
     left: 16%;
-    top: 46%;
+    top: 54%;
   }
   .poker-bet-s2 {
     left: 24%;
@@ -5226,11 +5235,11 @@ body.settings-no-motion .poker-win-badge,
   .poker-bet-s4,
   .poker-bet-bot {
     right: 16%;
-    top: 46%;
+    top: 54%;
   }
   .poker-bet-flight-s4 {
     right: 16%;
-    top: 46%;
+    top: 54%;
   }
   .poker-bot-cards {
     margin: 0;
