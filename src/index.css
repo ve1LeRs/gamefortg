@@ -3216,6 +3216,9 @@ body.poker-landscape-active .app-main.game-mode {
   max-width: 1120px;
   margin: 2px auto 0;
   overflow: visible;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .poker-table-rail {

@@ -412,6 +412,41 @@ function PokerOnlineTable({
   const youWinner = winnerIdxs.includes(0)
   const oppWinner = winnerIdxs.includes(2)
   const waitingTurn = view.phase !== 'over' && !view.yourTurn && !allInSpectating
+  const lastTableTapRef = useRef(0)
+
+  /** Двойной тап по столу на своём ходу → чек или колл. */
+  const onTableDoubleTap = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    const el = e.target as HTMLElement | null
+    if (
+      el?.closest?.(
+        'button, a, input, textarea, .poker-actions, .poker-wpc-raise, .poker-bottom, .poker-bet-chip',
+      )
+    ) {
+      return
+    }
+    if (
+      !view.yourTurn ||
+      view.phase === 'over' ||
+      view.you.folded ||
+      allInSpectating ||
+      waitingTurn
+    ) {
+      return
+    }
+    const now = Date.now()
+    if (now - lastTableTapRef.current > 340) {
+      lastTableTapRef.current = now
+      return
+    }
+    lastTableTapRef.current = 0
+    e.preventDefault()
+    if (view.toCall > 0 || view.canCall) {
+      if (view.canCall) send({ type: 'call' })
+    } else if (view.canCheck) {
+      send({ type: 'check' })
+    }
+  }
 
   return (
     <div className={`poker-landscape poker-online${landscape ? ' is-landscape' : ' is-portrait'}`}>
@@ -429,7 +464,11 @@ function PokerOnlineTable({
         <div className="poker-room">
           <p className={`poker-status ${resultClass}`}>{view.status}</p>
 
-          <div className="poker-table">
+          <div
+            className="poker-table"
+            onPointerUp={onTableDoubleTap}
+            role="presentation"
+          >
             <div className="poker-table-rail" />
             <div className="poker-table-felt">
               <div className="poker-table-brand" aria-hidden>

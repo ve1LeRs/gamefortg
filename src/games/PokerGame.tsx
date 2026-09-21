@@ -2013,6 +2013,39 @@ export function PokerGame({
   }, [player.hole, board, seats, phase])
 
   const dealTiming = useMemo(() => getDealTiming(), [dealTick])
+  const lastTableTapRef = useRef(0)
+
+  /** Double-tap the table on your turn → check (free) or call (facing a bet). */
+  const onTableDoubleTap = (e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    const el = e.target as HTMLElement | null
+    if (
+      el?.closest?.(
+        'button, a, input, textarea, .poker-actions, .poker-wpc-raise, .poker-bottom, .poker-bet-chip',
+      )
+    ) {
+      return
+    }
+    if (
+      phase === 'over' ||
+      player.folded ||
+      allInSpectating ||
+      revealingHands ||
+      actionLocked ||
+      streetBusyRef.current
+    ) {
+      return
+    }
+    const now = Date.now()
+    if (now - lastTableTapRef.current > 340) {
+      lastTableTapRef.current = now
+      return
+    }
+    lastTableTapRef.current = 0
+    e.preventDefault()
+    if (facingBet) callBet()
+    else check()
+  }
 
   return (
     <div className={`poker-landscape${landscape ? ' is-landscape' : ' is-portrait'}`}>
@@ -2030,7 +2063,11 @@ export function PokerGame({
         <div className="poker-room">
           <p className={`poker-status ${resultClass}`}>{status}</p>
 
-          <div className="poker-table">
+          <div
+            className="poker-table"
+            onPointerUp={onTableDoubleTap}
+            role="presentation"
+          >
             <div className="poker-table-rail" />
             <div className="poker-table-felt">
               <div className="poker-table-brand" aria-hidden>
