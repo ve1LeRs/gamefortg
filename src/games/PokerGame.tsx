@@ -2075,44 +2075,30 @@ export function PokerGame({
                 <div className="poker-allin-wait is-quiet" aria-hidden />
               ) : phase !== 'over' ? (
                 <>
-                  <div className="poker-bet-top">
-                    <div className="poker-bet-presets is-primary">
-                      <button
-                        type="button"
-                        className="poker-bet-chip"
-                        disabled={actionLocked}
-                        onClick={() => setWagerPreset(facingBet ? toCall : minWager)}
-                      >
-                        Мин
-                      </button>
-                      <button
-                        type="button"
-                        className="poker-bet-chip"
-                        disabled={actionLocked}
-                        onClick={() =>
-                          setWagerPreset(Math.max(facingBet ? toCall : minWager, pot || minWager))
-                        }
-                      >
-                        Банк
-                      </button>
-                    </div>
-                    <div
-                      className={`poker-bet-amount-row${actionLocked ? ' is-dimmed' : ''}`}
-                    >
-                      <BetRoulette
-                        value={wager}
-                        min={facingBet ? Math.max(toCall, minWager) : minWager}
-                        max={Math.max(facingBet ? toCall : minWager, maxWager)}
-                        disabled={actionLocked}
-                        format={formatChips}
-                        onChange={(next) =>
-                          setWager(clampBet(next, facingBet ? toCall : minWager, maxWager))
-                        }
-                        onTick={() => onHaptic?.('light')}
-                      />
-                    </div>
+                  <div
+                    className={`poker-bet-amount-row${actionLocked ? ' is-dimmed' : ''}`}
+                  >
+                    <BetRoulette
+                      value={wager}
+                      min={facingBet ? Math.max(toCall, minWager) : minWager}
+                      max={Math.max(facingBet ? toCall : minWager, maxWager)}
+                      disabled={actionLocked}
+                      format={formatChips}
+                      onChange={(next) =>
+                        setWager(clampBet(next, facingBet ? toCall : minWager, maxWager))
+                      }
+                      onTick={() => onHaptic?.('light')}
+                    />
                   </div>
-                  <div className="poker-bet-presets is-secondary">
+                  <div className="poker-bet-presets">
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      disabled={actionLocked}
+                      onClick={() => setWagerPreset(facingBet ? toCall : minWager)}
+                    >
+                      Мин
+                    </button>
                     <button
                       type="button"
                       className="poker-bet-chip"
@@ -2124,6 +2110,16 @@ export function PokerGame({
                       }
                     >
                       ½ банка
+                    </button>
+                    <button
+                      type="button"
+                      className="poker-bet-chip"
+                      disabled={actionLocked}
+                      onClick={() =>
+                        setWagerPreset(Math.max(facingBet ? toCall : minWager, pot || minWager))
+                      }
+                    >
+                      Банк
                     </button>
                     <button
                       type="button"
