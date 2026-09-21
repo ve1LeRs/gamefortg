@@ -3210,8 +3210,8 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-table {
   position: relative;
   flex: 1 1 0;
-  min-height: min(236px, 60vh);
-  /* Slightly shorter oval (length) and a touch less deep toward the pot */
+  min-height: min(252px, 64vh);
+  /* Slightly shorter oval (length); depth extended a bit toward the player */
   width: min(96%, 195vh, 960px);
   max-width: 960px;
   margin: 4px auto 0;
@@ -3223,8 +3223,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-rail {
   position: absolute;
-  /* Extra bottom inset — shrinks table depth from player toward pot */
-  inset: 1.4% 2.2% 5.5% 2.2%;
+  /* Less bottom inset — table extends further down toward the player */
+  inset: 1.4% 2.2% 3.2% 2.2%;
   border-radius: 50% / 48%;
   background:
     linear-gradient(145deg, #5a3a28, #2a1810 45%, #1a100c);
@@ -3236,7 +3236,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-felt {
   position: absolute;
-  inset: 4.6% 5% 9% 5%;
+  inset: 4.6% 5% 6.8% 5%;
   border-radius: 50% / 48%;
   background:
     radial-gradient(ellipse at 50% 40%, #8b2a36 0%, #6a1c28 42%, #4a121c 100%);
@@ -3513,15 +3513,17 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-bet-s1 {
-  left: 20%;
-  top: 58%;
+  /* Closer to mid-left seat */
+  left: 11%;
+  top: 54%;
   bottom: auto;
   transform: none;
 }
 
 .poker-bet-s2 {
-  left: 28%;
-  top: 24%;
+  /* Closer to top-left seat */
+  left: 16%;
+  top: 16%;
   bottom: auto;
   transform: none;
 }
@@ -3595,13 +3597,13 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-bet-flight-s1 {
-  left: 20%;
-  top: 58%;
+  left: 11%;
+  top: 54%;
 }
 
 .poker-bet-flight-s2 {
-  left: 28%;
-  top: 24%;
+  left: 16%;
+  top: 16%;
 }
 
 .poker-bet-flight-s3 {
@@ -3775,8 +3777,9 @@ body.poker-landscape-active .app-main.game-mode {
 }
 
 .poker-seat-s2 {
-  left: max(48px, 8.5%);
-  top: max(16px, 3%);
+  /* Further from Telegram top-left chrome so win badge stays readable */
+  left: max(68px, 13%);
+  top: max(30px, 6.5%);
   bottom: auto;
   transform: none;
   width: auto;
@@ -4158,8 +4161,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 /* Top seats: keep payout clear of Telegram’s minimize control */
 .poker-seat-s2 .poker-win-badge {
-  left: 62%;
-  top: -18px;
+  left: 70%;
+  top: -16px;
 }
 
 .poker-seat-s3 .poker-win-badge {
@@ -5147,18 +5150,18 @@ body.settings-no-motion .poker-win-badge,
 /* All landscape viewports — seats near the rail, large felt. */
 @media (orientation: landscape) {
   .poker-table-rail {
-    inset: 1.4% 2.2% 5.5% 2.2%;
+    inset: 1.4% 2.2% 3.2% 2.2%;
   }
   .poker-table-felt {
-    inset: 4.6% 5% 9% 5%;
+    inset: 4.6% 5% 6.8% 5%;
   }
   .poker-seat-s1 {
     left: max(4px, 1.2%);
     top: 50%;
   }
   .poker-seat-s2 {
-    left: max(48px, 8.5%);
-    top: max(16px, 3%);
+    left: max(68px, 13%);
+    top: max(30px, 6.5%);
   }
   .poker-seat-s3 {
     right: max(48px, 8.5%);
@@ -5182,15 +5185,15 @@ body.settings-no-motion .poker-win-badge,
     font-size: 12px;
   }
   .poker-table {
-    min-height: min(220px, 56vh);
+    min-height: min(236px, 60vh);
     width: min(96%, 185vh, 900px);
     margin: 2px auto 0;
   }
   .poker-table-rail {
-    inset: 1.2% 2% 5% 2%;
+    inset: 1.2% 2% 3% 2%;
   }
   .poker-table-felt {
-    inset: 4.2% 4.6% 8.5% 4.6%;
+    inset: 4.2% 4.6% 6.4% 4.6%;
   }
   .poker-seat-s0,
   .poker-seat-you {
@@ -5205,8 +5208,8 @@ body.settings-no-motion .poker-win-badge,
     gap: 2px;
   }
   .poker-seat-s2 {
-    left: max(44px, 8%);
-    top: max(12px, 2.2%);
+    left: max(60px, 12%);
+    top: max(26px, 5.5%);
     gap: 2px;
   }
   .poker-seat-s3 {
@@ -5234,20 +5237,20 @@ body.settings-no-motion .poker-win-badge,
     bottom: 16%;
   }
   .poker-bet-s1 {
-    left: 18%;
-    top: 56%;
+    left: 10%;
+    top: 52%;
   }
   .poker-bet-flight-s1 {
-    left: 18%;
-    top: 56%;
+    left: 10%;
+    top: 52%;
   }
   .poker-bet-s2 {
-    left: 26%;
-    top: 24%;
+    left: 15%;
+    top: 15%;
   }
   .poker-bet-flight-s2 {
-    left: 26%;
-    top: 24%;
+    left: 15%;
+    top: 15%;
   }
   .poker-bet-s3 {
     left: auto;
