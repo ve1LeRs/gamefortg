@@ -3210,11 +3210,11 @@ body.poker-landscape-active .app-main.game-mode {
 .poker-table {
   position: relative;
   flex: 1 1 0;
-  min-height: min(252px, 64vh);
-  /* Slightly shorter oval (length); depth extended a bit toward the player */
+  min-height: min(280px, 72vh);
+  /* Shorter left-right; deeper toward the player at the bottom */
   width: min(96%, 195vh, 960px);
   max-width: 960px;
-  margin: 4px auto 0;
+  margin: 2px auto -6px;
   overflow: visible;
   touch-action: manipulation;
   -webkit-user-select: none;
@@ -3223,8 +3223,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-rail {
   position: absolute;
-  /* Less bottom inset — table extends further down toward the player */
-  inset: 1.4% 2.2% 3.2% 2.2%;
+  /* Almost no bottom inset — oval hangs lower toward the player */
+  inset: 1.4% 2.2% 0.6% 2.2%;
   border-radius: 50% / 48%;
   background:
     linear-gradient(145deg, #5a3a28, #2a1810 45%, #1a100c);
@@ -3236,7 +3236,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-table-felt {
   position: absolute;
-  inset: 4.6% 5% 6.8% 5%;
+  inset: 4.6% 5% 3.4% 5%;
   border-radius: 50% / 48%;
   background:
     radial-gradient(ellipse at 50% 40%, #8b2a36 0%, #6a1c28 42%, #4a121c 100%);
@@ -3508,7 +3508,7 @@ body.poker-landscape-active .app-main.game-mode {
   left: 50%;
   top: auto;
   /* Closer to the player at the bottom rim */
-  bottom: 18%;
+  bottom: 14%;
   transform: translateX(-50%);
 }
 
@@ -3593,7 +3593,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-bet-flight-s0 {
   left: 50%;
-  bottom: 18%;
+  bottom: 14%;
 }
 
 .poker-bet-flight-s1 {
@@ -3701,8 +3701,7 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-s0 {
   left: 50%;
-  /* Sit a touch closer under the smaller rim */
-  bottom: -16%;
+  bottom: -14%;
   top: auto;
   /* Shift right a bit so cards+avatar stay centered as a pair */
   transform: translateX(calc(-50% + 26px));
@@ -4444,7 +4443,7 @@ body.settings-no-motion .poker-win-badge,
   gap: 8px;
   /* Keep a slim strip so cards can sit just above the screen edge */
   padding: 0 4px 2px;
-  margin-top: -20px;
+  margin-top: -28px;
   margin-bottom: 0;
   z-index: 8;
   min-height: 0;
@@ -5150,10 +5149,10 @@ body.settings-no-motion .poker-win-badge,
 /* All landscape viewports — seats near the rail, large felt. */
 @media (orientation: landscape) {
   .poker-table-rail {
-    inset: 1.4% 2.2% 3.2% 2.2%;
+    inset: 1.4% 2.2% 0.6% 2.2%;
   }
   .poker-table-felt {
-    inset: 4.6% 5% 6.8% 5%;
+    inset: 4.6% 5% 3.4% 5%;
   }
   .poker-seat-s1 {
     left: max(4px, 1.2%);
@@ -5185,20 +5184,20 @@ body.settings-no-motion .poker-win-badge,
     font-size: 12px;
   }
   .poker-table {
-    min-height: min(236px, 60vh);
+    min-height: min(255px, 68vh);
     width: min(96%, 185vh, 900px);
-    margin: 2px auto 0;
+    margin: 2px auto -4px;
   }
   .poker-table-rail {
-    inset: 1.2% 2% 3% 2%;
+    inset: 1.2% 2% 0.5% 2%;
   }
   .poker-table-felt {
-    inset: 4.2% 4.6% 6.4% 4.6%;
+    inset: 4.2% 4.6% 3% 4.6%;
   }
   .poker-seat-s0,
   .poker-seat-you {
     left: 50%;
-    bottom: -15%;
+    bottom: -12%;
     transform: translateX(calc(-50% + 22px));
     gap: 6px;
   }
