@@ -3700,8 +3700,8 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-seat-s0 {
   left: 50%;
-  /* Slightly raised so stack stays clear of the screen edge */
-  bottom: -8%;
+  /* Keep stack on-screen; mobile query may nudge further */
+  bottom: -6%;
   top: auto;
   /* Shift right a bit so cards+avatar stay centered as a pair */
   transform: translateX(calc(-50% + 26px));
