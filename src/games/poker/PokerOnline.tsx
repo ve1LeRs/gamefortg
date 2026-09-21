@@ -563,41 +563,27 @@ function PokerOnlineTable({
               ) : (
                 <>
                   {!facingAllIn && view.canBet ? (
-                    <div className="poker-bet-top">
-                      <div className="poker-bet-presets is-primary">
-                        <button
-                          type="button"
-                          className="poker-bet-chip"
-                          disabled={!view.yourTurn}
-                          onClick={() => setWager(clampWager(view.minBet))}
-                        >
-                          Мин
-                        </button>
-                        <button
-                          type="button"
-                          className="poker-bet-chip"
-                          disabled={!view.yourTurn}
-                          onClick={() =>
-                            setWager(clampWager(Math.max(view.minBet, view.pot || view.minBet)))
-                          }
-                        >
-                          Банк
-                        </button>
-                      </div>
-                      <div className={`poker-bet-amount-row${waitingTurn ? ' is-dimmed' : ''}`}>
-                        <BetRoulette
-                          value={wager}
-                          min={view.minBet}
-                          max={Math.max(view.minBet, view.maxBet)}
-                          disabled={!view.yourTurn}
-                          format={formatChips}
-                          onChange={(next) => setWager(clampWager(next))}
-                        />
-                      </div>
+                    <div className={`poker-bet-amount-row${waitingTurn ? ' is-dimmed' : ''}`}>
+                      <BetRoulette
+                        value={wager}
+                        min={view.minBet}
+                        max={Math.max(view.minBet, view.maxBet)}
+                        disabled={!view.yourTurn}
+                        format={formatChips}
+                        onChange={(next) => setWager(clampWager(next))}
+                      />
                     </div>
                   ) : null}
                   {!facingAllIn && view.canBet ? (
-                    <div className="poker-bet-presets is-secondary">
+                    <div className="poker-bet-presets">
+                      <button
+                        type="button"
+                        className="poker-bet-chip"
+                        disabled={!view.yourTurn}
+                        onClick={() => setWager(clampWager(view.minBet))}
+                      >
+                        Мин
+                      </button>
                       <button
                         type="button"
                         className="poker-bet-chip"
@@ -609,6 +595,16 @@ function PokerOnlineTable({
                         }
                       >
                         ½ банка
+                      </button>
+                      <button
+                        type="button"
+                        className="poker-bet-chip"
+                        disabled={!view.yourTurn}
+                        onClick={() =>
+                          setWager(clampWager(Math.max(view.minBet, view.pot || view.minBet)))
+                        }
+                      >
+                        Банк
                       </button>
                       <button
                         type="button"
