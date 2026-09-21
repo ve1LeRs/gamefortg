@@ -3327,8 +3327,8 @@ body.poker-landscape-active .app-main.game-mode {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(6px, 1.1vw, 12px);
-  min-height: clamp(64px, 16vh, 110px);
+  gap: clamp(4px, 0.8vw, 8px);
+  min-height: clamp(44px, 11vh, 72px);
   /* Keep board below the pot even when the chip stack is tall */
   transform: translateY(14%);
   z-index: 5;
@@ -3341,11 +3341,11 @@ body.poker-landscape-active .app-main.game-mode {
 
 .poker-board .poker-board-card,
 .poker-board .pcard {
-  width: clamp(58px, 9.5vw, 86px) !important;
-  height: clamp(80px, 13vw, 118px) !important;
-  font-size: clamp(14px, 2.6vw, 21px) !important;
+  width: clamp(34px, 5.6vw, 48px) !important;
+  height: clamp(46px, 7.6vw, 66px) !important;
+  font-size: clamp(10px, 1.6vw, 13px) !important;
   animation: none;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
 }
 
 .poker-board .pcard.poker-deal-board {
@@ -4913,9 +4913,9 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-board .poker-board-card,
   .poker-board .pcard {
-    width: clamp(58px, 9.5vw, 86px) !important;
-    height: clamp(80px, 13vw, 118px) !important;
-    font-size: clamp(14px, 2.6vw, 21px) !important;
+    width: clamp(34px, 5.6vw, 48px) !important;
+    height: clamp(46px, 7.6vw, 66px) !important;
+    font-size: clamp(10px, 1.6vw, 13px) !important;
   }
 }
 
@@ -5031,14 +5031,14 @@ body.settings-no-motion .poker-win-badge,
   }
   .poker-board {
     transform: translateY(10%);
-    min-height: clamp(64px, 15vh, 100px);
-    gap: clamp(5px, 1vw, 10px);
+    min-height: clamp(40px, 10vh, 64px);
+    gap: clamp(3px, 0.7vw, 6px);
   }
   .poker-board .poker-board-card,
   .poker-board .pcard {
-    width: clamp(52px, 8.4vw, 74px);
-    height: clamp(72px, 11.6vw, 102px);
-    font-size: clamp(13px, 2.2vw, 18px);
+    width: clamp(30px, 5vw, 42px) !important;
+    height: clamp(42px, 6.8vw, 58px) !important;
+    font-size: clamp(9px, 1.5vw, 12px) !important;
   }
   .poker-bet-roulette {
     --roulette-h: 48px;
@@ -5196,8 +5196,8 @@ body.tg-desktop .poker-bot-cards.is-revealed .poker-hole-card {
 
 body.tg-desktop .poker-board .pcard,
 body.tg-desktop .poker-board .poker-hole-card {
-  width: clamp(60px, 7.2vw, 88px);
-  height: clamp(84px, 10vw, 122px);
+  width: clamp(40px, 4.6vw, 56px);
+  height: clamp(56px, 6.4vw, 78px);
 }
 
 body.tg-desktop .poker-bot-cards:not(.is-revealed) {
