@@ -5238,7 +5238,7 @@ body.settings-no-motion .poker-win-badge,
     z-index: 10;
   }
   .poker-seat-s1 {
-    left: max(2px, 0.4%);
+    left: max(0px, -1.2%);
     top: auto;
     bottom: 12%;
     gap: 10px;
@@ -5261,61 +5261,61 @@ body.settings-no-motion .poker-win-badge,
   .poker-seat-s4,
   .poker-seat-bot {
     top: auto;
-    right: max(2px, 0.4%);
+    right: max(0px, -1.2%);
     bottom: 12%;
     gap: 10px;
     z-index: 10;
   }
-  /* Street bets on the felt in front of each seat; player chips a bit lower. */
+  /* Street bets: player a bit higher; bot bets further from hole cards. */
   .poker-bet-s0,
   .poker-bet-you {
     left: 50%;
-    bottom: 20%;
+    bottom: 27%;
     transform: translateX(-50%);
   }
   .poker-bet-flight-s0 {
     left: 50%;
-    bottom: 20%;
+    bottom: 27%;
   }
   .poker-bet-s1 {
-    left: 16%;
+    left: 22%;
     top: auto;
-    bottom: 22%;
+    bottom: 24%;
   }
   .poker-bet-flight-s1 {
-    left: 16%;
+    left: 22%;
     top: auto;
-    bottom: 22%;
+    bottom: 24%;
   }
   .poker-bet-s2 {
-    left: 17%;
-    top: 16%;
+    left: 22%;
+    top: 18%;
   }
   .poker-bet-flight-s2 {
-    left: 17%;
-    top: 16%;
+    left: 22%;
+    top: 18%;
   }
   .poker-bet-s3 {
     left: auto;
-    right: 17%;
-    top: 16%;
+    right: 22%;
+    top: 18%;
     bottom: auto;
   }
   .poker-bet-flight-s3 {
     left: auto;
-    right: 17%;
-    top: 16%;
+    right: 22%;
+    top: 18%;
   }
   .poker-bet-s4,
   .poker-bet-bot {
-    right: 16%;
+    right: 22%;
     top: auto;
-    bottom: 22%;
+    bottom: 24%;
   }
   .poker-bet-flight-s4 {
-    right: 16%;
+    right: 22%;
     top: auto;
-    bottom: 22%;
+    bottom: 24%;
   }
   .poker-bot-cards {
     margin: 0;
@@ -5359,7 +5359,7 @@ body.settings-no-motion .poker-win-badge,
     font-size: 14px;
   }
   .poker-board {
-    transform: translateY(10%);
+    transform: translateY(2%);
     min-height: clamp(46px, 11vh, 70px);
     gap: clamp(4px, 0.8vw, 7px);
   }
