@@ -5245,8 +5245,8 @@ body.settings-no-motion .poker-win-badge,
     z-index: 10;
   }
   .poker-seat-s2 {
-    left: max(8px, 3%);
-    top: max(8px, 4%);
+    left: max(4px, 1.5%);
+    top: max(4px, 2%);
     gap: 10px;
     z-index: 10;
   }
@@ -5278,12 +5278,12 @@ body.settings-no-motion .poker-win-badge,
     bottom: 27%;
   }
   .poker-bet-s1 {
-    left: 22%;
+    left: 19%;
     top: auto;
     bottom: 24%;
   }
   .poker-bet-flight-s1 {
-    left: 22%;
+    left: 19%;
     top: auto;
     bottom: 24%;
   }
