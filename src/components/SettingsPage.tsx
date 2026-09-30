@@ -265,6 +265,17 @@ export function SettingsPage({ onHaptic }: { onHaptic?: (t?: 'light' | 'medium' 
         </div>
         <div className="settings-row">
           <div>
+            <strong>Имена за столом</strong>
+            <p>Показывать ники игроков в покере и дураке онлайн</p>
+          </div>
+          <Toggle
+            label="Имена за столом"
+            on={settings.showPlayerNames}
+            onChange={(showPlayerNames) => patch({ showPlayerNames })}
+          />
+        </div>
+        <div className="settings-row">
+          <div>
             <strong>Автосбор косынки</strong>
             <p>Когда всё открыто — сразу предлагать «Собрать»</p>
           </div>

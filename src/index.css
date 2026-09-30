@@ -3188,6 +3188,17 @@ body.poker-landscape-active .app-main.game-mode {
   overflow: visible;
 }
 
+.poker-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 1.25em;
+  flex-shrink: 0;
+  padding: 0 8px;
+  position: relative;
+}
+
 .poker-status {
   margin: 0;
   text-align: center;
@@ -3195,9 +3206,28 @@ body.poker-landscape-active .app-main.game-mode {
   font-weight: 650;
   line-height: 1.25;
   color: rgba(255, 255, 255, 0.86);
-  min-height: 1.25em;
-  flex-shrink: 0;
-  padding: 0 8px;
+}
+
+.poker-leave-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(8, 16, 28, 0.55);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.poker-leave-btn:active {
+  background: rgba(8, 16, 28, 0.75);
 }
 
 .poker-status.win {

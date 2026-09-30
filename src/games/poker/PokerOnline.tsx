@@ -2,7 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { PlayingCard } from '../../components/PlayingCard'
 import { OnlineLobbyMenu, OnlineWait } from '../../components/OnlineLobby'
 import { getWebApp } from '../../lib/telegram'
-import { getDealTiming, playPokerSound, playUiSound } from '../../lib/settings'
+import {
+  getDealTiming,
+  getDisplayName,
+  loadSettings,
+  playPokerSound,
+  playUiSound,
+  type AppSettings,
+} from '../../lib/settings'
 import {
   type PokerAction,
   type PokerSeatView,
@@ -38,8 +45,11 @@ function onlineDealTiming() {
 
 function playerFromTelegram(): PlayerInfo {
   const u = getWebApp()?.initDataUnsafe?.user
-  if (u) return { id: String(u.id), name: u.first_name || u.username || 'Игрок' }
-  return { id: `local-${Math.random().toString(36).slice(2, 8)}`, name: 'Игрок' }
+  const settings = loadSettings()
+  const tgName = u ? u.first_name || u.username : undefined
+  const name = getDisplayName(tgName, settings)
+  if (u) return { id: String(u.id), name }
+  return { id: `local-${Math.random().toString(36).slice(2, 8)}`, name }
 }
 
 function isLandscapeNow() {
@@ -89,6 +99,7 @@ function PokerOnlineTable({
   role,
   opponentName,
   onAction,
+  onLeave,
   onHaptic,
 }: {
   view: PokerSeatView
@@ -99,6 +110,7 @@ function PokerOnlineTable({
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
 }) {
   const landscape = useLandscape()
+  const [showNames, setShowNames] = useState(() => loadSettings().showPlayerNames)
   const [wager, setWager] = useState(() => Math.max(view.minBet, BLIND))
   const [dealTick, setDealTick] = useState(1)
   const [freshBoardIds, setFreshBoardIds] = useState<string[]>([])
@@ -138,6 +150,15 @@ function PokerOnlineTable({
     view.phase !== 'over' && view.you.stack <= 0 && !view.yourTurn && !view.you.folded
   const facingAllIn = !!view.facingAllIn
   const callIsAllIn = view.canCall && view.callAmount >= view.you.stack && view.you.stack > 0
+
+  useEffect(() => {
+    const onSettings = (e: Event) => {
+      const detail = (e as CustomEvent<AppSettings>).detail
+      if (detail) setShowNames(detail.showPlayerNames)
+    }
+    window.addEventListener('playfort-settings', onSettings)
+    return () => window.removeEventListener('playfort-settings', onSettings)
+  }, [])
 
   useEffect(() => {
     if (view.pot > 0) lastPotRef.current = view.pot
@@ -462,7 +483,21 @@ function PokerOnlineTable({
 
       <div className="poker-stage" aria-hidden={!landscape}>
         <div className="poker-room">
-          <p className={`poker-status ${resultClass}`}>{view.status}</p>
+          <div className="poker-status-row">
+            <p className={`poker-status ${resultClass}`}>{view.status}</p>
+            {onLeave ? (
+              <button
+                type="button"
+                className="poker-leave-btn"
+                onClick={() => {
+                  onHaptic?.('light')
+                  onLeave()
+                }}
+              >
+                Выйти
+              </button>
+            ) : null}
+          </div>
 
           <div
             className="poker-table"
@@ -578,7 +613,7 @@ function PokerOnlineTable({
                 accent="linear-gradient(145deg,#6b3a3a,#3a1515)"
                 dealer={view.dealer !== view.seat && view.phase !== 'over'}
                 active={!view.opponent.folded}
-                hideName
+                hideName={!showNames}
                 winPayout={oppWinner ? view.oppAward : 0}
               />
             </div>
@@ -621,7 +656,7 @@ function PokerOnlineTable({
                 accent="linear-gradient(145deg,#3a6ea5,#1a3358)"
                 dealer={view.dealer === view.seat && view.phase !== 'over'}
                 active={!view.you.folded}
-                hideName
+                hideName={!showNames}
                 winPayout={youWinner ? view.youAward : 0}
               />
             </div>

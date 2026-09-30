@@ -83,12 +83,15 @@ export function GameShell({
     if (gameId !== 'poker') return
     const wa = getWebApp()
     try {
-      wa?.unlockOrientation?.()
+      wa?.lockOrientation?.()
     } catch {
       /* noop */
     }
     try {
-      screen.orientation?.unlock?.()
+      const orient = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: string) => Promise<void>
+      }
+      void orient?.lock?.('landscape')?.catch?.(() => undefined)
     } catch {
       /* noop */
     }
@@ -97,6 +100,11 @@ export function GameShell({
       document.body.classList.remove('poker-landscape-active')
       try {
         wa?.unlockOrientation?.()
+      } catch {
+        /* noop */
+      }
+      try {
+        screen.orientation?.unlock?.()
       } catch {
         /* noop */
       }

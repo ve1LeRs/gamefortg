@@ -7,7 +7,8 @@ import { createSoloDurakRoom } from './localRoom'
 import { type DurakRoom, type LobbyListing, type PlayerInfo, hostDurakRoom, joinDurakRoom, watchDurakLobby } from './peerRoom'
 import type { SeatView, TablePair } from './engine'
 import { bitoMess, handFanLayout, handFanY } from './handFan'
-import { getDealTiming } from '../../lib/settings'
+import { OnlineConnectionIssue } from '../../components/OnlineLobby'
+import { getDealTiming, getDisplayName, loadSettings, type AppSettings } from '../../lib/settings'
 
 type Mode = 'menu' | 'host' | 'join' | 'solo'
 type EnterKind = 'deal' | 'throw-player' | 'throw-bot' | 'none'
@@ -45,10 +46,11 @@ function dealWaitMs(cardCount: number, perCard = 80) {
 
 function playerFromTelegram(): PlayerInfo {
   const u = getWebApp()?.initDataUnsafe?.user
-  if (u) {
-    return { id: String(u.id), name: u.first_name || u.username || 'Игрок' }
-  }
-  return { id: `local-${Math.random().toString(36).slice(2, 8)}`, name: 'Игрок' }
+  const settings = loadSettings()
+  const tgName = u ? u.first_name || u.username : undefined
+  const name = getDisplayName(tgName, settings)
+  if (u) return { id: String(u.id), name }
+  return { id: `local-${Math.random().toString(36).slice(2, 8)}`, name }
 }
 
 function inviteLink(code: string): string {
@@ -74,9 +76,19 @@ function OnlineTable({
   onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
   onLeave: () => void
 }) {
+  const [showNames, setShowNames] = useState(() => loadSettings().showPlayerNames)
   const [handViewportW, setHandViewportW] = useState(
     () => (typeof window !== 'undefined' ? window.innerWidth : 390),
   )
+
+  useEffect(() => {
+    const onSettings = (e: Event) => {
+      const detail = (e as CustomEvent<AppSettings>).detail
+      if (detail) setShowNames(detail.showPlayerNames)
+    }
+    window.addEventListener('playfort-settings', onSettings)
+    return () => window.removeEventListener('playfort-settings', onSettings)
+  }, [])
   const [drag, setDrag] = useState<DragState | null>(null)
   const [enterMap, setEnterMap] = useState<Record<string, EnterKind>>({})
   const [dealOrder, setDealOrder] = useState<Record<string, number>>({})
@@ -374,7 +386,9 @@ function OnlineTable({
             👤
           </div>
           <div className="durak-seat-meta">
-            <span className="durak-name">{room.opponent?.name ?? 'Соперник'}</span>
+            {showNames ? (
+              <span className="durak-name">{room.opponent?.name ?? 'Соперник'}</span>
+            ) : null}
             <span className="durak-pill">{view.opponentCount}</span>
           </div>
           <div className="durak-bot-cards" aria-hidden>
@@ -600,7 +614,9 @@ function OnlineTable({
             <div className="durak-avatar you-avatar" aria-hidden>
               👤
             </div>
-            <span className="durak-name">{room.solo ? room.you.name : 'Вы'}</span>
+            {showNames || room.solo ? (
+              <span className="durak-name">{room.solo ? room.you.name : 'Вы'}</span>
+            ) : null}
             <span className="durak-pill">{playerHand.length}</span>
           </div>
         </div>
@@ -652,6 +668,23 @@ export function DurakOnline({
     return () => {
       sessionRef.current += 1
       roomRef.current?.destroy()
+    }
+  }, [])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return
+      const r = roomRef.current
+      if (!r) return
+      if (r.status === 'reconnecting' || r.status === 'disconnected') {
+        if (!r.opponentLeft) r.retryConnection?.()
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', onVis)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('focus', onVis)
     }
   }, [])
 
@@ -809,17 +842,29 @@ export function DurakOnline({
     setJoiningHost(null)
   }
 
-  const friendlyError = (msg: string | null | undefined) => {
-    if (!msg) return null
-    if (/negotiation|peerjs|gft-durak|webrtc/i.test(msg)) {
-      return 'Старая версия приложения в кэше Telegram. Вернитесь на главную и нажмите «Обновить приложение», или полностью закройте Telegram и откройте снова.'
-    }
-    return msg
-  }
-
   const view = room?.view
   if (room?.status === 'playing' && view) {
     return <OnlineTable room={room} view={view} onHaptic={onHaptic} onLeave={leave} />
+  }
+
+  if (room?.status === 'reconnecting' || room?.status === 'disconnected') {
+    const opponentLeft = !!room.opponentLeft
+    return (
+      <OnlineConnectionIssue
+        opponentLeft={opponentLeft}
+        message={room.error || (opponentLeft ? 'Соперник вышел из игры' : 'Связь с сервером потеряна')}
+        onRetry={
+          opponentLeft
+            ? undefined
+            : () => {
+                room.retryConnection?.()
+                setRoom({ ...room })
+              }
+        }
+        onLeave={leave}
+        onHaptic={onHaptic}
+      />
+    )
   }
 
   const showWait = mode === 'host' || mode === 'join'
@@ -832,15 +877,13 @@ export function DurakOnline({
           : 'Подключаемся к комнате…'
       : room?.status === 'connecting' || (busy && !room)
         ? 'Соединение…'
-        : room?.status === 'disconnected'
-          ? 'Соединение потеряно'
-          : room?.status === 'error'
-            ? (room.error ?? 'Ошибка')
-            : busy
-              ? 'Соединение…'
-              : null
+        : room?.status === 'error'
+          ? (room.error ?? 'Ошибка')
+          : busy
+            ? 'Соединение…'
+            : null
 
-  const shownError = friendlyError(error) || friendlyError(room?.status !== 'playing' ? room?.error : null)
+  const shownError = error || (room?.status !== 'playing' ? room?.error : null)
 
   return (
     <div className="durak-online-lobby">

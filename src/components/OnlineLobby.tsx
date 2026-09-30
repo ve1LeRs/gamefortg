@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { getDisplayName, loadSettings } from '../lib/settings'
 import { getWebApp } from '../lib/telegram'
 import type { BoardRoom, LobbyListing, PlayerInfo } from '../net/boardPeerRoom'
 
@@ -6,10 +7,11 @@ type Mode = 'menu' | 'host' | 'join'
 
 function playerFromTelegram(): PlayerInfo {
   const u = getWebApp()?.initDataUnsafe?.user
-  if (u) {
-    return { id: String(u.id), name: u.first_name || u.username || 'Игрок' }
-  }
-  return { id: `local-${Math.random().toString(36).slice(2, 8)}`, name: 'Игрок' }
+  const settings = loadSettings()
+  const tgName = u ? u.first_name || u.username : undefined
+  const name = getDisplayName(tgName, settings)
+  if (u) return { id: String(u.id), name }
+  return { id: `local-${Math.random().toString(36).slice(2, 8)}`, name }
 }
 
 export function useOnlineLobbyRoom<TState>(opts: {
@@ -44,6 +46,23 @@ export function useOnlineLobbyRoom<TState>(opts: {
     return () => {
       sessionRef.current += 1
       roomRef.current?.destroy()
+    }
+  }, [])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return
+      const r = roomRef.current
+      if (!r) return
+      if (r.status === 'reconnecting' || r.status === 'disconnected') {
+        if (!r.opponentLeft) r.retryConnection?.()
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', onVis)
+    return () => {
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('focus', onVis)
     }
   }, [])
 
@@ -310,6 +329,72 @@ export function OnlineWait({
           Отмена
         </button>
       </div>
+    </div>
+  )
+}
+
+export function OnlineConnectionIssue({
+  opponentLeft,
+  message,
+  onRetry,
+  onLeave,
+  onHaptic,
+}: {
+  opponentLeft: boolean
+  message: string
+  onRetry?: () => void
+  onLeave: () => void
+  onHaptic?: (t?: 'light' | 'medium' | 'success' | 'error') => void
+}) {
+  const [leftIn, setLeftIn] = useState(opponentLeft ? 5 : null)
+
+  useEffect(() => {
+    if (!opponentLeft) return
+    onHaptic?.('error')
+    setLeftIn(5)
+    const started = Date.now()
+    const tick = window.setInterval(() => {
+      const n = Math.max(0, 5 - Math.floor((Date.now() - started) / 1000))
+      setLeftIn(n)
+    }, 200)
+    const t = window.setTimeout(() => onLeave(), 5000)
+    return () => {
+      window.clearInterval(tick)
+      window.clearTimeout(t)
+    }
+  }, [opponentLeft, onLeave, onHaptic])
+
+  return (
+    <div className="online-conn-issue" role="status">
+      <p className="online-conn-issue-title">
+        {opponentLeft ? 'Соперник вышел из игры' : 'Нет связи'}
+      </p>
+      <p className="online-conn-issue-msg">{message}</p>
+      {opponentLeft ? (
+        <p className="online-conn-issue-hint">
+          {leftIn != null && leftIn > 0
+            ? `Возврат в лобби через ${leftIn}…`
+            : 'Возврат в лобби…'}
+        </p>
+      ) : (
+        <div className="online-conn-issue-actions">
+          {onRetry ? (
+            <button
+              type="button"
+              className="durak-btn durak-btn-primary"
+              onClick={() => {
+                onHaptic?.('medium')
+                onRetry()
+              }}
+            >
+              Переподключиться
+            </button>
+          ) : null}
+          <button type="button" className="durak-btn" onClick={onLeave}>
+            В лобби
+          </button>
+        </div>
+      )}
     </div>
   )
 }

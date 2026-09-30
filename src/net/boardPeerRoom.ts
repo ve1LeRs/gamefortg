@@ -11,18 +11,28 @@ export type LobbyListing = {
   ts: number
 }
 
-export type RoomStatus = 'connecting' | 'waiting' | 'playing' | 'disconnected' | 'error'
+export type RoomStatus =
+  | 'connecting'
+  | 'waiting'
+  | 'playing'
+  | 'reconnecting'
+  | 'disconnected'
+  | 'error'
 
 export type BoardRoom<TState> = {
   code: string
   role: 'host' | 'guest'
   status: RoomStatus
   error?: string
+  /** True when the peer sent bye / left on purpose. */
+  opponentLeft?: boolean
   you: PlayerInfo
   opponent: PlayerInfo | null
   state: TState | null
   sendAction: (action: unknown) => void
   destroy: () => void
+  /** Try to restore MQTT after a background drop. */
+  retryConnection?: () => void
 }
 
 type RoomHandlers<TState> = {
@@ -50,6 +60,8 @@ const CONNECT_MS = 10_000
 const HANDSHAKE_MS = 30_000
 const HELLO_RETRY_MS = 1_500
 const HOST_PING_MS = 4_000
+const RECONNECT_PERIOD_MS = 2_500
+const RECONNECT_GRACE_MS = 18_000
 const LOBBY_ANNOUNCE_MS = 3_000
 const LOBBY_STALE_MS = 9_000
 const LOBBY_SWEEP_MS = 2_000
@@ -119,7 +131,7 @@ function connectOne(url: string, clientId: string): Promise<MqttClient> {
         clientId,
         clean: true,
         connectTimeout: CONNECT_MS,
-        reconnectPeriod: 0,
+        reconnectPeriod: RECONNECT_PERIOD_MS,
         protocolVersion: 4,
       })
       const finish = (fn: () => void) => {
@@ -128,7 +140,6 @@ function connectOne(url: string, clientId: string): Promise<MqttClient> {
         window.clearTimeout(t)
         client.off('connect', onConnect)
         client.off('error', onError)
-        client.off('close', onClose)
         fn()
       }
       const t = window.setTimeout(() => {
@@ -141,20 +152,10 @@ function connectOne(url: string, clientId: string): Promise<MqttClient> {
       }, CONNECT_MS)
       const onConnect = () => finish(() => resolve(client))
       const onError = () => {
-        /* wait */
-      }
-      const onClose = () => {
-        if (settled) return
-        try {
-          client.end(true)
-        } catch {
-          /* noop */
-        }
-        finish(() => reject(new Error(`close:${url}`)))
+        /* wait for timeout / reconnect */
       }
       client.on('connect', onConnect)
       client.on('error', onError)
-      client.on('close', onClose)
     }, reject)
   })
 }
@@ -306,6 +307,22 @@ export async function hostBoardRoom<TState, TAction>(
   let pingTimer: number | null = null
   let lobbyTimer: number | null = null
   let listed = false
+  let reconnectGraceTimer: number | null = null
+  const topicSubscribed = new WeakSet<MqttClient>()
+
+  const clearReconnectGrace = () => {
+    if (reconnectGraceTimer != null) {
+      window.clearTimeout(reconnectGraceTimer)
+      reconnectGraceTimer = null
+    }
+  }
+
+  const ensureSubscribed = (client: MqttClient) => {
+    if (topicSubscribed.has(client)) return
+    client.subscribe(topic, { qos: 1 }, (err) => {
+      if (!err) topicSubscribed.add(client)
+    })
+  }
 
   const stopLobby = () => {
     if (lobbyTimer != null) {
@@ -322,6 +339,45 @@ export async function hostBoardRoom<TState, TAction>(
     listed = false
   }
 
+  let pushState = () => undefined
+
+  const markReconnecting = () => {
+    if (!alive) return
+    if (room.status !== 'playing' && room.status !== 'waiting' && room.status !== 'reconnecting') return
+    if (room.opponentLeft) return
+    room.status = 'reconnecting'
+    room.error = 'Восстанавливаем связь…'
+    emit(room, handlers)
+    clearReconnectGrace()
+    reconnectGraceTimer = window.setTimeout(() => {
+      if (!alive) return
+      if (clients.some((c) => c.connected)) return
+      room.status = 'disconnected'
+      room.error = 'Связь с сервером потеряна'
+      emit(room, handlers)
+    }, RECONNECT_GRACE_MS)
+  }
+
+  const onClientBack = (client: MqttClient) => {
+    if (!alive) return
+    ensureSubscribed(client)
+    if (!clients.includes(client)) clients.push(client)
+    clearReconnectGrace()
+    if (room.status === 'reconnecting' || room.status === 'disconnected') {
+      if (state && opponent) {
+        room.status = 'playing'
+        room.error = undefined
+        pushState()
+      } else {
+        room.status = 'waiting'
+        room.error = undefined
+        emit(room, handlers)
+      }
+    } else if (state && opponent) {
+      pushState()
+    }
+  }
+
   const room: BoardRoom<TState> = {
     code,
     role: 'host',
@@ -332,6 +388,7 @@ export async function hostBoardRoom<TState, TAction>(
     sendAction: () => undefined,
     destroy: () => {
       alive = false
+      clearReconnectGrace()
       if (pingTimer != null) window.clearInterval(pingTimer)
       stopLobby()
       try {
@@ -342,22 +399,36 @@ export async function hostBoardRoom<TState, TAction>(
       endAll(clients)
       clients = []
     },
+    retryConnection: () => {
+      if (!alive) return
+      for (const c of clients) {
+        try {
+          if (!c.connected) c.reconnect()
+          else onClientBack(c)
+        } catch {
+          /* noop */
+        }
+      }
+      markReconnecting()
+    },
   }
 
   emit(room, handlers)
 
-  const pushState = () => {
-    if (!alive || !state || !opponent || clients.length === 0) return
+  pushState = () => {
+    const live = clients.filter((c) => c.connected)
+    if (!alive || !state || !opponent || live.length === 0) return
     stopLobby()
     room.state = state
     room.status = 'playing'
+    room.error = undefined
     room.opponent = opponent
     emit(room, handlers)
-    publishAll(clients, topic, { type: 'state', role: 'host', state, opponent: you })
+    publishAll(live, topic, { type: 'state', role: 'host', state, opponent: you })
   }
 
   room.sendAction = (action) => {
-    if (!state || room.status !== 'playing') return
+    if (!state || (room.status !== 'playing' && room.status !== 'reconnecting')) return
     const next = net.applyAction(state, action as TAction, 'host')
     if (!next) return
     state = next
@@ -380,6 +451,7 @@ export async function hostBoardRoom<TState, TAction>(
 
   try {
     await subscribeAll(clients, topic)
+    for (const c of clients) topicSubscribed.add(c)
   } catch (e) {
     room.destroy()
     const message = e instanceof Error ? e.message : 'Не удалось открыть комнату'
@@ -398,6 +470,7 @@ export async function hostBoardRoom<TState, TAction>(
       }
       opponent = msg.player
       room.opponent = opponent
+      room.opponentLeft = false
       if (!state) state = net.createInitial()
       pushState()
       return
@@ -410,22 +483,21 @@ export async function hostBoardRoom<TState, TAction>(
       return
     }
     if (msg.type === 'bye' && msg.role === 'guest') {
+      clearReconnectGrace()
+      room.opponentLeft = true
       room.status = 'disconnected'
-      room.error = 'Соперник отключился'
+      room.error = 'Соперник вышел из игры'
       emit(room, handlers)
     }
   }
 
   for (const client of clients) {
     client.on('message', onBus)
+    client.on('connect', () => onClientBack(client))
+    client.on('reconnect', () => onClientBack(client))
     client.on('close', () => {
       if (!alive) return
-      clients = clients.filter((c) => c !== client && c.connected)
-      if (clients.length === 0 && (room.status === 'playing' || room.status === 'waiting')) {
-        room.status = 'disconnected'
-        room.error = 'Связь с сервером потеряна'
-        emit(room, handlers)
-      }
+      if (!clients.some((c) => c.connected)) markReconnecting()
     })
   }
 
@@ -435,8 +507,15 @@ export async function hostBoardRoom<TState, TAction>(
   listed = true
   announceLobby(clients, game, code, you)
   pingTimer = window.setInterval(() => {
-    if (!alive || room.status !== 'waiting') return
-    publishAll(clients, topic, { type: 'ping', role: 'host' })
+    if (!alive) return
+    if (room.status === 'waiting') {
+      publishAll(clients, topic, { type: 'ping', role: 'host' })
+      return
+    }
+    if (room.status === 'playing' || room.status === 'reconnecting') {
+      publishAll(clients, topic, { type: 'ping', role: 'host' })
+      if (state && opponent) pushState()
+    }
   }, HOST_PING_MS)
   lobbyTimer = window.setInterval(() => {
     if (!alive || room.status !== 'waiting') return
@@ -458,6 +537,59 @@ export async function joinBoardRoom<TState>(
   let alive = true
   let helloTimer: number | null = null
   let active: MqttClient[] = []
+  let reconnectGraceTimer: number | null = null
+  const topicSubscribed = new WeakSet<MqttClient>()
+
+  const clearReconnectGrace = () => {
+    if (reconnectGraceTimer != null) {
+      window.clearTimeout(reconnectGraceTimer)
+      reconnectGraceTimer = null
+    }
+  }
+
+  const ensureSubscribed = (client: MqttClient) => {
+    if (topicSubscribed.has(client)) return
+    client.subscribe(topic, { qos: 1 }, (err) => {
+      if (!err) topicSubscribed.add(client)
+    })
+  }
+
+  const markReconnecting = () => {
+    if (!alive) return
+    if (room.status !== 'playing' && room.status !== 'waiting' && room.status !== 'reconnecting') return
+    if (room.opponentLeft) return
+    room.status = 'reconnecting'
+    room.error = 'Восстанавливаем связь…'
+    emit(room, handlers)
+    clearReconnectGrace()
+    reconnectGraceTimer = window.setTimeout(() => {
+      if (!alive) return
+      if (clients.some((c) => c.connected)) return
+      room.status = 'disconnected'
+      room.error = 'Связь с сервером потеряна'
+      emit(room, handlers)
+    }, RECONNECT_GRACE_MS)
+  }
+
+  const sendHello = () => {
+    if (!alive) return
+    if (room.status === 'playing') return
+    publishAll(active.length ? active : clients, topic, { type: 'hello', role: 'guest', player: you })
+  }
+
+  const onClientBack = (client: MqttClient) => {
+    if (!alive) return
+    ensureSubscribed(client)
+    if (!clients.includes(client)) clients.push(client)
+    active = clients.filter((c) => c.connected)
+    clearReconnectGrace()
+    if (room.status === 'reconnecting' || room.status === 'disconnected') {
+      room.status = room.state ? 'playing' : 'waiting'
+      room.error = undefined
+      emit(room, handlers)
+    }
+    sendHello()
+  }
 
   const room: BoardRoom<TState> = {
     code: clean,
@@ -471,6 +603,7 @@ export async function joinBoardRoom<TState>(
     },
     destroy: () => {
       alive = false
+      clearReconnectGrace()
       if (helloTimer != null) window.clearInterval(helloTimer)
       try {
         publishAll(active.length ? active : clients, topic, { type: 'bye', role: 'guest' })
@@ -480,6 +613,19 @@ export async function joinBoardRoom<TState>(
       endAll(clients)
       clients = []
       active = []
+    },
+    retryConnection: () => {
+      if (!alive) return
+      for (const c of clients) {
+        try {
+          if (!c.connected) c.reconnect()
+          else onClientBack(c)
+        } catch {
+          /* noop */
+        }
+      }
+      markReconnecting()
+      sendHello()
     },
   }
 
@@ -502,6 +648,7 @@ export async function joinBoardRoom<TState>(
 
   try {
     await subscribeAll(clients, topic)
+    for (const c of clients) topicSubscribed.add(c)
   } catch (e) {
     room.destroy()
     const message = e instanceof Error ? e.message : 'Не удалось подключиться'
@@ -511,11 +658,6 @@ export async function joinBoardRoom<TState>(
 
   room.status = 'waiting'
   emit(room, handlers)
-
-  const sendHello = () => {
-    if (!alive || room.status === 'playing') return
-    publishAll(clients, topic, { type: 'hello', role: 'guest', player: you })
-  }
 
   await new Promise<void>((resolve, reject) => {
     let settled = false
@@ -536,6 +678,7 @@ export async function joinBoardRoom<TState>(
       fn()
     }
 
+    // Single listener for handshake + ongoing state updates (no duplicate handlers).
     const onBus = (_topic: string, payload: Buffer | string) => {
       if (!alive) return
       const msg = parseMsg(payload.toString())
@@ -544,6 +687,8 @@ export async function joinBoardRoom<TState>(
         room.state = msg.state as TState
         room.opponent = msg.opponent
         room.status = 'playing'
+        room.error = undefined
+        room.opponentLeft = false
         emit(room, handlers)
         settle(() => resolve())
         return
@@ -553,9 +698,11 @@ export async function joinBoardRoom<TState>(
         return
       }
       if (msg.type === 'bye' && msg.role === 'host') {
-        if (room.status === 'playing') {
+        clearReconnectGrace()
+        room.opponentLeft = true
+        if (room.status === 'playing' || room.status === 'reconnecting') {
           room.status = 'disconnected'
-          room.error = 'Связь с хостом потеряна'
+          room.error = 'Соперник вышел из игры'
           emit(room, handlers)
           return
         }
@@ -565,18 +712,17 @@ export async function joinBoardRoom<TState>(
 
     for (const client of clients) {
       client.on('message', onBus)
+      client.on('connect', () => onClientBack(client))
+      client.on('reconnect', () => onClientBack(client))
       client.on('close', () => {
         if (!alive) return
-        clients = clients.filter((c) => c !== client && c.connected)
-        active = clients
-        if (clients.length === 0) {
-          if (room.status === 'playing') {
-            room.status = 'disconnected'
-            room.error = 'Связь с сервером потеряна'
-            emit(room, handlers)
+        active = clients.filter((c) => c.connected)
+        if (active.length === 0) {
+          if (room.status === 'playing' || room.status === 'reconnecting') {
+            markReconnecting()
             return
           }
-          settle(() => reject(new Error('Соединение прервалось')))
+          if (!settled) settle(() => reject(new Error('Соединение прервалось')))
         }
       })
     }
@@ -589,26 +735,6 @@ export async function joinBoardRoom<TState>(
     failRoom(room, handlers, message)
     throw new Error(message)
   })
-
-  // Keep applying host state updates after handshake
-  for (const client of clients) {
-    client.on('message', (_t, payload) => {
-      if (!alive) return
-      const msg = parseMsg(payload.toString())
-      if (!msg) return
-      if (msg.type === 'state' && msg.role === 'host') {
-        room.state = msg.state as TState
-        room.opponent = msg.opponent
-        room.status = 'playing'
-        emit(room, handlers)
-      }
-      if (msg.type === 'bye' && msg.role === 'host' && room.status === 'playing') {
-        room.status = 'disconnected'
-        room.error = 'Связь с хостом потеряна'
-        emit(room, handlers)
-      }
-    })
-  }
 
   return room
 }

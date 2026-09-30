@@ -1,5 +1,10 @@
 import { useMemo, useState } from 'react'
-import { OnlineLobbyMenu, OnlineWait, useOnlineLobbyRoom } from '../../components/OnlineLobby'
+import {
+  OnlineConnectionIssue,
+  OnlineLobbyMenu,
+  OnlineWait,
+  useOnlineLobbyRoom,
+} from '../../components/OnlineLobby'
 import {
   type ChessAction,
   type ChessNetState,
@@ -175,6 +180,28 @@ export function ChessOnline({
         role={lobby.room.role}
         opponentName={lobby.room.opponent?.name ?? 'Соперник'}
         onMove={(action) => lobby.room?.sendAction(action)}
+        onLeave={lobby.leave}
+        onHaptic={onHaptic}
+      />
+    )
+  }
+
+  if (lobby.room?.status === 'reconnecting' || lobby.room?.status === 'disconnected') {
+    const opponentLeft = !!lobby.room.opponentLeft
+    return (
+      <OnlineConnectionIssue
+        opponentLeft={opponentLeft}
+        message={
+          lobby.room.error ||
+          (opponentLeft ? 'Соперник вышел из игры' : 'Связь с сервером потеряна')
+        }
+        onRetry={
+          opponentLeft
+            ? undefined
+            : () => {
+                lobby.room?.retryConnection?.()
+              }
+        }
         onLeave={lobby.leave}
         onHaptic={onHaptic}
       />

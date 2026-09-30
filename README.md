@@ -56,7 +56,7 @@ npm run build
 https://ve1lers.github.io/gamefortg/play/?v=mqtt1
 ```
 
-Старый URL `.../gamefortg/` тоже работает, но Telegram часто кэширует PeerJS-оболочку.
+Старый URL `.../gamefortg/` тоже работает, но Telegram часто кэширует старую оболочку — лучше новый путь с `?v=`.
 4. Аватар: `public/bot-avatar.png`
 5. Автонастройка через API (нужен токен бота) — ставит имя Playfort, английские описания, меню «Играть»:
 
